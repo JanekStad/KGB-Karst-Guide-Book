@@ -51,6 +51,9 @@ dist-ssr/
 *~
 .DS_Store
 
+# Cursor
+.cursor/
+
 # Environment variables
 .env
 .env.local
