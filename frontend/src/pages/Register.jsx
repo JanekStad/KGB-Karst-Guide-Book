@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
@@ -11,7 +11,24 @@ const Register = () => {
     password_confirm: '',
     first_name: '',
     last_name: '',
+    height: '',
+    ape_index: '',
   });
+
+  const HEIGHT_CHOICES = [
+    { value: '', label: 'Select height (optional)' },
+    { value: '<150', label: '<150 cm' },
+    { value: '150-155', label: '150-155 cm' },
+    { value: '155-160', label: '155-160 cm' },
+    { value: '160-165', label: '160-165 cm' },
+    { value: '165-170', label: '165-170 cm' },
+    { value: '170-175', label: '170-175 cm' },
+    { value: '175-180', label: '175-180 cm' },
+    { value: '180-185', label: '180-185 cm' },
+    { value: '185-190', label: '185-190 cm' },
+    { value: '190-195', label: '190-195 cm' },
+    { value: '>195', label: '>195 cm' },
+  ];
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -143,6 +160,43 @@ const Register = () => {
               required
             />
           </div>
+          
+          <div className="form-section-divider">
+            <h3>Physical Stats (Optional)</h3>
+            <p className="section-description">Help improve statistics by sharing your height and ape index</p>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="height">Height</label>
+            <select
+              id="height"
+              name="height"
+              value={formData.height}
+              onChange={handleChange}
+            >
+              {HEIGHT_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+            <small>Your height helps us show height distribution statistics</small>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="ape_index">Ape Index (Optional)</label>
+            <input
+              type="number"
+              id="ape_index"
+              name="ape_index"
+              value={formData.ape_index}
+              onChange={handleChange}
+              step="0.1"
+              placeholder="e.g., 2.5 (wingspan - height in cm)"
+            />
+            <small>Ape index = wingspan - height (in cm). Positive means longer wingspan.</small>
+          </div>
+          
           <button type="submit" disabled={loading} className="btn btn-primary">
             {loading ? 'Registering...' : 'Register'}
           </button>

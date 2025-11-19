@@ -10,14 +10,14 @@ class TickSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Tick
-        fields = ['id', 'user', 'problem', 'date', 'notes', 'created_at']
+        fields = ['id', 'user', 'problem', 'date', 'notes', 'suggested_grade', 'created_at']
         read_only_fields = ['user', 'created_at']
 
 
 class TickCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tick
-        fields = ['problem', 'date', 'notes']
+        fields = ['problem', 'date', 'notes', 'suggested_grade']
 
 
 class ListEntrySerializer(serializers.ModelSerializer):

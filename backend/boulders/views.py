@@ -109,6 +109,55 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    @action(detail=True, methods=['get'])
+    def statistics(self, request, pk=None):
+        """Get statistics for a problem: height distribution and grade voting"""
+        from django.db.models import Count, Q
+        from lists.models import Tick
+        from users.models import UserProfile
+
+        problem = self.get_object()
+        ticks = Tick.objects.filter(problem=problem).select_related('user__profile')
+
+        # Height distribution
+        height_stats = {}
+        for height_choice in UserProfile.HEIGHT_CHOICES:
+            height_value = height_choice[0]
+            count = ticks.filter(
+                user__profile__height=height_value
+            ).count()
+            if count > 0:
+                height_stats[height_value] = {
+                    'label': height_choice[1],
+                    'count': count
+                }
+
+        # Grade voting distribution
+        grade_stats = {}
+        for grade_choice in Tick.GRADE_CHOICES:
+            grade_value = grade_choice[0]
+            count = ticks.filter(
+                suggested_grade=grade_value
+            ).exclude(suggested_grade__isnull=True).exclude(suggested_grade='').count()
+            if count > 0:
+                grade_stats[grade_value] = {
+                    'label': grade_choice[1],
+                    'count': count
+                }
+
+        # Total ticks count
+        total_ticks = ticks.count()
+        ticks_with_height = ticks.filter(user__profile__height__isnull=False).exclude(user__profile__height='').count()
+        ticks_with_grade_vote = ticks.exclude(suggested_grade__isnull=True).exclude(suggested_grade='').count()
+
+        return Response({
+            'total_ticks': total_ticks,
+            'height_distribution': height_stats,
+            'height_data_count': ticks_with_height,
+            'grade_voting': grade_stats,
+            'grade_votes_count': ticks_with_grade_vote,
+        })
+
 
 class BoulderImageViewSet(viewsets.ModelViewSet):
     queryset = BoulderImage.objects.all()

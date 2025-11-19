@@ -146,6 +146,16 @@ class BoulderProblem(models.Model):
     name = models.CharField(max_length=200)
     grade = models.CharField(max_length=10, choices=GRADE_CHOICES)
     description = models.TextField(blank=True)
+    external_links = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of external links with 'label' and 'url' fields. Example: [{'label': '8a.nu', 'url': 'https://...'}]"
+    )
+    video_links = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of video links (YouTube, Vimeo, etc.) with 'label' and 'url' fields. Example: [{'label': 'Send Video', 'url': 'https://youtube.com/...'}]"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(

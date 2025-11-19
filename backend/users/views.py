@@ -29,6 +29,27 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            
+            # Update profile if height or ape_index provided
+            if hasattr(user, 'profile'):
+                profile_data = {}
+                if 'height' in request.data:
+                    profile_data['height'] = request.data['height']
+                if 'ape_index' in request.data and request.data['ape_index']:
+                    try:
+                        profile_data['ape_index'] = float(request.data['ape_index'])
+                    except (ValueError, TypeError):
+                        pass
+                
+                if profile_data:
+                    profile_serializer = UserProfileSerializer(
+                        user.profile,
+                        data=profile_data,
+                        partial=True
+                    )
+                    if profile_serializer.is_valid():
+                        profile_serializer.save()
+            
             # Create token for the user
             token, created = Token.objects.get_or_create(user=user)
             return Response(
@@ -81,3 +102,18 @@ class UserProfileViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get', 'patch'])
+    def me(self, request):
+        """Get or update current user's profile"""
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        if request.method == 'GET':
+            serializer = UserProfileSerializer(profile)
+            return Response(serializer.data)
+        elif request.method == 'PATCH':
+            serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

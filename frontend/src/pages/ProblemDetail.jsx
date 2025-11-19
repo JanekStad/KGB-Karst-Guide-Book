@@ -14,10 +14,18 @@ const ProblemDetail = () => {
   const [error, setError] = useState(null);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [statistics, setStatistics] = useState(null);
+  const [showTickModal, setShowTickModal] = useState(false);
+  const [tickFormData, setTickFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    notes: '',
+    suggested_grade: '',
+  });
 
   useEffect(() => {
     fetchProblem();
     fetchComments();
+    fetchStatistics();
   }, [id]);
 
   const checkTick = useCallback(async () => {
@@ -98,15 +106,26 @@ const ProblemDetail = () => {
     }
   };
 
+  const fetchStatistics = async () => {
+    try {
+      console.log('📡 Fetching statistics for problem ID:', id);
+      const response = await problemsAPI.getStatistics(id);
+      console.log('✅ Statistics fetched successfully:', response.data);
+      setStatistics(response.data);
+    } catch (err) {
+      console.error('❌ Failed to fetch statistics:', err);
+    }
+  };
+
   const handleTick = async () => {
     if (!isAuthenticated) {
       alert('Please login to tick problems');
       return;
     }
 
-    try {
-      if (isTicked) {
-        // Find and delete the tick
+    if (isTicked) {
+      // Delete the tick
+      try {
         const response = await ticksAPI.list();
         const ticks = response.data.results || response.data;
         const tick = ticks.find((t) => {
@@ -118,31 +137,47 @@ const ProblemDetail = () => {
           console.log('✅ Tick removed');
         }
         setIsTicked(false);
-      } else {
-        await ticksAPI.create({
-          problem: parseInt(id),
-          date: new Date().toISOString().split('T')[0],
-        });
-        console.log('✅ Tick created');
-        // Re-check tick status to ensure it's properly set
-        await checkTick();
+        fetchStatistics();
+      } catch (err) {
+        console.error('❌ Failed to remove tick:', err);
+        alert('Failed to remove tick. Please try again.');
       }
-    } catch (err) {
-      console.error('❌ Failed to toggle tick:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
+    } else {
+      // Show modal to add tick with grade suggestion
+      setShowTickModal(true);
+    }
+  };
+
+  const handleTickSubmit = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      alert('Please login to tick problems');
+      return;
+    }
+
+    try {
+      const payload = {
+        problem: parseInt(id),
+        date: tickFormData.date,
+        notes: tickFormData.notes,
+      };
+      if (tickFormData.suggested_grade) {
+        payload.suggested_grade = tickFormData.suggested_grade;
+      }
       
-      // If it's a duplicate error, refresh the tick status
-      if (err.response?.status === 400 || err.response?.status === 409) {
-        console.log('🔄 Refreshing tick status due to error...');
-        await checkTick();
-      } else {
-        alert('Failed to update tick. Please try again.');
-      }
+      await ticksAPI.create(payload);
+      console.log('✅ Tick created');
+      setShowTickModal(false);
+      setTickFormData({
+        date: new Date().toISOString().split('T')[0],
+        notes: '',
+        suggested_grade: '',
+      });
+      await checkTick();
+      fetchStatistics();
+    } catch (err) {
+      console.error('❌ Failed to create tick:', err);
+      alert('Failed to create tick. Please try again.');
     }
   };
 
@@ -169,6 +204,48 @@ const ProblemDetail = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Helper function to extract video ID and create embed
+  const getVideoEmbed = (url) => {
+    if (!url) return null;
+
+    // YouTube
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const youtubeMatch = url.match(youtubeRegex);
+    if (youtubeMatch) {
+      const videoId = youtubeMatch[1];
+      return (
+        <iframe
+          width="100%"
+          height="400"
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      );
+    }
+
+    // Vimeo
+    const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+    const vimeoMatch = url.match(vimeoRegex);
+    if (vimeoMatch) {
+      const videoId = vimeoMatch[1];
+      return (
+        <iframe
+          src={`https://player.vimeo.com/video/${videoId}`}
+          width="100%"
+          height="400"
+          frameBorder="0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      );
+    }
+
+    return null;
   };
 
   if (loading) {
@@ -239,13 +316,161 @@ const ProblemDetail = () => {
           <div className="images-grid">
             {problem.images.map((image) => (
               <div key={image.id} className="image-item">
-                <img src={image.image} alt={image.caption || problem.name} />
+                <img 
+                  src={image.image} 
+                  alt={image.caption || problem.name}
+                  onClick={() => window.open(image.image, '_blank')}
+                  style={{ cursor: 'pointer' }}
+                />
                 {image.caption && (
                   <p className="image-caption">{image.caption}</p>
                 )}
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {problem.video_links && problem.video_links.length > 0 && (
+        <div className="videos-section">
+          <h2>Videos</h2>
+          <div className="videos-list">
+            {problem.video_links.map((video, index) => (
+              <div key={index} className="video-item">
+                {getVideoEmbed(video.url) ? (
+                  <div className="video-embed">
+                    {getVideoEmbed(video.url)}
+                  </div>
+                ) : (
+                  <a 
+                    href={video.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="video-link"
+                  >
+                    <div className="video-link-content">
+                      <span className="video-icon">▶️</span>
+                      <div>
+                        <strong>{video.label || 'Watch Video'}</strong>
+                        <span className="video-url">{video.url}</span>
+                      </div>
+                    </div>
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {problem.external_links && problem.external_links.length > 0 && (
+        <div className="external-links-section">
+          <h2>External Links</h2>
+          <div className="external-links-list">
+            {problem.external_links.map((link, index) => (
+              <a
+                key={index}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="external-link-item"
+              >
+                <span className="link-icon">🔗</span>
+                <div className="link-content">
+                  <strong>{link.label || 'External Link'}</strong>
+                  <span className="link-url">
+                    {(() => {
+                      try {
+                        return new URL(link.url).hostname;
+                      } catch {
+                        return link.url;
+                      }
+                    })()}
+                  </span>
+                </div>
+                <span className="link-arrow">→</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {statistics && (
+        <div className="statistics-section">
+          <h2>Statistics</h2>
+          
+          {statistics.height_data_count > 0 && (
+            <div className="stat-group">
+              <h3>Height Distribution</h3>
+              <p className="stat-description">
+                {statistics.height_data_count} of {statistics.total_ticks} climbers provided height data
+              </p>
+              <div className="height-chart">
+                {Object.entries(statistics.height_distribution)
+                  .sort((a, b) => {
+                    // Sort by height category
+                    const order = ['<150', '150-155', '155-160', '160-165', '165-170', '170-175', '175-180', '180-185', '185-190', '190-195', '>195'];
+                    return order.indexOf(a[0]) - order.indexOf(b[0]);
+                  })
+                  .map(([height, data]) => {
+                    const percentage = (data.count / statistics.height_data_count) * 100;
+                    return (
+                      <div key={height} className="height-bar-item">
+                        <div className="height-label">{data.label}</div>
+                        <div className="height-bar-container">
+                          <div 
+                            className="height-bar" 
+                            style={{ width: `${percentage}%` }}
+                            title={`${data.count} climber${data.count !== 1 ? 's' : ''}`}
+                          >
+                            <span className="height-count">{data.count}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {statistics.grade_votes_count > 0 && (
+            <div className="stat-group">
+              <h3>Grade Voting</h3>
+              <p className="stat-description">
+                {statistics.grade_votes_count} of {statistics.total_ticks} climbers voted on the grade
+              </p>
+              <div className="grade-voting-chart">
+                {Object.entries(statistics.grade_voting)
+                  .sort((a, b) => {
+                    // Sort by grade difficulty
+                    const gradeOrder = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
+                    return gradeOrder.indexOf(a[0]) - gradeOrder.indexOf(b[0]);
+                  })
+                  .map(([grade, data]) => {
+                    const percentage = (data.count / statistics.grade_votes_count) * 100;
+                    return (
+                      <div key={grade} className="grade-vote-item">
+                        <div className="grade-vote-label">{data.label}</div>
+                        <div className="grade-vote-bar-container">
+                          <div 
+                            className="grade-vote-bar" 
+                            style={{ width: `${percentage}%` }}
+                            title={`${data.count} vote${data.count !== 1 ? 's' : ''}`}
+                          >
+                            <span className="grade-vote-count">{data.count}</span>
+                          </div>
+                        </div>
+                        <div className="grade-vote-percentage">{percentage.toFixed(1)}%</div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {statistics.total_ticks === 0 && (
+            <p className="no-statistics">No statistics available yet. Be the first to tick this problem!</p>
+          )}
         </div>
       )}
 
@@ -292,6 +517,66 @@ const ProblemDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Tick Modal */}
+      {showTickModal && (
+        <div className="modal-overlay" onClick={() => setShowTickModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Add Tick</h2>
+              <button className="modal-close" onClick={() => setShowTickModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleTickSubmit} className="tick-form">
+              <div className="form-group">
+                <label htmlFor="tick-date">Date:</label>
+                <input
+                  type="date"
+                  id="tick-date"
+                  value={tickFormData.date}
+                  onChange={(e) => setTickFormData({ ...tickFormData, date: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="suggested-grade">Suggested Grade (Optional):</label>
+                <select
+                  id="suggested-grade"
+                  value={tickFormData.suggested_grade}
+                  onChange={(e) => setTickFormData({ ...tickFormData, suggested_grade: e.target.value })}
+                >
+                  <option value="">No grade suggestion</option>
+                  {['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'].map(
+                    (grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    )
+                  )}
+                </select>
+                <small>Help the community by suggesting what grade you think this problem is</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="tick-notes">Notes (Optional):</label>
+                <textarea
+                  id="tick-notes"
+                  value={tickFormData.notes}
+                  onChange={(e) => setTickFormData({ ...tickFormData, notes: e.target.value })}
+                  rows="3"
+                  placeholder="Add any notes about your send..."
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowTickModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Add Tick
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

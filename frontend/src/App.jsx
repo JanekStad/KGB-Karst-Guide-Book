@@ -13,6 +13,7 @@ import MyLists from './pages/MyLists';
 import MyTicks from './pages/MyTicks';
 import ProblemDetail from './pages/ProblemDetail';
 import Problems from './pages/Problems';
+import Profile from './pages/Profile';
 import Register from './pages/Register';
 
 function App() {
@@ -35,10 +36,11 @@ function App() {
               <Route path="/problems" element={<Problems />} />
               <Route path="/problems/add" element={<AddProblem />} />
               <Route path="/problems/:id" element={<ProblemDetail />} />
-              <Route path="/my-lists" element={<MyLists />} />
-              <Route path="/my-ticks" element={<MyTicks />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+                  <Route path="/my-lists" element={<MyLists />} />
+                  <Route path="/my-ticks" element={<MyTicks />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
                 </Routes>
               </ErrorBoundary>
             </main>

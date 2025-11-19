@@ -4,10 +4,23 @@ from .models import Tick, UserList, ListEntry
 
 @admin.register(Tick)
 class TickAdmin(admin.ModelAdmin):
-    list_display = ['user', 'problem', 'date', 'created_at']
-    list_filter = ['date', 'created_at']
+    list_display = ['user', 'problem', 'date', 'suggested_grade', 'created_at']
+    list_filter = ['date', 'suggested_grade', 'created_at']
     search_fields = ['user__username', 'problem__name']
     readonly_fields = ['created_at']
+    fieldsets = (
+        ('Tick Information', {
+            'fields': ('user', 'problem', 'date', 'notes')
+        }),
+        ('Grade Voting', {
+            'fields': ('suggested_grade',),
+            'description': 'User\'s suggested grade for this problem (optional)'
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(UserList)

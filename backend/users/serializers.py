@@ -8,7 +8,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
-        fields = ['bio', 'avatar', 'location', 'tick_count', 'created_at', 'updated_at']
+        fields = ['bio', 'avatar', 'location', 'height', 'ape_index', 'tick_count', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 

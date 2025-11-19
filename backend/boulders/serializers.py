@@ -96,7 +96,7 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
         model = BoulderProblem
         fields = [
             'id', 'crag', 'crag_detail', 'wall', 'wall_detail', 'name', 'grade', 'description',
-            'images', 'tick_count', 'created_at', 'updated_at', 'created_by'
+            'images', 'external_links', 'video_links', 'tick_count', 'created_at', 'updated_at', 'created_by'
         ]
         read_only_fields = ['created_at', 'updated_at', 'created_by']
 

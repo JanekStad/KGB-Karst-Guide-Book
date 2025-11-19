@@ -36,6 +36,18 @@ class BoulderProblemAdmin(admin.ModelAdmin):
     list_filter = ['crag', 'wall', 'grade', 'created_at']
     search_fields = ['name', 'crag__name', 'wall__name', 'description']
     readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'crag', 'wall', 'grade', 'description')
+        }),
+        ('Media & Links', {
+            'fields': ('external_links', 'video_links'),
+            'description': 'External links: [{"label": "8a.nu", "url": "https://..."}]. Video links: [{"label": "Send Video", "url": "https://youtube.com/..."}]'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at')
+        }),
+    )
 
 
 @admin.register(BoulderImage)

@@ -5,6 +5,14 @@ from boulders.models import BoulderProblem
 
 class Tick(models.Model):
     """Represents a user ticking (completing) a boulder problem"""
+    GRADE_CHOICES = [
+        ('3', '3'), ('3+', '3+'), ('4', '4'), ('4+', '4+'), ('5', '5'), ('5+', '5+'),
+        ('6A', '6A'), ('6A+', '6A+'), ('6B', '6B'), ('6B+', '6B+'), ('6C', '6C'), ('6C+', '6C+'),
+        ('7A', '7A'), ('7A+', '7A+'), ('7B', '7B'), ('7B+', '7B+'), ('7C', '7C'), ('7C+', '7C+'),
+        ('8A', '8A'), ('8A+', '8A+'), ('8B', '8B'), ('8B+', '8B+'), ('8C', '8C'), ('8C+', '8C+'),
+        ('9A', '9A'), ('9A+', '9A+'),
+    ]
+
     user = models.ForeignKey(
         User, 
         on_delete=models.CASCADE, 
@@ -17,6 +25,13 @@ class Tick(models.Model):
     )
     date = models.DateField(help_text="Date when the problem was completed")
     notes = models.TextField(blank=True, max_length=500)
+    suggested_grade = models.CharField(
+        max_length=10,
+        choices=GRADE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="User's suggested grade for this problem (optional)"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

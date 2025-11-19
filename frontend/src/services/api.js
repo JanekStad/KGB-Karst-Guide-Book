@@ -105,6 +105,7 @@ export const problemsAPI = {
   create: (data) => api.post('/problems/', data),
   update: (id, data) => api.put(`/problems/${id}/`, data),
   delete: (id) => api.delete(`/problems/${id}/`),
+  getStatistics: (id) => api.get(`/problems/${id}/statistics/`),
 };
 
 // Images API
@@ -144,6 +145,13 @@ export const listsAPI = {
   removeProblem: (listId, problemId) => api.delete(`/lists/${listId}/remove_problem/`, {
     data: { problem: problemId },
   }),
+};
+
+// Users API
+export const usersAPI = {
+  getProfile: () => api.get('/users/me/'),
+  getMyProfile: () => api.get('/profiles/me/'),
+  updateProfile: (data) => api.patch('/profiles/me/', data),
 };
 
 export default api;
