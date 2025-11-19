@@ -7,15 +7,16 @@ from .models import UserProfile
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
-    verbose_name_plural = 'Profile'
+    verbose_name_plural = "Profile"
     fieldsets = (
-        ('Basic Info', {
-            'fields': ('bio', 'avatar', 'location')
-        }),
-        ('Physical Stats', {
-            'fields': ('height', 'ape_index'),
-            'description': 'Height category and ape index (wingspan - height) in cm'
-        }),
+        ("Basic Info", {"fields": ("bio", "avatar", "location")}),
+        (
+            "Physical Stats",
+            {
+                "fields": ("height", "ape_index"),
+                "description": "Height category and ape index (wingspan - height) in cm",
+            },
+        ),
     )
 
 
@@ -30,20 +31,20 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'height', 'ape_index', 'location', 'created_at']
-    search_fields = ['user__username', 'user__email', 'location', 'bio']
+    list_display = ["user", "height", "ape_index", "location", "created_at"]
+    search_fields = ["user__username", "user__email", "location", "bio"]
     fieldsets = (
-        ('User Information', {
-            'fields': ('user', 'bio', 'avatar', 'location')
-        }),
-        ('Physical Stats', {
-            'fields': ('height', 'ape_index'),
-            'description': 'Height category and ape index (wingspan - height) in cm'
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
+        ("User Information", {"fields": ("user", "bio", "avatar", "location")}),
+        (
+            "Physical Stats",
+            {
+                "fields": ("height", "ape_index"),
+                "description": "Height category and ape index (wingspan - height) in cm",
+            },
+        ),
+        (
+            "Timestamps",
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
     )
-    readonly_fields = ['created_at', 'updated_at']
-
+    readonly_fields = ["created_at", "updated_at"]

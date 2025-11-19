@@ -6,23 +6,23 @@ import django.db.models.deletion
 
 def create_default_crag_and_assign_boulders(apps, schema_editor):
     """Create a default crag and assign all existing boulders to it"""
-    Crag = apps.get_model('boulders', 'Crag')
-    Boulder = apps.get_model('boulders', 'Boulder')
-    
+    Crag = apps.get_model("boulders", "Crag")
+    Boulder = apps.get_model("boulders", "Boulder")
+
     # Check if there are any boulders without a crag
     boulders_without_crag = Boulder.objects.filter(crag__isnull=True)
-    
+
     if boulders_without_crag.exists():
         # Create a default crag
         default_crag, created = Crag.objects.get_or_create(
-            name='Default Crag',
+            name="Default Crag",
             defaults={
-                'latitude': '0.0',
-                'longitude': '0.0',
-                'description': 'Default crag created during migration'
-            }
+                "latitude": "0.0",
+                "longitude": "0.0",
+                "description": "Default crag created during migration",
+            },
         )
-        
+
         # Assign all boulders to the default crag
         boulders_without_crag.update(crag=default_crag)
 
@@ -30,18 +30,18 @@ def create_default_crag_and_assign_boulders(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('boulders', '0002_alter_boulder_options_alter_boulder_latitude_and_more'),
+        ("boulders", "0002_alter_boulder_options_alter_boulder_latitude_and_more"),
     ]
 
     operations = [
         migrations.RunPython(create_default_crag_and_assign_boulders),
         migrations.AlterField(
-            model_name='boulder',
-            name='crag',
+            model_name="boulder",
+            name="crag",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='boulders',
-                to='boulders.crag'
+                related_name="boulders",
+                to="boulders.crag",
             ),
         ),
     ]

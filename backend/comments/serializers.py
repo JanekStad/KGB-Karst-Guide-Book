@@ -5,11 +5,19 @@ from users.serializers import UserSerializer
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    
+
     class Meta:
         model = Comment
-        fields = ['id', 'problem', 'user', 'content', 'created_at', 'updated_at', 'edited']
-        read_only_fields = ['user', 'created_at', 'updated_at', 'edited']
+        fields = [
+            "id",
+            "problem",
+            "user",
+            "content",
+            "created_at",
+            "updated_at",
+            "edited",
+        ]
+        read_only_fields = ["user", "created_at", "updated_at", "edited"]
 
     def update(self, instance, validated_data):
         instance.edited = True
@@ -19,5 +27,4 @@ class CommentSerializer(serializers.ModelSerializer):
 class CommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ['problem', 'content']
-
+        fields = ["problem", "content"]

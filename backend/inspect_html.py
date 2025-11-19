@@ -2,22 +2,24 @@
 Helper script to inspect HTML structure of a webpage.
 Use this to understand the structure before writing your scraper.
 """
+
 import requests
 from bs4 import BeautifulSoup
+
 
 def inspect_html(url: str):
     """Fetch and display the HTML structure of a webpage."""
     response = requests.get(url)
     response.raise_for_status()
-    
+
     soup = BeautifulSoup(response.text, "html.parser")
-    
+
     print("=" * 80)
     print("METHOD 1: Find all tables and their classes")
     print("=" * 80)
     tables = soup.find_all("table")
     print(f"\nFound {len(tables)} table(s):\n")
-    
+
     for i, table in enumerate(tables, 1):
         classes = table.get("class", [])
         print(f"Table {i}:")
@@ -25,7 +27,7 @@ def inspect_html(url: str):
         print(f"  ID: {table.get('id', 'None')}")
         print(f"  First 200 chars of content: {str(table)[:200]}...")
         print()
-    
+
     print("=" * 80)
     print("METHOD 2: Check if table with class 'list' exists")
     print("=" * 80)
@@ -48,7 +50,7 @@ def inspect_html(url: str):
             classes = table.get("class", [])
             if classes and any("list" in str(c).lower() for c in classes):
                 print(f"  Found table with classes: {classes}")
-    
+
     print("\n" + "=" * 80)
     print("METHOD 3: Save full HTML to file for inspection")
     print("=" * 80)
@@ -56,7 +58,7 @@ def inspect_html(url: str):
         f.write(soup.prettify())
     print("✓ Saved full HTML to 'page_source.html'")
     print("  You can open this file in a browser or text editor to inspect it.")
-    
+
     print("\n" + "=" * 80)
     print("METHOD 4: Display structure of first table found")
     print("=" * 80)
@@ -72,13 +74,14 @@ def inspect_html(url: str):
             cells = first_row.find_all(["td", "th"])
             print(f"    Number of cells: {len(cells)}")
             for i, cell in enumerate(cells):
-                print(f"    Cell {i}: tag={cell.name}, text='{cell.get_text(strip=True)[:30]}'")
+                print(
+                    f"    Cell {i}: tag={cell.name}, text='{cell.get_text(strip=True)[:30]}'"
+                )
 
 
 if __name__ == "__main__":
     # Example URL from your script
     url = "https://www.lezec.cz/cesty.php?csek=5661f26f75736f76792044ed7279h&cobl=486f6c9a74656e6eh"
-    
+
     print(f"Inspecting: {url}\n")
     inspect_html(url)
-
