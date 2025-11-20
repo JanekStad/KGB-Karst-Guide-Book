@@ -1,5 +1,5 @@
 .crag-detail-page {
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -148,7 +148,11 @@
 }
 
 .problem-group {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.problem-group:last-child {
+  margin-bottom: 0;
 }
 
 .wall-name {
@@ -160,16 +164,18 @@
 }
 
 .problems-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
 
 .problem-item {
   display: flex;
-  gap: 1.5rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
   background: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   text-decoration: none;
@@ -178,37 +184,99 @@
 }
 
 .problem-item:hover {
-  transform: translateX(4px);
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.problem-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
 .problem-grade {
-  min-width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 1.2rem;
-  border-radius: 8px;
+  font-size: 1rem;
+  border-radius: 6px;
 }
 
 .problem-info {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .problem-name {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  word-wrap: break-word;
 }
 
 .problem-stats {
   color: #7f8c8d;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+}
+
+.problem-description-preview {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.problem-stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.stat-icon {
+  font-size: 0.9rem;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.stat-label {
+  color: #7f8c8d;
+  font-size: 0.8rem;
 }
 
 .no-problems {
@@ -260,6 +328,10 @@
 }
 
 @media (max-width: 768px) {
+  .crag-detail-page {
+    padding: 1rem;
+  }
+
   .problems-header {
     flex-direction: column;
     align-items: flex-start;
@@ -274,12 +346,33 @@
     width: 100%;
   }
 
+  .problems-list {
+    grid-template-columns: 1fr;
+  }
+
   .problem-item {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .problem-left {
+    flex-direction: row;
+    gap: 1rem;
   }
 
   .problem-grade {
-    width: 60px;
-    margin: 0 auto;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+  }
+
+  .problem-stats-panel {
+    min-width: 80px;
+  }
+
+  .stat-item {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
   }
 }

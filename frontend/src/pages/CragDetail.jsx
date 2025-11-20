@@ -102,15 +102,39 @@ const CragDetail = () => {
   }, [selectedGrade, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Group problems by wall if groupByWall is true
-  const groupedProblems = groupByWall
-    ? problems.reduce((acc, problem) => {
-        const wallKey = problem.wall_name || 'No Wall';
-        if (!acc[wallKey]) {
-          acc[wallKey] = [];
+  const groupedProblems = groupByWall && crag.walls && crag.walls.length > 0
+    ? (() => {
+        // Create a map of all walls from the crag
+        const wallMap = new Map();
+        crag.walls.forEach(wall => {
+          wallMap.set(wall.name, []);
+        });
+        
+        // Add problems to their respective walls
+        problems.forEach(problem => {
+          const wallKey = problem.wall_name || 'No Wall';
+          if (wallMap.has(wallKey)) {
+            wallMap.get(wallKey).push(problem);
+          } else {
+            // If wall doesn't exist in crag.walls, add to "No Wall" group
+            if (!wallMap.has('No Wall')) {
+              wallMap.set('No Wall', []);
+            }
+            wallMap.get('No Wall').push(problem);
+          }
+        });
+        
+        // Convert map to object, preserving wall order
+        const result = {};
+        crag.walls.forEach(wall => {
+          result[wall.name] = wallMap.get(wall.name) || [];
+        });
+        // Add "No Wall" group if it exists
+        if (wallMap.has('No Wall') && wallMap.get('No Wall').length > 0) {
+          result['No Wall'] = wallMap.get('No Wall');
         }
-        acc[wallKey].push(problem);
-        return acc;
-      }, {})
+        return result;
+      })()
     : { 'All Problems': problems };
 
   if (loading) {
@@ -219,12 +243,35 @@ const CragDetail = () => {
                     to={`/problems/${problem.id}`}
                     className="problem-item"
                   >
-                    <div className="problem-grade">{problem.grade}</div>
-                    <div className="problem-info">
-                      <div className="problem-name">{problem.name}</div>
-                      {problem.tick_count !== undefined && (
-                        <div className="problem-stats">
-                          {problem.tick_count} tick{problem.tick_count !== 1 ? 's' : ''}
+                    <div className="problem-left">
+                      <div className="problem-grade">{problem.grade}</div>
+                      <div className="problem-info">
+                        <div className="problem-name">{problem.name}</div>
+                        {problem.description_preview && (
+                          <div className="problem-description-preview">
+                            {problem.description_preview}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="problem-stats-panel">
+                      {problem.tick_count !== undefined && problem.tick_count > 0 && (
+                        <div className="stat-item">
+                          <span className="stat-icon">✓</span>
+                          <span className="stat-value">{problem.tick_count}</span>
+                          <span className="stat-label">tick{problem.tick_count !== 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+                      {problem.has_video && (
+                        <div className="stat-item">
+                          <span className="stat-icon">▶</span>
+                          <span className="stat-label">Video</span>
+                        </div>
+                      )}
+                      {problem.has_external_links && (
+                        <div className="stat-item">
+                          <span className="stat-icon">🔗</span>
+                          <span className="stat-label">Links</span>
                         </div>
                       )}
                     </div>

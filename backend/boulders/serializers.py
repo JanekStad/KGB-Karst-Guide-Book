@@ -265,6 +265,9 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
     )
     tick_count = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
+    has_video = serializers.SerializerMethodField()
+    has_external_links = serializers.SerializerMethodField()
+    description_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = BoulderProblem
@@ -278,6 +281,9 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
             "grade",
             "tick_count",
             "primary_image",
+            "has_video",
+            "has_external_links",
+            "description_preview",
         ]
 
     def get_tick_count(self, obj):
@@ -312,3 +318,20 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
             base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
             return f"{base_url}{image.image.url}"
         return None
+
+    def get_has_video(self, obj):
+        """Check if problem has video links"""
+        return bool(obj.video_links and len(obj.video_links) > 0)
+
+    def get_has_external_links(self, obj):
+        """Check if problem has external links"""
+        return bool(obj.external_links and len(obj.external_links) > 0)
+
+    def get_description_preview(self, obj):
+        """Get truncated description preview (first 100 characters)"""
+        if not obj.description:
+            return None
+        preview = obj.description.strip()
+        if len(preview) > 100:
+            return preview[:100] + "..."
+        return preview
