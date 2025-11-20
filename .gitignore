@@ -74,3 +74,20 @@ web-build/
 *.bak
 *.tmp
 
+# SVG files
+*.svg
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+*.webp
+*.heic
+*.heif
+
+# JSON files
+*.json

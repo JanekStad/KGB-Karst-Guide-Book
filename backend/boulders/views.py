@@ -117,6 +117,15 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
     ordering_fields = ["grade", "name", "created_at"]
     ordering = ["crag", "wall", "name"]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action == "retrieve":
+            # Prefetch image_lines and their images for detail view
+            queryset = queryset.prefetch_related(
+                "image_lines__image__problem_lines__problem"
+            )
+        return queryset
+
     def get_serializer_class(self):
         if self.action == "list":
             return BoulderProblemListSerializer
@@ -184,7 +193,20 @@ class BoulderImageViewSet(viewsets.ModelViewSet):
     queryset = BoulderImage.objects.all()
     serializer_class = BoulderImageSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["wall", "problem", "is_primary"]
+    filterset_fields = ["wall", "is_primary"]
+    # Note: To filter by problem, use the problem_lines relationship:
+    # /api/boulders/images/?problem_lines__problem=<problem_id>
+
+    def get_queryset(self):
+        # Prefetch problem lines for better performance
+        queryset = super().get_queryset().prefetch_related("problem_lines__problem")
+
+        # Allow filtering by problem through problem_lines relationship
+        problem_id = self.request.query_params.get("problem")
+        if problem_id:
+            queryset = queryset.filter(problem_lines__problem_id=problem_id).distinct()
+
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)

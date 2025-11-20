@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import City, Crag, Wall, BoulderProblem, BoulderImage
+from .models import City, Crag, Wall, BoulderProblem, BoulderImage, ProblemLine
 
 
 @admin.register(City)
@@ -55,6 +55,46 @@ class BoulderProblemAdmin(admin.ModelAdmin):
 
 @admin.register(BoulderImage)
 class BoulderImageAdmin(admin.ModelAdmin):
-    list_display = ["id", "wall", "problem", "is_primary", "uploaded_by", "uploaded_at"]
-    list_filter = ["is_primary", "uploaded_at"]
-    readonly_fields = ["uploaded_at"]
+    list_display = [
+        "id",
+        "wall",
+        "problem_count",
+        "is_primary",
+        "uploaded_by",
+        "uploaded_at",
+    ]
+    list_filter = ["is_primary", "uploaded_at", "wall"]
+    search_fields = ["caption", "wall__name"]
+    readonly_fields = ["uploaded_at", "problem_count"]
+
+    def problem_count(self, obj):
+        """Show how many problems are linked to this image via ProblemLine"""
+        count = obj.problem_lines.count()
+        return f"{count} problem{'s' if count != 1 else ''}"
+
+    problem_count.short_description = "Problems"
+
+
+@admin.register(ProblemLine)
+class ProblemLineAdmin(admin.ModelAdmin):
+    list_display = ["id", "problem", "image", "color", "created_by", "created_at"]
+    list_filter = ["color", "created_at"]
+    search_fields = ["problem__name", "image__caption"]
+    readonly_fields = ["created_at", "updated_at"]
+    fieldsets = (
+        (
+            "Line Information",
+            {
+                "fields": ("image", "problem", "color"),
+                "description": "Select the image and problem this line represents. Color should be a hex code (e.g., #FF0000).",
+            },
+        ),
+        (
+            "Coordinates",
+            {
+                "fields": ("coordinates",),
+                "description": 'Coordinates are normalized (0-1) relative to image dimensions. Format: [{"x": 0.2, "y": 0.3}, {"x": 0.8, "y": 0.7}]. Each point represents a point along the line path.',
+            },
+        ),
+        ("Metadata", {"fields": ("created_by", "created_at", "updated_at")}),
+    )

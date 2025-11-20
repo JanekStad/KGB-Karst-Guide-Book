@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { commentsAPI, problemsAPI, ticksAPI } from '../services/api';
+import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import './ProblemDetail.css';
 
 const ProblemDetail = () => {
@@ -303,31 +304,27 @@ const ProblemDetail = () => {
         )}
       </div>
 
+      {problem.images && problem.images.length > 0 && (
+        <div className="images-section">
+          <h2>Images</h2>
+          <div className="images-container">
+            {problem.images.map((image) => (
+              <InteractiveBoulderImage
+                key={image.id}
+                imageUrl={image.image}
+                problemLines={image.problem_lines || []}
+                caption={image.caption}
+                currentProblemId={parseInt(id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {problem.description && (
         <div className="problem-description">
           <h2>Description</h2>
           <p>{problem.description}</p>
-        </div>
-      )}
-
-      {problem.images && problem.images.length > 0 && (
-        <div className="images-section">
-          <h2>Images</h2>
-          <div className="images-grid">
-            {problem.images.map((image) => (
-              <div key={image.id} className="image-item">
-                <img 
-                  src={image.image} 
-                  alt={image.caption || problem.name}
-                  onClick={() => window.open(image.image, '_blank')}
-                  style={{ cursor: 'pointer' }}
-                />
-                {image.caption && (
-                  <p className="image-caption">{image.caption}</p>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
