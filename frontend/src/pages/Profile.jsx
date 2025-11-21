@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI } from '../services/api';
+import { ticksAPI, usersAPI } from '../services/api';
 import './Profile.css';
 
 const Profile = () => {
@@ -19,6 +19,12 @@ const Profile = () => {
     height: '',
     ape_index: '',
   });
+
+  // Lezec import state
+  const [lezecUsername, setLezecUsername] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
 
   const HEIGHT_CHOICES = [
     { value: '', label: 'Select height (optional)' },
@@ -121,6 +127,49 @@ const Profile = () => {
     }
   };
 
+  const handleLezecImport = async () => {
+    if (!lezecUsername.trim()) {
+      setError('Please enter your lezec.cz username');
+      return;
+    }
+
+    setShowImportConfirm(true);
+  };
+
+  const confirmLezecImport = async () => {
+    setImporting(true);
+    setError(null);
+    setImportResult(null);
+    setShowImportConfirm(false);
+
+    try {
+      const response = await ticksAPI.importLezecDiary(lezecUsername.trim());
+      setImportResult(response.data);
+      
+      if (response.data.success) {
+        setLezecUsername(''); // Clear input on success
+      } else {
+        setError(response.data.message || 'Import failed.');
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 
+                          err.response?.data?.message ||
+                          err.message ||
+                          'Failed to import diary. Please try again.';
+      setError(errorMessage);
+      setImportResult({
+        success: false,
+        message: errorMessage,
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const cancelLezecImport = () => {
+    setShowImportConfirm(false);
+  };
+
   if (authLoading || loading) {
     return (
       <div className="profile-page">
@@ -218,6 +267,105 @@ const Profile = () => {
             </button>
           </div>
         </form>
+
+        {/* Lezec Import Section */}
+        <div className="form-section lezec-import-section">
+          <h2>Import from Lezec.cz</h2>
+          <p className="section-description">
+            Import your completed boulder problems (ticks) from your public lezec.cz diary. 
+            Only boulders from Moravský Kras will be imported.
+          </p>
+
+          {importResult && (
+            <div className={`import-result ${importResult.success ? 'success' : 'error'}`}>
+              <h3>{importResult.success ? '✓ Import Completed' : '✗ Import Failed'}</h3>
+              <p>{importResult.message}</p>
+              {importResult.success && (
+                <div className="import-stats">
+                  <div className="stat-row">
+                    <span>Matched:</span>
+                    <strong>{importResult.matched || 0}</strong>
+                  </div>
+                  <div className="stat-row">
+                    <span>Created:</span>
+                    <strong>{importResult.created || 0}</strong>
+                  </div>
+                  <div className="stat-row">
+                    <span>Already Existing:</span>
+                    <strong>{importResult.existing || 0}</strong>
+                  </div>
+                  <div className="stat-row">
+                    <span>Not Found:</span>
+                    <strong>{importResult.not_found || 0}</strong>
+                  </div>
+                  {importResult.errors > 0 && (
+                    <div className="stat-row error">
+                      <span>Errors:</span>
+                      <strong>{importResult.errors}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showImportConfirm && (
+            <div className="import-confirm-dialog">
+              <h3>Confirm Import</h3>
+              <p>
+                Are you sure you want to import ticks from lezec.cz user <strong>{lezecUsername}</strong>?
+              </p>
+              <p className="confirm-note">
+                This will import all boulder ticks from Moravský Kras found in the public diary.
+                Ticks that already exist will be skipped.
+              </p>
+              <p className="confirm-note">
+                Note: Your diary must be set to public on lezec.cz for this to work.
+              </p>
+              <div className="confirm-actions">
+                <button 
+                  onClick={confirmLezecImport} 
+                  className="btn btn-primary"
+                  disabled={importing}
+                >
+                  {importing ? 'Importing...' : 'Yes, Import'}
+                </button>
+                <button 
+                  onClick={cancelLezecImport} 
+                  className="btn btn-secondary"
+                  disabled={importing}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!showImportConfirm && (
+            <div className="lezec-import-form">
+              <div className="form-group">
+                <label htmlFor="lezec_username">Lezec.cz Username</label>
+                <input
+                  type="text"
+                  id="lezec_username"
+                  value={lezecUsername}
+                  onChange={(e) => setLezecUsername(e.target.value)}
+                  placeholder="e.g., Lucaa"
+                  disabled={importing}
+                />
+                <small>Enter your lezec.cz username (your diary must be public)</small>
+              </div>
+              <button
+                type="button"
+                onClick={handleLezecImport}
+                disabled={importing || !lezecUsername.trim()}
+                className="btn btn-secondary"
+              >
+                {importing ? 'Importing...' : 'Import Ticks'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

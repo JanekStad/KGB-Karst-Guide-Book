@@ -56,6 +56,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "karst_backend.middleware.UTF8CharsetMiddleware",
 ]
 
 ROOT_URLCONF = "karst_backend.urls"
@@ -124,6 +125,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Default charset for HTTP responses
+DEFAULT_CHARSET = "utf-8"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -153,6 +157,9 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 21,
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
 }
 
 # CORS settings

@@ -5,13 +5,17 @@ This script:
 1. Fetches the list of boulders from https://www.lezec.cz/cesty.php
 2. Extracts boulder IDs and basic information (name, grade, sector, area, location)
 3. Optionally fetches detailed information for each boulder
+4. Optionally imports boulders directly into the database with lezec.cz external links
 
 Usage:
+    # Scrape and save to JSON
     python manage.py scrape_lezec --output boulders_list.json
     python manage.py scrape_lezec --output boulders_list.json --fetch-details
-    python manage.py scrape_lezec --output boulders_list.json --fetch-details --limit 10
-    python manage.py scrape_lezec --output boulders_list.json --type boulder
     python manage.py scrape_lezec --output boulders_list.json --type boulder --location 199
+    
+    # Import directly to database (stores lezec.cz IDs for faster diary imports)
+    python manage.py scrape_lezec --import --type boulder --location 199 --user admin --crag-lat 49.4 --crag-lon 16.7
+    python manage.py scrape_lezec --import --type boulder --location 199 --limit 100 --user admin
     
 Location IDs (examples):
     - 0: All locations
@@ -19,10 +23,14 @@ Location IDs (examples):
     - 316: Střední Čechy
     - 159: Lužické Hory
     (See the website's location dropdown for full list)
+
+Note: When using --import, boulders are stored with lezec.cz external links,
+      making diary imports much faster since they can match by external ID.
 """
 
 import json
 import time
+import unicodedata
 from urllib.parse import urljoin, urlparse, parse_qs
 
 from django.core.management.base import BaseCommand, CommandError
@@ -34,6 +42,101 @@ from bs4 import BeautifulSoup
 
 class Command(BaseCommand):
     help = "Scrape boulder problems from lezec.cz"
+
+    def _validate_and_clean_string(self, text, field_name="text"):
+        """
+        Validate and clean a string to ensure proper UTF-8 encoding.
+        
+        Args:
+            text: The string to validate
+            field_name: Name of the field for error reporting
+            
+        Returns:
+            Cleaned string, or None if validation fails
+        """
+        if not text:
+            return text
+        
+        # Ensure it's a string
+        if not isinstance(text, str):
+            try:
+                text = str(text)
+            except Exception:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"  ⚠️  {field_name}: Could not convert to string, skipping"
+                    )
+                )
+                return None
+        
+        # First, try to fix common encoding patterns (this might fix issues)
+        original_text = text
+        text = self._try_fix_encoding(text)
+        
+        # Check if text can be properly encoded to UTF-8
+        # This is the real test - if we can't encode it, it's corrupted
+        try:
+            text.encode("utf-8", errors="strict")
+        except UnicodeEncodeError as e:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"  ❌ {field_name}: Cannot encode to UTF-8, skipping: {repr(text[:50])}"
+                )
+            )
+            return None
+        
+        # Check for replacement characters - but only warn, don't skip
+        # (The source HTML might have these, but we can still use the text)
+        if "\ufffd" in text:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  ⚠️  {field_name} contains replacement characters (from source): {repr(text[:50])}"
+                )
+            )
+            # Don't skip - just warn. The text is still usable.
+        
+        # Normalize Unicode (NFC form)
+        try:
+            text = unicodedata.normalize("NFC", text)
+        except Exception as e:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  ⚠️  {field_name}: Unicode normalization failed: {e}"
+                )
+            )
+        
+        # Validate UTF-8 encoding
+        try:
+            text.encode("utf-8")
+        except UnicodeEncodeError as e:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"  ❌ {field_name}: Invalid UTF-8 encoding: {e}"
+                )
+            )
+            return None
+        
+        return text.strip()
+    
+    def _try_fix_encoding(self, text):
+        """Try to fix common encoding issues in a string."""
+        import re
+        
+        # Common Czech character fixes
+        fixes = [
+            (r"Moravsk\s*[\ufffd]?\s*Kras", "Moravský Kras"),
+            (r"Moravsk\s*[\ufffd]?\s*kras", "Moravský kras"),
+            (r"Moravsk\s+Kras", "Moravský Kras"),
+            (r"Moravsk\s+kras", "Moravský kras"),
+            (r"Hol\s*[\ufffd]?\s*tejn", "Holtýn"),
+            (r"Josefovsk\s*[\ufffd]?\s*[\ufffd]?\s*dol", "Josefovské údolí"),
+        ]
+        
+        fixed = text
+        for pattern, replacement in fixes:
+            fixed = re.sub(pattern, replacement, fixed)
+        
+        return fixed
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -76,6 +179,30 @@ class Command(BaseCommand):
             action="store_true",
             help="Only fetch and display data without saving",
         )
+        parser.add_argument(
+            "--import",
+            action="store_true",
+            dest="import_to_db",
+            help="Import scraped boulders into the database (creates crags and problems)",
+        )
+        parser.add_argument(
+            "--user",
+            type=str,
+            default="admin",
+            help="Username to assign as creator (default: admin). Required when using --import",
+        )
+        parser.add_argument(
+            "--crag-lat",
+            type=float,
+            default=None,
+            help="Default latitude for new crags (required when creating new crags)",
+        )
+        parser.add_argument(
+            "--crag-lon",
+            type=float,
+            default=None,
+            help="Default longitude for new crags (required when creating new crags)",
+        )
 
     def handle(self, *args, **options):
         output_file = options.get("output")
@@ -85,6 +212,26 @@ class Command(BaseCommand):
         location_id = options.get("location")
         delay = options.get("delay", 1.0)
         dry_run = options.get("dry_run", False)
+        import_to_db = options.get("import_to_db", False)
+        username = options.get("user", "admin")
+        default_lat = options.get("crag_lat")
+        default_lon = options.get("crag_lon")
+
+        # Get or create user if importing
+        user = None
+        if import_to_db:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                if not dry_run:
+                    user = User.objects.create_user(
+                        username=username, email=f"{username}@example.com"
+                    )
+                    self.stdout.write(self.style.SUCCESS(f"Created user: {username}"))
+                else:
+                    raise CommandError(
+                        f'User "{username}" not found. Create it first or use --user to specify existing user.'
+                    )
 
         base_url = "https://www.lezec.cz"
         list_url = f"{base_url}/cesty.php"
@@ -131,11 +278,21 @@ class Command(BaseCommand):
         try:
             response = requests.post(list_url, data=filter_params, timeout=30)
             response.raise_for_status()
+            # Explicitly set UTF-8 encoding
             response.encoding = "utf-8"
+            # Verify encoding
+            if response.encoding.lower() != "utf-8":
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Warning: Response encoding is {response.encoding}, forcing UTF-8"
+                    )
+                )
+                response.encoding = "utf-8"
         except requests.RequestException as e:
             raise CommandError(f"Failed to fetch list page: {e}")
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        # Parse with explicit UTF-8 handling
+        soup = BeautifulSoup(response.content, "html.parser", from_encoding="utf-8")
 
         # Extract boulders from first page
         all_boulders = self._extract_boulder_list(soup, base_url, route_type)
@@ -157,8 +314,10 @@ class Command(BaseCommand):
                     page_response = requests.get(page_url, timeout=30)
                     page_response.raise_for_status()
                     page_response.encoding = "utf-8"
+                    if page_response.encoding.lower() != "utf-8":
+                        page_response.encoding = "utf-8"
                     
-                    page_soup = BeautifulSoup(page_response.text, "html.parser")
+                    page_soup = BeautifulSoup(page_response.content, "html.parser", from_encoding="utf-8")
                     page_boulders = self._extract_boulder_list(page_soup, base_url, route_type)
                     
                     if page_boulders:
@@ -213,10 +372,45 @@ class Command(BaseCommand):
                     )
                     boulder["detail_fetch_error"] = str(e)
 
-        # Step 3: Save or display results
+        # Step 3: Import to database or save/display results
         self.stdout.write("\n" + "=" * 50)
-        self.stdout.write("Step 3: Results")
+        if import_to_db:
+            self.stdout.write("Step 3: Importing boulders to database...")
+        else:
+            self.stdout.write("Step 3: Results")
         self.stdout.write("=" * 50)
+
+        if import_to_db:
+            if not user:
+                raise CommandError("User is required for import. Use --user to specify.")
+            
+            # Set default coordinates if not provided
+            if default_lat is None:
+                default_lat = 49.4  # Default for Czech Republic
+            if default_lon is None:
+                default_lon = 16.7  # Default for Czech Republic
+
+            stats = self._import_boulders_to_db(
+                boulders, user, default_lat, default_lon, dry_run
+            )
+
+            # Print import summary
+            self.stdout.write("\n" + "=" * 50)
+            self.stdout.write("Import Summary:")
+            self.stdout.write("=" * 50)
+            self.stdout.write(f"Crags created: {stats['crags_created']}")
+            self.stdout.write(f"Crags existing: {stats['crags_existing']}")
+            self.stdout.write(f"Problems created: {stats['problems_created']}")
+            self.stdout.write(f"Problems existing: {stats['problems_existing']}")
+            self.stdout.write(f"Problems skipped: {stats['problems_skipped']}")
+            self.stdout.write(f"Problems updated: {stats['problems_updated']}")
+
+            if dry_run:
+                self.stdout.write(
+                    self.style.WARNING("\nDRY RUN - No data was actually imported")
+                )
+            else:
+                self.stdout.write(self.style.SUCCESS("\nImport completed!"))
 
         if not dry_run and output_file:
             try:
@@ -227,7 +421,7 @@ class Command(BaseCommand):
                 )
             except Exception as e:
                 raise CommandError(f"Failed to save output file: {e}")
-        elif dry_run:
+        elif dry_run and not import_to_db:
             self.stdout.write(
                 self.style.WARNING("DRY RUN - Displaying sample data:")
             )
@@ -346,18 +540,31 @@ class Command(BaseCommand):
             name = link.get_text(strip=True) or cell_texts[0] if cell_texts else None
             if not name:
                 continue
+            
+            # Validate and clean the name
+            name = self._validate_and_clean_string(name, "name")
+            if not name:
+                continue
 
             # Second cell is usually the grade
             grade = cell_texts[1] if len(cell_texts) > 1 else None
+            if grade:
+                grade = self._validate_and_clean_string(grade, "grade")
 
             # Third cell is usually the sector
             sector = cell_texts[2] if len(cell_texts) > 2 else None
+            if sector:
+                sector = self._validate_and_clean_string(sector, "sector")
 
             # Fourth cell is usually the area/oblast
             area = cell_texts[3] if len(cell_texts) > 3 else None
+            if area:
+                area = self._validate_and_clean_string(area, "area")
 
             # Fifth cell is usually the location/poloha
             location = cell_texts[4] if len(cell_texts) > 4 else None
+            if location:
+                location = self._validate_and_clean_string(location, "location")
 
             boulder_data = {
                 "id": boulder_id,
@@ -471,10 +678,12 @@ class Command(BaseCommand):
             response = requests.get(detail_url, timeout=30)
             response.raise_for_status()
             response.encoding = "utf-8"
+            if response.encoding.lower() != "utf-8":
+                response.encoding = "utf-8"
         except requests.RequestException as e:
             raise Exception(f"HTTP error: {e}")
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.content, "html.parser", from_encoding="utf-8")
         details = {}
 
         # The page structure uses labels followed by values
@@ -637,6 +846,8 @@ class Command(BaseCommand):
                     for excluded in excluded_domains
                 ):
                     label = link.get_text(strip=True) or "External Link"
+                    if label:
+                        label = self._validate_and_clean_string(label, "external_link_label")
                     if label and len(label) < 100:  # Filter out very long labels
                         external_links.append({"label": label, "url": href})
 
@@ -652,9 +863,218 @@ class Command(BaseCommand):
                 for domain in ["youtube.com", "youtu.be", "vimeo.com"]
             ):
                 label = link.get_text(strip=True) or "Video"
+                if label:
+                    label = self._validate_and_clean_string(label, "video_link_label")
                 video_links.append({"label": label, "url": href})
         if video_links:
             details["video_links"] = video_links
 
         return details
+
+    def _import_boulders_to_db(self, boulders, user, default_lat, default_lon, dry_run):
+        """
+        Import scraped boulders into the database.
+        
+        Returns statistics about the import.
+        """
+        from boulders.models import Crag, Wall
+        from boulders.utils import normalize_problem_name
+
+        stats = {
+            "crags_created": 0,
+            "crags_existing": 0,
+            "problems_created": 0,
+            "problems_existing": 0,
+            "problems_skipped": 0,
+            "problems_updated": 0,
+        }
+
+        for boulder_data in boulders:
+            # Validate and clean all string fields before processing
+            problem_name = self._validate_and_clean_string(
+                boulder_data.get("name"), "problem_name"
+            )
+            grade = self._validate_and_clean_string(boulder_data.get("grade"), "grade")
+            area = self._validate_and_clean_string(
+                boulder_data.get("area"), "area"
+            )  # This is the crag name
+            sector = self._validate_and_clean_string(
+                boulder_data.get("sector"), "sector"
+            )  # This could be a wall
+            location = self._validate_and_clean_string(
+                boulder_data.get("location"), "location"
+            )
+            boulder_id = boulder_data.get("id")
+            detail_url = boulder_data.get("detail_url", "")
+            description = self._validate_and_clean_string(
+                boulder_data.get("description"), "description"
+            )
+
+            if not problem_name:
+                stats["problems_skipped"] += 1
+                continue
+
+            # Use area as crag name, fallback to location if area is empty
+            crag_name = area or location or "Unknown Crag"
+            if crag_name == "Unknown Crag":
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Skipping "{problem_name}" - no crag/area information'
+                    )
+                )
+                stats["problems_skipped"] += 1
+                continue
+            
+            # Final validation of crag_name before database operations
+            crag_name = self._validate_and_clean_string(crag_name, "crag_name")
+            if not crag_name or crag_name == "Unknown Crag":
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Skipping "{problem_name}" - invalid crag name after validation'
+                    )
+                )
+                stats["problems_skipped"] += 1
+                continue
+
+            # Skip if no grade
+            if not grade:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Skipping "{problem_name}" - no grade information'
+                    )
+                )
+                stats["problems_skipped"] += 1
+                continue
+
+            # Handle grade ranges (e.g., "8A/8A+", "6C+/7A")
+            if "/" in grade:
+                grade = grade.split("/")[0].strip()
+
+            # Clean grade (remove brackets like [7B])
+            if "[" in grade:
+                grade = grade.split("[")[0].strip()
+
+            # Validate grade
+            valid_grades = [choice[0] for choice in BoulderProblem.GRADE_CHOICES]
+            if grade not in valid_grades:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Skipping "{problem_name}" - invalid grade: {grade}'
+                    )
+                )
+                stats["problems_skipped"] += 1
+                continue
+
+            # Prepare crag description with validation
+            crag_description = (
+                f"Imported from lezec.cz. Location: {location}"
+                if location
+                else "Imported from lezec.cz"
+            )
+            crag_description = self._validate_and_clean_string(
+                crag_description, "crag_description"
+            ) or "Imported from lezec.cz"
+
+            # Get or create crag
+            crag, crag_created = Crag.objects.get_or_create(
+                name=crag_name,
+                defaults={
+                    "latitude": default_lat,
+                    "longitude": default_lon,
+                    "description": crag_description,
+                    "created_by": user,
+                },
+            )
+            if crag_created:
+                stats["crags_created"] += 1
+                self.stdout.write(self.style.SUCCESS(f"Created crag: {crag_name}"))
+            else:
+                stats["crags_existing"] += 1
+
+            # Get or create wall if sector is specified
+            wall = None
+            if sector and sector != "-":
+                # Validate sector name
+                sector = self._validate_and_clean_string(sector, "sector")
+                if sector and sector != "-":
+                    wall, wall_created = Wall.objects.get_or_create(
+                        crag=crag,
+                        name=sector,
+                        defaults={"created_by": user},
+                    )
+                if wall_created:
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Created wall: {crag_name} - {sector}")
+                    )
+
+            # Prepare external link for lezec.cz
+            lezec_link = {
+                "label": "lezec.cz",
+                "url": detail_url or f"https://www.lezec.cz/cesta.php?key={boulder_id}",
+            }
+
+            # Check if problem already exists
+            existing_problem = BoulderProblem.objects.filter(
+                crag=crag, name=problem_name
+            ).first()
+
+            if existing_problem:
+                # Update external links if lezec.cz link is not already present
+                if existing_problem.external_links:
+                    has_lezec_link = any(
+                        link.get("url", "").endswith(f"key={boulder_id}")
+                        or "lezec.cz" in link.get("url", "")
+                        for link in existing_problem.external_links
+                    )
+                    if not has_lezec_link:
+                        existing_problem.external_links.append(lezec_link)
+                        if not dry_run:
+                            existing_problem.save()
+                        stats["problems_updated"] += 1
+                        self.stdout.write(
+                            self.style.SUCCESS(
+                                f"Updated external link for: {problem_name}"
+                            )
+                        )
+                else:
+                    existing_problem.external_links = [lezec_link]
+                    if not dry_run:
+                        existing_problem.save()
+                    stats["problems_updated"] += 1
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Added external link to: {problem_name}"
+                        )
+                    )
+                stats["problems_existing"] += 1
+            else:
+                # Create new problem
+                if not dry_run:
+                    # Ensure description is validated (already done above, but double-check)
+                    if description:
+                        description = self._validate_and_clean_string(
+                            description, "problem_description"
+                        )
+                    problem = BoulderProblem.objects.create(
+                        crag=crag,
+                        wall=wall,
+                        name=problem_name,
+                        grade=grade,
+                        description=description or "",
+                        external_links=[lezec_link],
+                        created_by=user,
+                    )
+                    stats["problems_created"] += 1
+                    self.stdout.write(
+                        self.style.SUCCESS(
+                            f"Created problem: {problem_name} ({grade}) at {crag_name}"
+                        )
+                    )
+                else:
+                    stats["problems_created"] += 1
+                    self.stdout.write(
+                        f"Would create: {problem_name} ({grade}) at {crag_name}"
+                    )
+
+        return stats
 

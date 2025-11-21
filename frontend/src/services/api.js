@@ -6,8 +6,11 @@ const API_BASE_URL = 'http://localhost:8000/api';
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
+    'Accept': 'application/json; charset=utf-8',
   },
+  responseType: 'json',
+  responseEncoding: 'utf8',
 });
 
 // Add token to requests if available
@@ -132,6 +135,8 @@ export const ticksAPI = {
   list: () => api.get('/ticks/my_ticks/'),
   create: (data) => api.post('/ticks/', data),
   delete: (id) => api.delete(`/ticks/${id}/`),
+  importLezecDiary: (lezecUsername) => api.post('/ticks/import_lezec_diary/', { lezec_username: lezecUsername }),
+  getStatistics: () => api.get('/ticks/statistics/'),
 };
 
 // Lists API
