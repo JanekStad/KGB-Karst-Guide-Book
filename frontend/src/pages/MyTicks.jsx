@@ -210,64 +210,70 @@ const MyTicks = () => {
                   )}
                 </div>
 
-                {/* Grade Distribution */}
-                {statistics.grade_distribution && Object.keys(statistics.grade_distribution).length > 0 && (
-                  <div className="stat-group">
-                    <h3>Grade Distribution</h3>
-                    <div className="grade-distribution">
-                      {Object.entries(statistics.grade_distribution)
-                        .filter(([_, count]) => count > 0)
-                        .map(([grade, count]) => {
-                          const percentage = (count / statistics.total_ticks) * 100;
-                          return (
-                            <div key={grade} className="grade-dist-item">
-                              <div className="grade-dist-header">
-                                <span className="grade-dist-grade">{grade}</span>
-                                <span className="grade-dist-count">{count}</span>
-                              </div>
-                              <div className="grade-dist-bar-container">
-                                <div 
-                                  className="grade-dist-bar" 
-                                  style={{ width: `${percentage}%` }}
-                                  title={`${count} ascents (${percentage.toFixed(1)}%)`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
+                {/* Grade Distribution and Activity by Year - Compact Side by Side */}
+                {(statistics.grade_distribution && Object.keys(statistics.grade_distribution).length > 0) ||
+                (statistics.ticks_per_year && Object.keys(statistics.ticks_per_year).length > 0) ? (
+                  <div className="compact-charts-container">
+                    {/* Grade Distribution */}
+                    {statistics.grade_distribution && Object.keys(statistics.grade_distribution).length > 0 && (
+                      <div className="stat-group compact">
+                        <h3>Grade Distribution</h3>
+                        <div className="grade-distribution-compact">
+                          {Object.entries(statistics.grade_distribution)
+                            .filter(([_, count]) => count > 0)
+                            .map(([grade, count]) => {
+                              const maxCount = Math.max(...Object.values(statistics.grade_distribution).filter(c => c > 0));
+                              const heightPercentage = (count / maxCount) * 100;
+                              const percentage = (count / statistics.total_ticks) * 100;
+                              return (
+                                <div key={grade} className="grade-dist-item-compact" title={`${count} ascents (${percentage.toFixed(1)}%)`}>
+                                  <div className="grade-dist-bar-container-vertical">
+                                    <div 
+                                      className="grade-dist-bar-vertical" 
+                                      style={{ height: `${heightPercentage}%` }}
+                                    />
+                                  </div>
+                                  <div className="grade-dist-label-compact">
+                                    <span className="grade-dist-grade-compact">{grade}</span>
+                                    <span className="grade-dist-count-compact">{count}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
 
-                {/* Activity by Year */}
-                {statistics.ticks_per_year && Object.keys(statistics.ticks_per_year).length > 0 && (
-                  <div className="stat-group">
-                    <h3>Activity by Year</h3>
-                    <div className="year-activity">
-                      {Object.entries(statistics.ticks_per_year)
-                        .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                        .map(([year, count]) => {
-                          const maxCount = Math.max(...Object.values(statistics.ticks_per_year));
-                          const percentage = (count / maxCount) * 100;
-                          return (
-                            <div key={year} className="year-activity-item">
-                              <div className="year-activity-header">
-                                <span className="year-activity-year">{year}</span>
-                                <span className="year-activity-count">{count}</span>
-                              </div>
-                              <div className="year-activity-bar-container">
-                                <div 
-                                  className="year-activity-bar" 
-                                  style={{ width: `${percentage}%` }}
-                                  title={`${count} ascents in ${year}`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
+                    {/* Activity by Year */}
+                    {statistics.ticks_per_year && Object.keys(statistics.ticks_per_year).length > 0 && (
+                      <div className="stat-group compact">
+                        <h3>Activity by Year</h3>
+                        <div className="year-activity-compact">
+                          {Object.entries(statistics.ticks_per_year)
+                            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                            .map(([year, count]) => {
+                              const maxCount = Math.max(...Object.values(statistics.ticks_per_year));
+                              const heightPercentage = (count / maxCount) * 100;
+                              return (
+                                <div key={year} className="year-activity-item-compact" title={`${count} ascents in ${year}`}>
+                                  <div className="year-activity-bar-container-vertical">
+                                    <div 
+                                      className="year-activity-bar-vertical" 
+                                      style={{ height: `${heightPercentage}%` }}
+                                    />
+                                  </div>
+                                  <div className="year-activity-label-compact">
+                                    <span className="year-activity-year-compact">{year}</span>
+                                    <span className="year-activity-count-compact">{count}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                ) : null}
               </div>
             )}
 
