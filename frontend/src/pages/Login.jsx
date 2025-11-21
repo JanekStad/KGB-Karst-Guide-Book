@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
 import './Auth.css';
 
 const Login = () => {
@@ -9,25 +8,15 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login: loginAuth } = useAuth();
-  
-  const login = async (username, password) => {
-    try {
-      const response = await api.post('/users/login/', { username, password });
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        window.location.reload(); // Refresh to update auth state
-        return { success: true };
-      }
-      return { success: false, error: 'No token received' };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || error.message 
-      };
-    }
-  };
+  const { login: loginAuth, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/my-ticks');
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,9 +24,10 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const result = await login(username, password);
+      const result = await loginAuth(username, password);
       if (result.success) {
-        navigate('/');
+        // Redirect to my ticks page after successful login
+        navigate('/my-ticks');
       } else {
         setError(result.error?.error || result.error || 'Invalid username or password');
       }
@@ -48,6 +38,11 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Don't render login form if already authenticated or still loading
+  if (authLoading || isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="auth-page">
