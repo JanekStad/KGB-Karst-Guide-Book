@@ -263,6 +263,10 @@
   white-space: nowrap;
 }
 
+.stat-item .star-rating {
+  margin: 0;
+}
+
 .stat-icon {
   font-size: 0.9rem;
   color: #667eea;

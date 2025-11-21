@@ -177,6 +177,8 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     wall_detail = WallSerializer(source="wall", read_only=True)
     images = serializers.SerializerMethodField()
     tick_count = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    author_username = serializers.CharField(source="author.username", read_only=True, allow_null=True)
 
     def get_images(self, obj):
         """Get images associated with this problem through ProblemLine or wall"""
@@ -242,6 +244,10 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
             "name",
             "grade",
             "description",
+            "rating",
+            "average_rating",
+            "author",
+            "author_username",
             "images",
             "external_links",
             "video_links",
@@ -255,6 +261,22 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     def get_tick_count(self, obj):
         return obj.ticks.count()
 
+    def get_average_rating(self, obj):
+        """Calculate average rating from all tick ratings"""
+        from django.db.models import Avg
+        from lists.models import Tick
+        
+        avg_rating = Tick.objects.filter(
+            problem=obj,
+            rating__isnull=False
+        ).aggregate(avg=Avg('rating'))['avg']
+        
+        # Return the average rating from ticks if available, otherwise use problem.rating
+        if avg_rating is not None:
+            return float(avg_rating)
+        # Fallback to problem.rating if no tick ratings exist
+        return float(obj.rating) if obj.rating else None
+
 
 class BoulderProblemListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for problem list views"""
@@ -264,10 +286,12 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
         source="wall.name", read_only=True, allow_null=True
     )
     tick_count = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
     has_video = serializers.SerializerMethodField()
     has_external_links = serializers.SerializerMethodField()
     description_preview = serializers.SerializerMethodField()
+    author_username = serializers.CharField(source="author.username", read_only=True, allow_null=True)
 
     class Meta:
         model = BoulderProblem
@@ -279,6 +303,10 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
             "wall_name",
             "name",
             "grade",
+            "rating",
+            "average_rating",
+            "author",
+            "author_username",
             "tick_count",
             "primary_image",
             "has_video",
@@ -288,6 +316,22 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
 
     def get_tick_count(self, obj):
         return obj.ticks.count()
+
+    def get_average_rating(self, obj):
+        """Calculate average rating from all tick ratings"""
+        from django.db.models import Avg
+        from lists.models import Tick
+        
+        avg_rating = Tick.objects.filter(
+            problem=obj,
+            rating__isnull=False
+        ).aggregate(avg=Avg('rating'))['avg']
+        
+        # Return the average rating from ticks if available, otherwise use problem.rating
+        if avg_rating is not None:
+            return float(avg_rating)
+        # Fallback to problem.rating if no tick ratings exist
+        return float(obj.rating) if obj.rating else None
 
     def get_primary_image(self, obj):
         """Get primary image for this problem through ProblemLine"""

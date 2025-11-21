@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { cragsAPI, problemsAPI } from '../services/api';
+import StarRating from '../components/StarRating';
 import './AddProblem.css';
 
 const AddProblem = () => {
@@ -16,6 +17,7 @@ const AddProblem = () => {
     name: '',
     grade: '',
     description: '',
+    rating: null,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -79,6 +81,13 @@ const AddProblem = () => {
     });
   };
 
+  const handleRatingChange = (rating) => {
+    setFormData({
+      ...formData,
+      rating: rating,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -107,6 +116,10 @@ const AddProblem = () => {
       
       if (formData.wall) {
         payload.wall = parseInt(formData.wall);
+      }
+
+      if (formData.rating) {
+        payload.rating = parseFloat(formData.rating);
       }
 
       const response = await problemsAPI.create(payload);
@@ -232,6 +245,17 @@ const AddProblem = () => {
               rows="4"
               placeholder="Describe the problem, beta, holds, etc."
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="rating">Rating (Optional)</label>
+            <StarRating
+              rating={formData.rating || 0}
+              onChange={handleRatingChange}
+              editable={true}
+              size="medium"
+            />
+            <small>Rate this problem from 1 to 5 stars</small>
           </div>
 
           <div className="form-actions">

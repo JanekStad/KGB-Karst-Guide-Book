@@ -17,6 +17,7 @@ class TickSerializer(serializers.ModelSerializer):
             "date",
             "notes",
             "suggested_grade",
+            "rating",
             "created_at",
         ]
         read_only_fields = ["user", "created_at"]
@@ -25,7 +26,7 @@ class TickSerializer(serializers.ModelSerializer):
 class TickCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tick
-        fields = ["problem", "date", "notes", "suggested_grade"]
+        fields = ["problem", "date", "notes", "suggested_grade", "rating"]
 
 
 class ListEntrySerializer(serializers.ModelSerializer):

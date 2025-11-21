@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from .utils import normalize_problem_name
 
@@ -148,6 +149,22 @@ class BoulderProblem(models.Model):
         default=list,
         blank=True,
         help_text="List of video links (YouTube, Vimeo, etc.) with 'label' and 'url' fields. Example: [{'label': 'Send Video', 'url': 'https://youtube.com/...'}]",
+    )
+    rating = models.DecimalField(
+        max_digits=2,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        help_text="Star rating from 1 to 5 (e.g., 1.0, 2.5, 5.0)",
+        validators=[MinValueValidator(1.0), MaxValueValidator(5.0)],
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="authored_problems",
+        help_text="Author/establisher of this boulder problem",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

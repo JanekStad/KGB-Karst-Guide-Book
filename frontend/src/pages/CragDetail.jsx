@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
 import { cragsAPI } from '../services/api';
 import './CragDetail.css';
@@ -255,6 +256,14 @@ const CragDetail = () => {
                       </div>
                     </div>
                     <div className="problem-stats-panel">
+                      {(problem.average_rating || problem.rating) && (
+                        <div className="stat-item">
+                          <StarRating 
+                            rating={parseFloat(problem.average_rating || problem.rating)} 
+                            size="small" 
+                          />
+                        </div>
+                      )}
                       {problem.tick_count !== undefined && problem.tick_count > 0 && (
                         <div className="stat-item">
                           <span className="stat-icon">✓</span>

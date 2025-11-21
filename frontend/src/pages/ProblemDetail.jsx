@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
+import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
 import { commentsAPI, problemsAPI, ticksAPI } from '../services/api';
-import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import './ProblemDetail.css';
 
 const ProblemDetail = () => {
@@ -21,6 +22,7 @@ const ProblemDetail = () => {
     date: new Date().toISOString().split('T')[0],
     notes: '',
     suggested_grade: '',
+    rating: null,
   });
 
   useEffect(() => {
@@ -165,6 +167,9 @@ const ProblemDetail = () => {
       if (tickFormData.suggested_grade) {
         payload.suggested_grade = tickFormData.suggested_grade;
       }
+      if (tickFormData.rating) {
+        payload.rating = parseFloat(tickFormData.rating);
+      }
       
       await ticksAPI.create(payload);
       console.log('✅ Tick created');
@@ -173,6 +178,7 @@ const ProblemDetail = () => {
         date: new Date().toISOString().split('T')[0],
         notes: '',
         suggested_grade: '',
+        rating: null,
       });
       await checkTick();
       fetchStatistics();
@@ -292,6 +298,22 @@ const ProblemDetail = () => {
                 )}
               </p>
             )}
+            <div className="problem-meta">
+              {(problem.average_rating || problem.rating) && (
+                <div className="problem-rating">
+                  <StarRating 
+                    rating={parseFloat(problem.average_rating || problem.rating)} 
+                    size="small" 
+                  />
+                </div>
+              )}
+              {problem.author_username && (
+                <div className="problem-author">
+                  <span className="meta-label">Author:</span>
+                  <span className="meta-value">{problem.author_username}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {isAuthenticated && (
@@ -551,6 +573,16 @@ const ProblemDetail = () => {
                   )}
                 </select>
                 <small>Help the community by suggesting what grade you think this problem is</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="tick-rating">Rate this Problem (Optional):</label>
+                <StarRating
+                  rating={tickFormData.rating || 0}
+                  onChange={(rating) => setTickFormData({ ...tickFormData, rating: rating })}
+                  editable={true}
+                  size="medium"
+                />
+                <small>Rate this problem from 1 to 5 stars based on your experience</small>
               </div>
               <div className="form-group">
                 <label htmlFor="tick-notes">Notes (Optional):</label>

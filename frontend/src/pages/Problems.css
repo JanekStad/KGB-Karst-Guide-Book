@@ -182,6 +182,12 @@
   font-size: 0.9rem;
 }
 
+.problem-rating-inline {
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
 .tick-count {
   color: #7f8c8d;
   margin: 0.5rem 0 0 0;

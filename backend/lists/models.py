@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from boulders.models import BoulderProblem
 
@@ -47,6 +48,14 @@ class Tick(models.Model):
         blank=True,
         null=True,
         help_text="User's suggested grade for this problem (optional)",
+    )
+    rating = models.DecimalField(
+        max_digits=2,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        help_text="User's star rating for this problem (1-5 stars, optional)",
+        validators=[MinValueValidator(1.0), MaxValueValidator(5.0)],
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

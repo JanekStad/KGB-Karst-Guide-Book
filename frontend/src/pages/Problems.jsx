@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
 import { problemsAPI } from '../services/api';
 import './Problems.css';
@@ -264,6 +265,14 @@ const Problems = () => {
                     📍 {problem.crag_name}
                     {problem.wall_name && ` - ${problem.wall_name}`}
                   </p>
+                )}
+                {(problem.average_rating || problem.rating) && (
+                  <div className="problem-rating-inline">
+                    <StarRating 
+                      rating={parseFloat(problem.average_rating || problem.rating)} 
+                      size="small" 
+                    />
+                  </div>
                 )}
                 {problem.tick_count !== undefined && (
                   <p className="tick-count">
