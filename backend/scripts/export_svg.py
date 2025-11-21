@@ -1,6 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 
+
 def parse_path_d(d):
     """
     Parse an SVG path 'd' attribute and return a list of {'x': x, 'y': y} dictionaries.
@@ -8,13 +9,13 @@ def parse_path_d(d):
     """
     # SVG path command letters
     path_cmds = "MLCmlc"
-    
+
     # Split commands but keep letters
     tokens = re.findall(r"[MLCmlcZz]|-?\d*\.?\d+", d)
-    
+
     coords = []
     idx = 0
-    current_pos = {'x': 0, 'y': 0}
+    current_pos = {"x": 0, "y": 0}
     prev_cmd = None
 
     while idx < len(tokens):
@@ -51,11 +52,11 @@ def parse_path_d(d):
                 idx += 2
 
                 if cmd.islower():  # relative coords
-                    x += current_pos['x']
-                    y += current_pos['y']
+                    x += current_pos["x"]
+                    y += current_pos["y"]
 
-                coords.append({'x': x, 'y': y})
-                current_pos = {'x': x, 'y': y}
+                coords.append({"x": x, "y": y})
+                current_pos = {"x": x, "y": y}
             except (ValueError, IndexError):
                 break
 
@@ -69,11 +70,11 @@ def parse_path_d(d):
                 idx += 6
 
                 if cmd.islower():  # relative coords
-                    x1 += current_pos['x']
-                    y1 += current_pos['y']
+                    x1 += current_pos["x"]
+                    y1 += current_pos["y"]
 
-                coords.append({'x': x1, 'y': y1})
-                current_pos = {'x': x1, 'y': y1}
+                coords.append({"x": x1, "y": y1})
+                current_pos = {"x": x1, "y": y1}
             except (ValueError, IndexError):
                 break
 
@@ -88,31 +89,31 @@ def convert_to_relative(coords):
     """
     Convert absolute coordinates to relative coordinates.
     First point becomes (0, 0), subsequent points are relative to previous point.
-    
+
     Args:
         coords: List of {'x': x, 'y': y} dictionaries (absolute coordinates)
-    
+
     Returns:
         List of {'x': x, 'y': y} dictionaries (relative coordinates)
     """
     if not coords:
         return []
-    
+
     relative = []
-    prev = {'x': 0, 'y': 0}
-    
+    prev = {"x": 0, "y": 0}
+
     for i, point in enumerate(coords):
         if i == 0:
             # First point: make it relative to origin (0, 0)
-            relative.append({'x': 0, 'y': 0})
+            relative.append({"x": 0, "y": 0})
             prev = point.copy()
         else:
             # Subsequent points: difference from previous absolute point
-            rel_x = point['x'] - prev['x']
-            rel_y = point['y'] - prev['y']
-            relative.append({'x': rel_x, 'y': rel_y})
+            rel_x = point["x"] - prev["x"]
+            rel_y = point["y"] - prev["y"]
+            relative.append({"x": rel_x, "y": rel_y})
             prev = point.copy()
-    
+
     return relative
 
 
@@ -120,25 +121,22 @@ def normalize_to_image_size(coords, width, height):
     """
     Normalize coordinates to 0-1 range relative to image dimensions.
     This is useful for storing coordinates that work regardless of image size.
-    
+
     Args:
         coords: List of {'x': x, 'y': y} dictionaries (absolute coordinates)
         width: Image width in pixels
         height: Image height in pixels
-    
+
     Returns:
         List of {'x': x, 'y': y} dictionaries (normalized 0-1 coordinates)
     """
     if not coords or width <= 0 or height <= 0:
         return []
-    
+
     normalized = []
     for point in coords:
-        normalized.append({
-            'x': point['x'] / width,
-            'y': point['y'] / height
-        })
-    
+        normalized.append({"x": point["x"] / width, "y": point["y"] / height})
+
     return normalized
 
 
@@ -146,31 +144,31 @@ def get_svg_dimensions(svg_path):
     """
     Extract width and height from SVG file.
     Checks viewBox first, then width/height attributes.
-    
+
     Returns:
         Tuple of (width, height) or (None, None) if not found
     """
     tree = ET.parse(svg_path)
     root = tree.getroot()
-    
+
     # Check for viewBox attribute (most common)
-    viewbox = root.get('viewBox')
+    viewbox = root.get("viewBox")
     if viewbox:
         parts = viewbox.split()
         if len(parts) >= 4:
             # viewBox format: "x y width height"
             return float(parts[2]), float(parts[3])
-    
+
     # Check for width and height attributes
-    width = root.get('width')
-    height = root.get('height')
-    
+    width = root.get("width")
+    height = root.get("height")
+
     if width and height:
         # Remove units if present (e.g., "800px" -> "800")
-        width = float(re.sub(r'[^\d.]', '', str(width)))
-        height = float(re.sub(r'[^\d.]', '', str(height)))
+        width = float(re.sub(r"[^\d.]", "", str(width)))
+        height = float(re.sub(r"[^\d.]", "", str(height)))
         return width, height
-    
+
     return None, None
 
 
@@ -204,55 +202,77 @@ if __name__ == "__main__":
     import sys
     import json
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Extract coordinates from SVG paths')
-    parser.add_argument('svg_file', nargs='?', default='vanousy_kniha.svg',
-                       help='SVG file to process (default: vanousy_kniha.svg)')
-    parser.add_argument('--relative', '-r', action='store_true',
-                       help='Convert coordinates to relative format (relative to previous point)')
-    parser.add_argument('--normalized', '-n', action='store_true',
-                       help='Normalize coordinates to 0-1 range relative to image size (for database storage)')
-    parser.add_argument('--absolute', '-a', action='store_true',
-                       help='Keep coordinates in absolute format (default)')
-    
+
+    parser = argparse.ArgumentParser(description="Extract coordinates from SVG paths")
+    parser.add_argument(
+        "svg_file",
+        nargs="?",
+        default="vanousy_kniha.svg",
+        help="SVG file to process (default: vanousy_kniha.svg)",
+    )
+    parser.add_argument(
+        "--relative",
+        "-r",
+        action="store_true",
+        help="Convert coordinates to relative format (relative to previous point)",
+    )
+    parser.add_argument(
+        "--normalized",
+        "-n",
+        action="store_true",
+        help="Normalize coordinates to 0-1 range relative to image size (for database storage)",
+    )
+    parser.add_argument(
+        "--absolute",
+        "-a",
+        action="store_true",
+        help="Keep coordinates in absolute format (default)",
+    )
+
     args = parser.parse_args()
     svg_file = args.svg_file
     use_relative = args.relative
     use_normalized = args.normalized
-    
+
     try:
         coords = extract_svg_coords(svg_file)
-        
+
         if not coords:
             print(f"No paths found in {svg_file}")
             sys.exit(1)
-        
+
         # Normalize to image size if requested
         if use_normalized:
             width, height = get_svg_dimensions(svg_file)
             if width is None or height is None:
-                print(f"Warning: Could not determine SVG dimensions. Using absolute coordinates.")
+                print(
+                    f"Warning: Could not determine SVG dimensions. Using absolute coordinates."
+                )
                 coord_type = "absolute"
             else:
                 print(f"SVG dimensions: {width} x {height}")
-                coords = {path_id: normalize_to_image_size(points, width, height)
-                         for path_id, points in coords.items()}
+                coords = {
+                    path_id: normalize_to_image_size(points, width, height)
+                    for path_id, points in coords.items()
+                }
                 coord_type = "normalized (0-1)"
         # Convert to relative if requested
         elif use_relative:
-            coords = {path_id: convert_to_relative(points) 
-                      for path_id, points in coords.items()}
+            coords = {
+                path_id: convert_to_relative(points)
+                for path_id, points in coords.items()
+            }
             coord_type = "relative"
         else:
             coord_type = "absolute"
-        
+
         # Print to console
         print(f"\nCoordinates ({coord_type}):")
         for path_id, points in coords.items():
             print(f"\n{path_id}: {len(points)} points")
             for p in points:
                 print(f"   {{'x': {p['x']:.4f}, 'y': {p['y']:.4f}}}")
-        
+
         # Export to JSON file
         if use_normalized:
             suffix = "_normalized_coords"
@@ -264,7 +284,7 @@ if __name__ == "__main__":
         with open(output_file, "w") as f:
             json.dump(coords, f, indent=2)
         print(f"\n✓ Coordinates exported to {output_file}")
-        
+
     except FileNotFoundError:
         print(f"Error: File '{svg_file}' not found")
         sys.exit(1)

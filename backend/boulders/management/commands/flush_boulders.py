@@ -38,7 +38,9 @@ class Command(BaseCommand):
 
         if crag_count == 0 and problem_count == 0:
             self.stdout.write(
-                self.style.SUCCESS("No boulder data to flush. Database is already empty.")
+                self.style.SUCCESS(
+                    "No boulder data to flush. Database is already empty."
+                )
             )
             return
 
@@ -96,10 +98,11 @@ class Command(BaseCommand):
 
         # Summary
         self.stdout.write("\n" + "=" * 50)
-        self.stdout.write(self.style.SUCCESS("✅ All boulder data flushed successfully!"))
+        self.stdout.write(
+            self.style.SUCCESS("✅ All boulder data flushed successfully!")
+        )
         self.stdout.write("=" * 50)
         self.stdout.write(
             "\nYou can now run a fresh import:\n"
             "  python manage.py scrape_lezec --import --type boulder --location 199 --user admin"
         )
-

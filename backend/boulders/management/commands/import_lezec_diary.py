@@ -69,7 +69,9 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Importing diary for lezec.cz user: {lezec_username}")
         )
-        self.stdout.write(f"Assigning ticks to Django user: {user.username} (ID: {user_id})")
+        self.stdout.write(
+            f"Assigning ticks to Django user: {user.username} (ID: {user_id})"
+        )
 
         # Encode username to hex (lowercase)
         username_hex = "".join(f"{ord(c):02x}" for c in lezec_username)
@@ -104,14 +106,18 @@ class Command(BaseCommand):
             raise CommandError(f"Failed to fetch diary page: {e}")
 
         # Parse with explicit encoding handling
-        soup = BeautifulSoup(response.content, "html.parser", from_encoding="windows-1250")
+        soup = BeautifulSoup(
+            response.content, "html.parser", from_encoding="windows-1250"
+        )
 
         # Extract ticks from the diary
         ticks = self._extract_ticks_from_diary(soup, base_url)
 
         if not ticks:
             self.stdout.write(
-                self.style.WARNING("No boulder ticks found in diary (or diary is not public)")
+                self.style.WARNING(
+                    "No boulder ticks found in diary (or diary is not public)"
+                )
             )
             return
 
@@ -220,7 +226,9 @@ class Command(BaseCommand):
                         # Check if URL contains the boulder ID
                         if link_url and f"key={boulder_id}" in link_url:
                             problem = boulder
-                            self.stdout.write(f"  ✓ Matched by external link (lezec.cz ID: {boulder_id})")
+                            self.stdout.write(
+                                f"  ✓ Matched by external link (lezec.cz ID: {boulder_id})"
+                            )
                             break
                     if problem:
                         break
@@ -261,7 +269,9 @@ class Command(BaseCommand):
 
             if not problem:
                 self.stdout.write(
-                    self.style.WARNING(f"  Boulder not found in database: {boulder_name}")
+                    self.style.WARNING(
+                        f"  Boulder not found in database: {boulder_name}"
+                    )
                 )
                 stats["not_found"] += 1
                 continue
@@ -283,7 +293,11 @@ class Command(BaseCommand):
             # Create tick
             if not dry_run:
                 try:
-                    notes = f"Imported from lezec.cz diary. Style: {style}" if style else "Imported from lezec.cz diary"
+                    notes = (
+                        f"Imported from lezec.cz diary. Style: {style}"
+                        if style
+                        else "Imported from lezec.cz diary"
+                    )
 
                     Tick.objects.create(
                         user=user,
@@ -296,15 +310,11 @@ class Command(BaseCommand):
                         self.style.SUCCESS(f"  ✓ Created tick for {boulder_name}")
                     )
                 except Exception as e:
-                    self.stdout.write(
-                        self.style.ERROR(f"  ✗ Error creating tick: {e}")
-                    )
+                    self.stdout.write(self.style.ERROR(f"  ✗ Error creating tick: {e}"))
                     stats["errors"] += 1
             else:
                 stats["created"] += 1
-                self.stdout.write(
-                    f"  Would create tick for {boulder_name} on {date}"
-                )
+                self.stdout.write(f"  Would create tick for {boulder_name} on {date}")
 
         # Summary
         self.stdout.write("\n" + "=" * 50)
@@ -363,9 +373,7 @@ class Command(BaseCommand):
                                 break
 
         if not main_table:
-            self.stdout.write(
-                self.style.WARNING("Could not find diary data table")
-            )
+            self.stdout.write(self.style.WARNING("Could not find diary data table"))
             return ticks
 
         rows = main_table.find_all("tr")
@@ -435,4 +443,3 @@ class Command(BaseCommand):
             ticks.append(tick_data)
 
         return ticks
-

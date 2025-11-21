@@ -178,7 +178,9 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
     tick_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
-    author_username = serializers.CharField(source="author.username", read_only=True, allow_null=True)
+    author_username = serializers.CharField(
+        source="author.username", read_only=True, allow_null=True
+    )
 
     def get_images(self, obj):
         """Get images associated with this problem through ProblemLine or wall"""
@@ -265,12 +267,11 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
         """Calculate average rating from all tick ratings"""
         from django.db.models import Avg
         from lists.models import Tick
-        
-        avg_rating = Tick.objects.filter(
-            problem=obj,
-            rating__isnull=False
-        ).aggregate(avg=Avg('rating'))['avg']
-        
+
+        avg_rating = Tick.objects.filter(problem=obj, rating__isnull=False).aggregate(
+            avg=Avg("rating")
+        )["avg"]
+
         # Return the average rating from ticks if available, otherwise use problem.rating
         if avg_rating is not None:
             return float(avg_rating)
@@ -291,7 +292,9 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
     has_video = serializers.SerializerMethodField()
     has_external_links = serializers.SerializerMethodField()
     description_preview = serializers.SerializerMethodField()
-    author_username = serializers.CharField(source="author.username", read_only=True, allow_null=True)
+    author_username = serializers.CharField(
+        source="author.username", read_only=True, allow_null=True
+    )
 
     class Meta:
         model = BoulderProblem
@@ -321,12 +324,11 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
         """Calculate average rating from all tick ratings"""
         from django.db.models import Avg
         from lists.models import Tick
-        
-        avg_rating = Tick.objects.filter(
-            problem=obj,
-            rating__isnull=False
-        ).aggregate(avg=Avg('rating'))['avg']
-        
+
+        avg_rating = Tick.objects.filter(problem=obj, rating__isnull=False).aggregate(
+            avg=Avg("rating")
+        )["avg"]
+
         # Return the average rating from ticks if available, otherwise use problem.rating
         if avg_rating is not None:
             return float(avg_rating)

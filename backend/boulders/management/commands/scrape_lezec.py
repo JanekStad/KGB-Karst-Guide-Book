@@ -12,11 +12,11 @@ Usage:
     python manage.py scrape_lezec --output boulders_list.json
     python manage.py scrape_lezec --output boulders_list.json --fetch-details
     python manage.py scrape_lezec --output boulders_list.json --type boulder --location 199
-    
+
     # Import directly to database (stores lezec.cz IDs for faster diary imports)
     python manage.py scrape_lezec --import --type boulder --location 199 --user admin --crag-lat 49.4 --crag-lon 16.7
     python manage.py scrape_lezec --import --type boulder --location 199 --limit 100 --user admin
-    
+
 Location IDs (examples):
     - 0: All locations
     - 199: Moravský Kras
@@ -46,17 +46,17 @@ class Command(BaseCommand):
     def _validate_and_clean_string(self, text, field_name="text"):
         """
         Validate and clean a string to ensure proper UTF-8 encoding.
-        
+
         Args:
             text: The string to validate
             field_name: Name of the field for error reporting
-            
+
         Returns:
             Cleaned string, or None if validation fails
         """
         if not text:
             return text
-        
+
         # Ensure it's a string
         if not isinstance(text, str):
             try:
@@ -68,11 +68,11 @@ class Command(BaseCommand):
                     )
                 )
                 return None
-        
+
         # First, try to fix common encoding patterns (this might fix issues)
         original_text = text
         text = self._try_fix_encoding(text)
-        
+
         # Check if text can be properly encoded to UTF-8
         # This is the real test - if we can't encode it, it's corrupted
         try:
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                 )
             )
             return None
-        
+
         # Check for replacement characters - but only warn, don't skip
         # (The source HTML might have these, but we can still use the text)
         if "\ufffd" in text:
@@ -94,7 +94,7 @@ class Command(BaseCommand):
                 )
             )
             # Don't skip - just warn. The text is still usable.
-        
+
         # Normalize Unicode (NFC form)
         try:
             text = unicodedata.normalize("NFC", text)
@@ -104,24 +104,22 @@ class Command(BaseCommand):
                     f"  ⚠️  {field_name}: Unicode normalization failed: {e}"
                 )
             )
-        
+
         # Validate UTF-8 encoding
         try:
             text.encode("utf-8")
         except UnicodeEncodeError as e:
             self.stdout.write(
-                self.style.ERROR(
-                    f"  ❌ {field_name}: Invalid UTF-8 encoding: {e}"
-                )
+                self.style.ERROR(f"  ❌ {field_name}: Invalid UTF-8 encoding: {e}")
             )
             return None
-        
+
         return text.strip()
-    
+
     def _try_fix_encoding(self, text):
         """Try to fix common encoding issues in a string."""
         import re
-        
+
         # Common Czech character fixes
         fixes = [
             (r"Moravsk\s*[\ufffd]?\s*Kras", "Moravský Kras"),
@@ -131,11 +129,11 @@ class Command(BaseCommand):
             (r"Hol\s*[\ufffd]?\s*tejn", "Holtýn"),
             (r"Josefovsk\s*[\ufffd]?\s*[\ufffd]?\s*dol", "Josefovské údolí"),
         ]
-        
+
         fixed = text
         for pattern, replacement in fixes:
             fixed = re.sub(pattern, replacement, fixed)
-        
+
         return fixed
 
     def add_arguments(self, parser):
@@ -258,7 +256,7 @@ class Command(BaseCommand):
 
         # Build filter parameters
         filter_params = {}
-        
+
         # Set route type filter
         if route_type == "boulder":
             filter_params["cchr"] = "1"
@@ -267,7 +265,7 @@ class Command(BaseCommand):
         elif route_type == "skalni":
             filter_params["cchr"] = "4"
         # else: don't set cchr (all types)
-        
+
         # Set location filter
         if location_id is not None:
             filter_params["cpol"] = str(location_id)
@@ -300,36 +298,46 @@ class Command(BaseCommand):
 
         # Find pagination links to determine total pages
         pagination_links = self._extract_pagination_links(soup, base_url)
-        
+
         if pagination_links:
             self.stdout.write(f"Found {len(pagination_links)} additional pages")
-            
+
             # Fetch remaining pages
             for page_num, page_url in enumerate(pagination_links, start=2):
                 try:
                     time.sleep(delay)  # Be respectful between page requests
                     self.stdout.write(f"Fetching page {page_num}...")
-                    
+
                     # Use GET for pagination links (they're already formatted URLs)
                     page_response = requests.get(page_url, timeout=30)
                     page_response.raise_for_status()
                     page_response.encoding = "utf-8"
                     if page_response.encoding.lower() != "utf-8":
                         page_response.encoding = "utf-8"
-                    
-                    page_soup = BeautifulSoup(page_response.content, "html.parser", from_encoding="utf-8")
-                    page_boulders = self._extract_boulder_list(page_soup, base_url, route_type)
-                    
+
+                    page_soup = BeautifulSoup(
+                        page_response.content, "html.parser", from_encoding="utf-8"
+                    )
+                    page_boulders = self._extract_boulder_list(
+                        page_soup, base_url, route_type
+                    )
+
                     if page_boulders:
                         all_boulders.extend(page_boulders)
-                        self.stdout.write(f"  Page {page_num}: Found {len(page_boulders)} boulders (Total: {len(all_boulders)})")
+                        self.stdout.write(
+                            f"  Page {page_num}: Found {len(page_boulders)} boulders (Total: {len(all_boulders)})"
+                        )
                     else:
-                        self.stdout.write(self.style.WARNING(f"  Page {page_num}: No boulders found"))
+                        self.stdout.write(
+                            self.style.WARNING(f"  Page {page_num}: No boulders found")
+                        )
                         break  # Stop if we hit an empty page
-                        
+
                 except requests.RequestException as e:
                     self.stdout.write(
-                        self.style.WARNING(f"  Failed to fetch page {page_num}: {e}. Continuing...")
+                        self.style.WARNING(
+                            f"  Failed to fetch page {page_num}: {e}. Continuing..."
+                        )
                     )
                     continue
 
@@ -337,14 +345,16 @@ class Command(BaseCommand):
             raise CommandError("No boulders found on any page")
 
         self.stdout.write(
-            self.style.SUCCESS(f"\nTotal boulders found across all pages: {len(all_boulders)}")
+            self.style.SUCCESS(
+                f"\nTotal boulders found across all pages: {len(all_boulders)}"
+            )
         )
 
         # Apply limit if specified
         if limit:
             all_boulders = all_boulders[:limit]
             self.stdout.write(f"Limited to {limit} boulders for processing")
-        
+
         boulders = all_boulders
 
         # Step 2: Fetch details if requested
@@ -382,8 +392,10 @@ class Command(BaseCommand):
 
         if import_to_db:
             if not user:
-                raise CommandError("User is required for import. Use --user to specify.")
-            
+                raise CommandError(
+                    "User is required for import. Use --user to specify."
+                )
+
             # Set default coordinates if not provided
             if default_lat is None:
                 default_lat = 49.4  # Default for Czech Republic
@@ -417,17 +429,19 @@ class Command(BaseCommand):
                 with open(output_file, "w", encoding="utf-8") as f:
                     json.dump(boulders, f, ensure_ascii=False, indent=2)
                 self.stdout.write(
-                    self.style.SUCCESS(f"Saved {len(boulders)} boulders to: {output_file}")
+                    self.style.SUCCESS(
+                        f"Saved {len(boulders)} boulders to: {output_file}"
+                    )
                 )
             except Exception as e:
                 raise CommandError(f"Failed to save output file: {e}")
         elif dry_run and not import_to_db:
-            self.stdout.write(
-                self.style.WARNING("DRY RUN - Displaying sample data:")
-            )
+            self.stdout.write(self.style.WARNING("DRY RUN - Displaying sample data:"))
             # Display first 3 boulders as sample
             for boulder in boulders[:3]:
-                self.stdout.write(f"\n{json.dumps(boulder, ensure_ascii=False, indent=2)}")
+                self.stdout.write(
+                    f"\n{json.dumps(boulder, ensure_ascii=False, indent=2)}"
+                )
             if len(boulders) > 3:
                 self.stdout.write(f"\n... and {len(boulders) - 3} more boulders")
         else:
@@ -540,7 +554,7 @@ class Command(BaseCommand):
             name = link.get_text(strip=True) or cell_texts[0] if cell_texts else None
             if not name:
                 continue
-            
+
             # Validate and clean the name
             name = self._validate_and_clean_string(name, "name")
             if not name:
@@ -634,16 +648,16 @@ class Command(BaseCommand):
     def _extract_pagination_links(self, soup, base_url):
         """
         Extract pagination links from the page.
-        
+
         Returns list of full URLs for pagination pages.
         Pagination uses 'lim' parameter (e.g., lim=100 for page 2, lim=200 for page 3).
         """
         pagination_links = []
-        
+
         # Look for pagination section - usually in <small> tags with links
         # Find links that contain 'lim=' parameter
         all_links = soup.find_all("a", href=True)
-        
+
         for link in all_links:
             href = link.get("href", "")
             if "cesty.php" in href and "lim=" in href:
@@ -651,7 +665,7 @@ class Command(BaseCommand):
                 # Avoid duplicates
                 if full_url not in pagination_links:
                     pagination_links.append(full_url)
-        
+
         # Sort by lim parameter value to process in order
         def get_lim_value(url):
             try:
@@ -661,9 +675,9 @@ class Command(BaseCommand):
                 return int(lim)
             except (ValueError, IndexError):
                 return 0
-        
+
         pagination_links.sort(key=get_lim_value)
-        
+
         return pagination_links
 
     def _fetch_boulder_details(self, detail_url, base_url):
@@ -842,12 +856,13 @@ class Command(BaseCommand):
             if href.startswith("http"):
                 domain = re.search(r"https?://([^/]+)", href)
                 if domain and not any(
-                    excluded in domain.group(1).lower()
-                    for excluded in excluded_domains
+                    excluded in domain.group(1).lower() for excluded in excluded_domains
                 ):
                     label = link.get_text(strip=True) or "External Link"
                     if label:
-                        label = self._validate_and_clean_string(label, "external_link_label")
+                        label = self._validate_and_clean_string(
+                            label, "external_link_label"
+                        )
                     if label and len(label) < 100:  # Filter out very long labels
                         external_links.append({"label": label, "url": href})
 
@@ -874,7 +889,7 @@ class Command(BaseCommand):
     def _import_boulders_to_db(self, boulders, user, default_lat, default_lon, dry_run):
         """
         Import scraped boulders into the database.
-        
+
         Returns statistics about the import.
         """
         from boulders.models import Crag, Wall
@@ -924,7 +939,7 @@ class Command(BaseCommand):
                 )
                 stats["problems_skipped"] += 1
                 continue
-            
+
             # Final validation of crag_name before database operations
             crag_name = self._validate_and_clean_string(crag_name, "crag_name")
             if not crag_name or crag_name == "Unknown Crag":
@@ -971,9 +986,10 @@ class Command(BaseCommand):
                 if location
                 else "Imported from lezec.cz"
             )
-            crag_description = self._validate_and_clean_string(
-                crag_description, "crag_description"
-            ) or "Imported from lezec.cz"
+            crag_description = (
+                self._validate_and_clean_string(crag_description, "crag_description")
+                or "Imported from lezec.cz"
+            )
 
             # Get or create crag
             crag, crag_created = Crag.objects.get_or_create(
@@ -1042,9 +1058,7 @@ class Command(BaseCommand):
                         existing_problem.save()
                     stats["problems_updated"] += 1
                     self.stdout.write(
-                        self.style.SUCCESS(
-                            f"Added external link to: {problem_name}"
-                        )
+                        self.style.SUCCESS(f"Added external link to: {problem_name}")
                     )
                 stats["problems_existing"] += 1
             else:
@@ -1077,4 +1091,3 @@ class Command(BaseCommand):
                     )
 
         return stats
-

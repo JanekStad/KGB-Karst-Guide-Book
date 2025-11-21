@@ -16,7 +16,7 @@ from .models import Tick
 def _encode_to_lezec_hex(text, uppercase=False, use_windows1250=False):
     """
     Encode text to lezec.cz hex format.
-    
+
     Args:
         text: Text to encode
         uppercase: If True, use uppercase hex (default: False, lowercase)
@@ -26,14 +26,14 @@ def _encode_to_lezec_hex(text, uppercase=False, use_windows1250=False):
     if use_windows1250:
         try:
             # Encode to windows-1250 bytes, then convert each byte to hex
-            bytes_encoded = text.encode('windows-1250')
+            bytes_encoded = text.encode("windows-1250")
             if uppercase:
                 return "".join(f"{b:02X}" for b in bytes_encoded)
             return "".join(f"{b:02x}" for b in bytes_encoded)
         except (UnicodeEncodeError, LookupError):
             # Fallback to Unicode if windows-1250 encoding fails
             pass
-    
+
     # Default: Use Unicode code points
     if uppercase:
         return "".join(f"{ord(c):02X}" for c in text)
@@ -43,21 +43,23 @@ def _encode_to_lezec_hex(text, uppercase=False, use_windows1250=False):
 def _try_fetch_diary(base_url, identifier, uppercase_hex=False, use_windows1250=False):
     """
     Try to fetch diary page with a given identifier.
-    
+
     Args:
         base_url: Base URL for lezec.cz
         identifier: Username to try
         uppercase_hex: If True, use uppercase hex encoding
         use_windows1250: If True, encode to windows-1250 bytes first
-        
+
     Returns:
         tuple: (soup, success) where success is True if diary was found
     """
     diary_url = f"{base_url}/denik.php"
-    
+
     # Encode identifier to hex
-    identifier_hex = _encode_to_lezec_hex(identifier, uppercase=uppercase_hex, use_windows1250=use_windows1250)
-    
+    identifier_hex = _encode_to_lezec_hex(
+        identifier, uppercase=uppercase_hex, use_windows1250=use_windows1250
+    )
+
     params = {
         "par": "1",
         "uid": f"{identifier_hex}h",
@@ -70,9 +72,11 @@ def _try_fetch_diary(base_url, identifier, uppercase_hex=False, use_windows1250=
         response = requests.get(diary_url, params=params, timeout=30)
         response.raise_for_status()
         response.encoding = "windows-1250"
-        
-        soup = BeautifulSoup(response.content, "html.parser", from_encoding="windows-1250")
-        
+
+        soup = BeautifulSoup(
+            response.content, "html.parser", from_encoding="windows-1250"
+        )
+
         # Check if this looks like a valid diary page
         page_text = soup.get_text().lower()
         if "deníček" in page_text or "denik" in page_text:
@@ -80,7 +84,7 @@ def _try_fetch_diary(base_url, identifier, uppercase_hex=False, use_windows1250=
             ticks = _extract_ticks_from_diary(soup, base_url)
             if ticks or "deníček" in page_text:
                 return soup, True
-        
+
         return soup, False
     except requests.RequestException:
         return None, False
@@ -89,65 +93,69 @@ def _try_fetch_diary(base_url, identifier, uppercase_hex=False, use_windows1250=
 def import_lezec_diary(user, lezec_username):
     """
     Import ticks from lezec.cz public diary for a user.
-    
+
     Args:
         user: Django User instance
         lezec_username: Lezec.cz username (can contain Czech characters)
-        
+
     Returns:
         dict with statistics about the import
     """
     base_url = "https://www.lezec.cz"
-    
+
     # Normalize username - try lowercase first (most common), but also try other variations
     # Username input is case-insensitive, so we try multiple case variations
     username_lower = lezec_username.lower()
     username_upper = lezec_username.upper()
-    username_capitalized = lezec_username[0].upper() + lezec_username[1:].lower() if len(lezec_username) > 1 else lezec_username.upper()
-    
+    username_capitalized = (
+        lezec_username[0].upper() + lezec_username[1:].lower()
+        if len(lezec_username) > 1
+        else lezec_username.upper()
+    )
+
     # Try multiple strategies to find the diary
     # IMPORTANT: For Czech characters, windows-1250 encoding should be tried FIRST
     # because lezec.cz expects bytes encoded in windows-1250, not Unicode code points
     strategies = []
-    
+
     # Strategy 1: Try lowercase with windows-1250 encoding FIRST (most common + correct encoding)
     strategies.append((username_lower, False, True))
-    
+
     # Strategy 2: Try lowercase with Unicode encoding
     strategies.append((username_lower, False, False))
-    
+
     # Strategy 3: Try original case with windows-1250 (in case user typed it correctly)
     strategies.append((lezec_username, False, True))
-    
+
     # Strategy 4: Try original case with Unicode
     strategies.append((lezec_username, False, False))
-    
+
     # Strategy 5: Try capitalized with windows-1250
     strategies.append((username_capitalized, False, True))
     strategies.append((username_capitalized, False, False))
-    
+
     # Strategy 6: Try uppercase with windows-1250
     strategies.append((username_upper, False, True))
     strategies.append((username_upper, False, False))
-    
+
     # Strategy 7: Try with uppercase hex variations (less common, but just in case)
     strategies.append((username_lower, True, True))
     strategies.append((lezec_username, True, True))
-    
+
     # Try all strategies
     soup = None
     found = False
     tried_identifiers = set()
-    
+
     for identifier, uppercase_hex, use_w1250 in strategies:
         # Skip duplicates
         strategy_key = (identifier, uppercase_hex, use_w1250)
         if strategy_key in tried_identifiers:
             continue
         tried_identifiers.add(strategy_key)
-        
+
         soup, found = _try_fetch_diary(base_url, identifier, uppercase_hex, use_w1250)
-        
+
         if found:
             break
 
@@ -155,8 +163,8 @@ def import_lezec_diary(user, lezec_username):
         return {
             "success": False,
             "message": f"Could not find diary for '{lezec_username}'. Please check:\n"
-                      f"1. The username is correct\n"
-                      f"2. The diary is set to public on lezec.cz",
+            f"1. The username is correct\n"
+            f"2. The diary is set to public on lezec.cz",
             "matched": 0,
             "created": 0,
             "existing": 0,
@@ -170,7 +178,7 @@ def import_lezec_diary(user, lezec_username):
     if not ticks:
         # Check if the page might indicate the diary is private or user doesn't exist
         page_text = soup.get_text().lower() if soup else ""
-        
+
         if "deníček" in page_text or "denik" in page_text:
             # Page loaded but no ticks - could be empty diary or wrong filters
             return {
@@ -437,4 +445,3 @@ def _extract_ticks_from_diary(soup, base_url):
         ticks.append(tick_data)
 
     return ticks
-

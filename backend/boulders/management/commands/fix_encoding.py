@@ -101,7 +101,9 @@ class Command(BaseCommand):
         self.stdout.write("Checking BoulderProblems...")
         for problem in BoulderProblem.objects.all():
             if self._has_encoding_issue(problem.name):
-                issues_found.append(("BoulderProblem", problem.id, "name", problem.name))
+                issues_found.append(
+                    ("BoulderProblem", problem.id, "name", problem.name)
+                )
                 if fix:
                     fixed = self._try_fix_string(problem.name)
                     if fixed and fixed != problem.name:
@@ -138,17 +140,13 @@ class Command(BaseCommand):
                 for model, obj_id, field, value in issues_found[:show_samples]:
                     # Show the corrupted string and try to show what it should be
                     corrupted_bytes = value.encode("utf-8", errors="replace")
-                    self.stdout.write(
-                        f"  {model} #{obj_id}.{field}:"
-                    )
+                    self.stdout.write(f"  {model} #{obj_id}.{field}:")
                     self.stdout.write(f"    Corrupted: {repr(value)}")
                     self.stdout.write(f"    Bytes: {corrupted_bytes}")
                     # Try to show a fix attempt
                     fix_attempt = self._try_fix_string(value)
                     if fix_attempt != value:
-                        self.stdout.write(
-                            f"    Fixed attempt: {repr(fix_attempt)}"
-                        )
+                        self.stdout.write(f"    Fixed attempt: {repr(fix_attempt)}")
                     self.stdout.write("")
                 if len(issues_found) > show_samples:
                     self.stdout.write(
@@ -177,9 +175,7 @@ class Command(BaseCommand):
                         f"  {model} #{obj_id}.{field}: {repr(value[:50])}"
                     )
                 if len(issues_fixed) > 10:
-                    self.stdout.write(
-                        f"  ... and {len(issues_fixed) - 10} more fixes"
-                    )
+                    self.stdout.write(f"  ... and {len(issues_fixed) - 10} more fixes")
             else:
                 self.stdout.write(
                     self.style.WARNING("No issues could be automatically fixed.")
@@ -203,7 +199,7 @@ class Command(BaseCommand):
 
         original = text
         import re
-        
+
         # Strategy 1: Direct pattern replacements for known Czech words
         # These are the most reliable fixes
         patterns = [
@@ -217,14 +213,17 @@ class Command(BaseCommand):
             # Common Czech place names
             (r"Hol\s*[\ufffd]?\s*tejn", "Holtýn"),
             (r"Hol\s*[\ufffd]?\s*t\s*[\ufffd]?\s*jn", "Holtýn"),
-            (r"Josefovsk\s*[\ufffd]?\s*[\ufffd]?\s*dol\s*[\ufffd]?", "Josefovské údolí"),
+            (
+                r"Josefovsk\s*[\ufffd]?\s*[\ufffd]?\s*dol\s*[\ufffd]?",
+                "Josefovské údolí",
+            ),
             (r"Josefovsk\s+[\ufffd]?\s*dol", "Josefovské údolí"),
         ]
-        
+
         fixed = text
         for pattern, replacement in patterns:
             fixed = re.sub(pattern, replacement, fixed)
-        
+
         # Strategy 2: Try encoding recovery (if bytes were misread)
         if fixed == original and ("" in original or "\ufffd" in original):
             try:
@@ -235,21 +234,26 @@ class Command(BaseCommand):
                     fixed = decoded
             except Exception:
                 pass
-        
+
         # Strategy 3: Generic Czech character fixes
         # If we see a pattern like "word replacement_char word", try common Czech chars
         if "" in fixed or "\ufffd" in fixed:
             # Common Czech character replacements in context
             czech_context_fixes = [
-                (r"(\w+)\s*[\ufffd]\s*tejn", r"\1ýn"),  # "Hol" + replacement + "tejn" -> "Holtýn"
-                (r"(\w+)\s*[\ufffd]\s*dol", r"\1é údolí"),  # "Josefovsk" + replacement + "dol" -> "Josefovské údolí"
+                (
+                    r"(\w+)\s*[\ufffd]\s*tejn",
+                    r"\1ýn",
+                ),  # "Hol" + replacement + "tejn" -> "Holtýn"
+                (
+                    r"(\w+)\s*[\ufffd]\s*dol",
+                    r"\1é údolí",
+                ),  # "Josefovsk" + replacement + "dol" -> "Josefovské údolí"
             ]
             for pattern, replacement in czech_context_fixes:
                 fixed = re.sub(pattern, replacement, fixed)
-        
+
         # Strategy 4: If we made any changes, return the fixed version
         if fixed != original:
             return fixed
 
         return original  # Couldn't fix it
-
