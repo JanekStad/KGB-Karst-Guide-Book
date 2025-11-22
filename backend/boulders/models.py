@@ -50,6 +50,10 @@ class Crag(models.Model):
         decimal_places=6,
         help_text="Longitude coordinate for map positioning",
     )
+    is_secret = models.BooleanField(
+        default=False,
+        help_text="If True, this crag is hidden from public view (secret/illegal climbing spots)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(

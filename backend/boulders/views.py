@@ -38,7 +38,7 @@ class CityViewSet(viewsets.ModelViewSet):
     def crags(self, request, pk=None):
         """Get all crags for a specific city"""
         city = self.get_object()
-        crags = city.crags.all()
+        crags = city.crags.filter(is_secret=False)
         serializer = CragListSerializer(crags, many=True)
         return Response(serializer.data)
 
@@ -54,6 +54,14 @@ class CragViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "description", "city__name"]
     ordering_fields = ["name", "created_at", "city"]
     ordering = ["city", "name"]
+
+    def get_queryset(self):
+        """Filter out secret crags by default unless user has permission"""
+        queryset = super().get_queryset()
+        # TODO: Add permission check here when user authentication is implemented
+        # For now, always filter out secret crags
+        queryset = queryset.filter(is_secret=False)
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -93,6 +101,12 @@ class WallViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name", "created_at"]
     ordering = ["crag", "name"]
 
+    def get_queryset(self):
+        """Filter out walls from secret crags"""
+        queryset = super().get_queryset()
+        queryset = queryset.filter(crag__is_secret=False)
+        return queryset
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
@@ -119,6 +133,8 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        # Filter out problems from secret crags
+        queryset = queryset.filter(crag__is_secret=False)
         if self.action == "retrieve":
             # Prefetch image_lines and their images for detail view
             queryset = queryset.prefetch_related(
