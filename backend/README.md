@@ -88,6 +88,56 @@ python3 manage.py runserver --verbosity 2
 python3 manage.py runserver 8001
 ```
 
+## Environment Variables
+
+Create a `.env` file in the `backend/` directory to configure environment-specific settings:
+
+```bash
+# Django Settings
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+
+# Allowed Hosts (comma-separated)
+# For local development with mobile device access, add your computer's IP address
+ALLOWED_HOSTS=localhost,127.0.0.1,YOUR_IP_ADDRESS
+
+# CORS Allowed Origins (comma-separated)
+# Add your computer's IP address when accessing from mobile devices on local network
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://YOUR_IP_ADDRESS:5173
+
+# CSRF Trusted Origins (comma-separated)
+# Required when accessing from mobile devices on local network
+CSRF_TRUSTED_ORIGINS=http://YOUR_IP_ADDRESS:5173,http://YOUR_IP_ADDRESS:8000
+```
+
+**Note:** Replace `YOUR_IP_ADDRESS` with your actual computer's IP address (e.g., `192.168.1.XXX`). The `.env` file is gitignored and will not be committed to the repository.
+
+### Accessing from Mobile Devices on Local Network
+
+1. Find your computer's IP address:
+   ```bash
+   # macOS/Linux
+   ifconfig | grep "inet " | grep -v 127.0.0.1
+   
+   # Or use
+   ipconfig getifaddr en0  # macOS
+   ```
+
+2. Create/update `.env` file with your IP address (see above)
+
+3. Run Django server bound to all interfaces:
+   ```bash
+   python3 manage.py runserver 0.0.0.0:8000
+   ```
+
+4. Run Vite dev server (frontend) bound to all interfaces:
+   ```bash
+   cd ../frontend
+   npm run dev
+   ```
+
+5. Access from your phone: `http://YOUR_IP:5173`
+
 ## API Documentation
 
 See `API_DOCUMENTATION.md` for detailed API endpoint documentation.

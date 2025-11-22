@@ -172,3 +172,12 @@ CORS_ALLOWED_ORIGINS = config(
 )
 
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF trusted origins for accessing from mobile devices on local network
+# Set CSRF_TRUSTED_ORIGINS env var with comma-separated origins
+# Example: CSRF_TRUSTED_ORIGINS=http://YOUR_IP_ADDRESS:5173,http://YOUR_IP_ADDRESS:8000
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[],
+    cast=lambda v: [s.strip() for s in v.split(",")] if v else [],
+)
