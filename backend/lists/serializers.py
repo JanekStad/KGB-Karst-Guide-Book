@@ -16,6 +16,7 @@ class TickSerializer(serializers.ModelSerializer):
             "problem",
             "date",
             "notes",
+            "tick_grade",
             "suggested_grade",
             "rating",
             "created_at",
@@ -26,7 +27,7 @@ class TickSerializer(serializers.ModelSerializer):
 class TickCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tick
-        fields = ["problem", "date", "notes", "suggested_grade", "rating"]
+        fields = ["problem", "date", "notes", "tick_grade", "suggested_grade", "rating"]
 
 
 class ListEntrySerializer(serializers.ModelSerializer):

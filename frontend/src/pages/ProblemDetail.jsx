@@ -12,6 +12,7 @@ const ProblemDetail = () => {
   const [problem, setProblem] = useState(null);
   const [comments, setComments] = useState([]);
   const [isTicked, setIsTicked] = useState(false);
+  const [currentTick, setCurrentTick] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newComment, setNewComment] = useState('');
@@ -21,6 +22,7 @@ const ProblemDetail = () => {
   const [tickFormData, setTickFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     notes: '',
+    tick_grade: '',
     suggested_grade: '',
     rating: null,
   });
@@ -35,6 +37,7 @@ const ProblemDetail = () => {
     if (!isAuthenticated) {
       console.log('⏭️ Skipping tick check - user not authenticated');
       setIsTicked(false);
+      setCurrentTick(null);
       return;
     }
     try {
@@ -42,12 +45,19 @@ const ProblemDetail = () => {
       const response = await ticksAPI.list();
       const ticks = response.data.results || response.data;
       // Tick.problem is a nested object, so we need to check problem.id
-      const ticked = ticks.some((tick) => {
+      const tick = ticks.find((tick) => {
         const problemId = tick.problem?.id || tick.problem;
         return problemId === parseInt(id);
       });
-      console.log('✅ Tick status:', ticked ? 'Ticked' : 'Not ticked', { ticks, problemId: id });
-      setIsTicked(ticked);
+      if (tick) {
+        setIsTicked(true);
+        setCurrentTick(tick);
+        console.log('✅ Tick found:', tick);
+      } else {
+        setIsTicked(false);
+        setCurrentTick(null);
+        console.log('✅ Not ticked');
+      }
     } catch (err) {
       console.error('❌ Failed to check tick:', err);
       console.error('Error details:', {
@@ -56,6 +66,7 @@ const ProblemDetail = () => {
         status: err.response?.status,
       });
       setIsTicked(false);
+      setCurrentTick(null);
     }
   }, [id, isAuthenticated]);
 
@@ -120,36 +131,6 @@ const ProblemDetail = () => {
     }
   };
 
-  const handleTick = async () => {
-    if (!isAuthenticated) {
-      alert('Please login to tick problems');
-      return;
-    }
-
-    if (isTicked) {
-      // Delete the tick
-      try {
-        const response = await ticksAPI.list();
-        const ticks = response.data.results || response.data;
-        const tick = ticks.find((t) => {
-          const problemId = t.problem?.id || t.problem;
-          return problemId === parseInt(id);
-        });
-        if (tick) {
-          await ticksAPI.delete(tick.id);
-          console.log('✅ Tick removed');
-        }
-        setIsTicked(false);
-        fetchStatistics();
-      } catch (err) {
-        console.error('❌ Failed to remove tick:', err);
-        alert('Failed to remove tick. Please try again.');
-      }
-    } else {
-      // Show modal to add tick with grade suggestion
-      setShowTickModal(true);
-    }
-  };
 
   const handleTickSubmit = async (e) => {
     e.preventDefault();
@@ -159,32 +140,52 @@ const ProblemDetail = () => {
     }
 
     try {
-      const payload = {
-        problem: parseInt(id),
-        date: tickFormData.date,
-        notes: tickFormData.notes,
-      };
-      if (tickFormData.suggested_grade) {
-        payload.suggested_grade = tickFormData.suggested_grade;
-      }
-      if (tickFormData.rating) {
-        payload.rating = parseFloat(tickFormData.rating);
+      if (isTicked && currentTick) {
+        // Update existing tick - don't send problem field
+        const payload = {
+          date: tickFormData.date,
+          notes: tickFormData.notes,
+          tick_grade: tickFormData.tick_grade || null,
+          suggested_grade: tickFormData.suggested_grade || null,
+        };
+        if (tickFormData.rating) {
+          payload.rating = parseFloat(tickFormData.rating);
+        }
+        await ticksAPI.patch(currentTick.id, payload);
+        console.log('✅ Tick updated');
+      } else {
+        // Create new tick
+        const payload = {
+          problem: parseInt(id),
+          date: tickFormData.date,
+          notes: tickFormData.notes,
+        };
+        if (tickFormData.tick_grade) {
+          payload.tick_grade = tickFormData.tick_grade;
+        }
+        if (tickFormData.suggested_grade) {
+          payload.suggested_grade = tickFormData.suggested_grade;
+        }
+        if (tickFormData.rating) {
+          payload.rating = parseFloat(tickFormData.rating);
+        }
+        await ticksAPI.create(payload);
+        console.log('✅ Tick created');
       }
       
-      await ticksAPI.create(payload);
-      console.log('✅ Tick created');
       setShowTickModal(false);
       setTickFormData({
         date: new Date().toISOString().split('T')[0],
         notes: '',
+        tick_grade: '',
         suggested_grade: '',
         rating: null,
       });
       await checkTick();
       fetchStatistics();
     } catch (err) {
-      console.error('❌ Failed to create tick:', err);
-      alert('Failed to create tick. Please try again.');
+      console.error('❌ Failed to save tick:', err);
+      alert(`Failed to ${isTicked ? 'update' : 'create'} tick. Please try again.`);
     }
   };
 
@@ -317,12 +318,46 @@ const ProblemDetail = () => {
           </div>
         </div>
         {isAuthenticated && (
-          <button
-            onClick={handleTick}
-            className={`btn-tick ${isTicked ? 'ticked' : ''}`}
-          >
-            {isTicked ? '✓ Ticked' : '+ Tick'}
-          </button>
+          <div className="problem-actions">
+            {isTicked ? (
+              <>
+                <span className="tick-status">✓ Ticked</span>
+                <button
+                  onClick={() => {
+                    if (currentTick) {
+                      setTickFormData({
+                        date: currentTick.date || new Date().toISOString().split('T')[0],
+                        notes: currentTick.notes || '',
+                        tick_grade: currentTick.tick_grade || '',
+                        suggested_grade: currentTick.suggested_grade || '',
+                        rating: currentTick.rating ? parseFloat(currentTick.rating) : null,
+                      });
+                      setShowTickModal(true);
+                    }
+                  }}
+                  className="btn-edit"
+                >
+                  Edit
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setTickFormData({
+                    date: new Date().toISOString().split('T')[0],
+                    notes: '',
+                    tick_grade: '',
+                    suggested_grade: '',
+                    rating: null,
+                  });
+                  setShowTickModal(true);
+                }}
+                className="btn-tick"
+              >
+                + Tick
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -542,7 +577,7 @@ const ProblemDetail = () => {
         <div className="modal-overlay" onClick={() => setShowTickModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add Tick</h2>
+              <h2>{isTicked ? 'Edit Tick' : 'Add Tick'}</h2>
               <button className="modal-close" onClick={() => setShowTickModal(false)}>×</button>
             </div>
             <form onSubmit={handleTickSubmit} className="tick-form">
@@ -555,6 +590,24 @@ const ProblemDetail = () => {
                   onChange={(e) => setTickFormData({ ...tickFormData, date: e.target.value })}
                   required
                 />
+              </div>
+              <div className="form-group">
+                <label htmlFor="tick-grade">Grade You Climbed (Optional):</label>
+                <select
+                  id="tick-grade"
+                  value={tickFormData.tick_grade}
+                  onChange={(e) => setTickFormData({ ...tickFormData, tick_grade: e.target.value })}
+                >
+                  <option value="">Same as problem grade ({problem.grade})</option>
+                  {['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'].map(
+                    (grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    )
+                  )}
+                </select>
+                <small>If you used easier beta, select the grade you actually climbed. This will be used for your statistics.</small>
               </div>
               <div className="form-group">
                 <label htmlFor="suggested-grade">Suggested Grade (Optional):</label>
@@ -577,7 +630,7 @@ const ProblemDetail = () => {
               <div className="form-group">
                 <label htmlFor="tick-rating">Rate this Problem (Optional):</label>
                 <StarRating
-                  rating={tickFormData.rating || 0}
+                  rating={tickFormData.rating ? parseFloat(tickFormData.rating) : 0}
                   onChange={(rating) => setTickFormData({ ...tickFormData, rating: rating })}
                   editable={true}
                   size="medium"
@@ -595,11 +648,32 @@ const ProblemDetail = () => {
                 />
               </div>
               <div className="modal-actions">
+                {isTicked && (
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete this tick?')) {
+                        try {
+                          await ticksAPI.delete(currentTick.id);
+                          setShowTickModal(false);
+                          await checkTick();
+                          fetchStatistics();
+                        } catch (err) {
+                          console.error('❌ Failed to delete tick:', err);
+                          alert('Failed to delete tick. Please try again.');
+                        }
+                      }
+                    }}
+                  >
+                    Delete Tick
+                  </button>
+                )}
                 <button type="button" className="btn btn-secondary" onClick={() => setShowTickModal(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Add Tick
+                  {isTicked ? 'Update Tick' : 'Add Tick'}
                 </button>
               </div>
             </form>

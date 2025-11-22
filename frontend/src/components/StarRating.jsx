@@ -4,6 +4,9 @@ import './StarRating.css';
 const StarRating = ({ rating = 0, onChange, editable = false, size = 'medium' }) => {
   const [hoverRating, setHoverRating] = useState(0);
 
+  // Ensure rating is always a number
+  const numericRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0;
+
   const handleClick = (value) => {
     if (editable && onChange) {
       onChange(value);
@@ -22,7 +25,7 @@ const StarRating = ({ rating = 0, onChange, editable = false, size = 'medium' })
     }
   };
 
-  const displayRating = hoverRating || rating;
+  const displayRating = hoverRating || numericRating;
 
   return (
     <div className={`star-rating ${editable ? 'editable' : ''} ${size}`}>
@@ -42,8 +45,8 @@ const StarRating = ({ rating = 0, onChange, editable = false, size = 'medium' })
           </span>
         );
       })}
-      {rating > 0 && (
-        <span className="rating-value">{rating.toFixed(1)}</span>
+      {numericRating > 0 && (
+        <span className="rating-value">{numericRating.toFixed(1)}</span>
       )}
     </div>
   );

@@ -117,9 +117,14 @@ class TickViewSet(viewsets.ModelViewSet):
         # Date statistics
         date_stats = ticks.aggregate(first_send=Min("date"), latest_send=Max("date"))
 
-        # Grade statistics
+        # Helper function to get effective grade for a tick
+        def get_effective_grade(tick):
+            """Returns tick_grade if set, otherwise falls back to problem.grade"""
+            return tick.tick_grade if tick.tick_grade else tick.problem.grade
+
+        # Grade statistics - use tick_grade if present, otherwise problem.grade
         grade_counts = Counter(
-            tick.problem.grade for tick in ticks if tick.problem.grade
+            get_effective_grade(tick) for tick in ticks if get_effective_grade(tick)
         )
         grade_distribution = {
             grade: grade_counts.get(grade, 0)
@@ -127,15 +132,16 @@ class TickViewSet(viewsets.ModelViewSet):
             if grade in grade_counts
         }
 
-        # Find hardest grade
+        # Find hardest grade - use tick_grade if present, otherwise problem.grade
         hardest_grade = None
         hardest_index = -1
         for tick in ticks:
-            if tick.problem.grade:
-                idx = GRADE_ORDER.index(tick.problem.grade)
+            effective_grade = get_effective_grade(tick)
+            if effective_grade:
+                idx = GRADE_ORDER.index(effective_grade)
                 if idx > hardest_index:
                     hardest_index = idx
-                    hardest_grade = tick.problem.grade
+                    hardest_grade = effective_grade
 
         # Crag statistics
         crag_counts = Counter(

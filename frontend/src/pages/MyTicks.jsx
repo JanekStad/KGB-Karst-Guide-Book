@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ticksAPI } from '../services/api';
+import StarRating from '../components/StarRating';
 import './MyTicks.css';
 
 const MyTicks = () => {
@@ -12,6 +13,15 @@ const MyTicks = () => {
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editingTick, setEditingTick] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [tickFormData, setTickFormData] = useState({
+    date: '',
+    notes: '',
+    tick_grade: '',
+    suggested_grade: '',
+    rating: null,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -62,6 +72,46 @@ const MyTicks = () => {
     } catch (err) {
       console.error('Failed to delete tick:', err);
       alert('Failed to delete tick. Please try again.');
+    }
+  };
+
+  const handleEdit = (tick) => {
+    setEditingTick(tick);
+    setTickFormData({
+      date: tick.date || new Date().toISOString().split('T')[0],
+      notes: tick.notes || '',
+      tick_grade: tick.tick_grade || '',
+      suggested_grade: tick.suggested_grade || '',
+      rating: tick.rating || null,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingTick) return;
+
+    try {
+      const payload = {
+        date: tickFormData.date,
+        notes: tickFormData.notes,
+        tick_grade: tickFormData.tick_grade || null,
+        suggested_grade: tickFormData.suggested_grade || null,
+      };
+      if (tickFormData.rating) {
+        payload.rating = parseFloat(tickFormData.rating);
+      }
+
+      await ticksAPI.patch(editingTick.id, payload);
+      console.log('✅ Tick updated');
+      setShowEditModal(false);
+      setEditingTick(null);
+      // Refresh ticks and statistics
+      fetchTicks();
+      fetchStatistics();
+    } catch (err) {
+      console.error('❌ Failed to update tick:', err);
+      alert('Failed to update tick. Please try again.');
     }
   };
 
@@ -289,7 +339,21 @@ const MyTicks = () => {
                       <Link to={`/problems/${tick.problem.id}`} className="problem-name">
                         {tick.problem.name}
                       </Link>
-                      <span className="problem-grade">{tick.problem.grade}</span>
+                      <div className="tick-grades">
+                        {tick.tick_grade && tick.tick_grade !== tick.problem.grade ? (
+                          <>
+                            <span className="tick-grade" title="Grade you climbed">
+                              {tick.tick_grade}
+                            </span>
+                            <span className="grade-separator">/</span>
+                            <span className="problem-grade" title="Problem grade">
+                              {tick.problem.grade}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="problem-grade">{tick.problem.grade}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="tick-meta">
                       <span className="tick-date">{formatDate(tick.date)}</span>
@@ -298,12 +362,24 @@ const MyTicks = () => {
                           {tick.problem.crag.name}
                         </Link>
                       )}
+                      {tick.rating && (
+                        <div className="tick-rating">
+                          <StarRating rating={parseFloat(tick.rating)} size="small" />
+                        </div>
+                      )}
                     </div>
                     {tick.notes && (
                       <div className="tick-notes">{tick.notes}</div>
                     )}
                   </div>
                   <div className="tick-actions">
+                    <button
+                      className="edit-btn"
+                      onClick={() => handleEdit(tick)}
+                      title="Edit tick"
+                    >
+                      ✎
+                    </button>
                     <button
                       className="delete-btn"
                       onClick={() => handleDelete(tick.id)}
@@ -318,6 +394,114 @@ const MyTicks = () => {
           </>
         )}
       </div>
+
+      {/* Edit Tick Modal */}
+      {showEditModal && editingTick && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Tick - {editingTick.problem.name}</h2>
+              <button className="modal-close" onClick={() => setShowEditModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="tick-form">
+              <div className="form-group">
+                <label htmlFor="edit-tick-date">Date:</label>
+                <input
+                  type="date"
+                  id="edit-tick-date"
+                  value={tickFormData.date}
+                  onChange={(e) => setTickFormData({ ...tickFormData, date: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-tick-grade">Grade You Climbed (Optional):</label>
+                <select
+                  id="edit-tick-grade"
+                  value={tickFormData.tick_grade}
+                  onChange={(e) => setTickFormData({ ...tickFormData, tick_grade: e.target.value })}
+                >
+                  <option value="">Same as problem grade ({editingTick.problem.grade})</option>
+                  {['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'].map(
+                    (grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    )
+                  )}
+                </select>
+                <small>If you used easier beta, select the grade you actually climbed. This will be used for your statistics.</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-suggested-grade">Suggested Grade (Optional):</label>
+                <select
+                  id="edit-suggested-grade"
+                  value={tickFormData.suggested_grade}
+                  onChange={(e) => setTickFormData({ ...tickFormData, suggested_grade: e.target.value })}
+                >
+                  <option value="">No grade suggestion</option>
+                  {['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'].map(
+                    (grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    )
+                  )}
+                </select>
+                <small>Help the community by suggesting what grade you think this problem is</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-tick-rating">Rate this Problem (Optional):</label>
+                <StarRating
+                  rating={tickFormData.rating || 0}
+                  onChange={(rating) => setTickFormData({ ...tickFormData, rating: rating })}
+                  editable={true}
+                  size="medium"
+                />
+                <small>Rate this problem from 1 to 5 stars based on your experience</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="edit-tick-notes">Notes (Optional):</label>
+                <textarea
+                  id="edit-tick-notes"
+                  value={tickFormData.notes}
+                  onChange={(e) => setTickFormData({ ...tickFormData, notes: e.target.value })}
+                  rows="3"
+                  placeholder="Add any notes about your send..."
+                />
+              </div>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to delete this tick?')) {
+                      try {
+                        await ticksAPI.delete(editingTick.id);
+                        setShowEditModal(false);
+                        setEditingTick(null);
+                        fetchTicks();
+                        fetchStatistics();
+                      } catch (err) {
+                        console.error('❌ Failed to delete tick:', err);
+                        alert('Failed to delete tick. Please try again.');
+                      }
+                    }
+                  }}
+                >
+                  Delete Tick
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Update Tick
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

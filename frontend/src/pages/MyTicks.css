@@ -375,6 +375,12 @@
   color: #007bff;
 }
 
+.tick-grades {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .problem-grade {
   font-size: 1.1rem;
   font-weight: 600;
@@ -382,6 +388,21 @@
   background: #fff4e6;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
+}
+
+.tick-grade {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #28a745;
+  background: #d4edda;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+}
+
+.grade-separator {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #666;
 }
 
 .tick-meta {
@@ -406,6 +427,11 @@
 .tick-crag:hover {
   color: #0056b3;
   text-decoration: underline;
+}
+
+.tick-rating {
+  display: flex;
+  align-items: center;
 }
 
 .tick-notes {
@@ -443,6 +469,26 @@
   background: #c82333;
 }
 
+.edit-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  line-height: 1;
+}
+
+.edit-btn:hover {
+  background: #0056b3;
+}
+
 .loading {
   text-align: center;
   padding: 4rem;
@@ -456,6 +502,149 @@
   padding: 1rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+}
+
+/* Edit Tick Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #7f8c8d;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+}
+
+.tick-form {
+  padding: 1.5rem;
+}
+
+.tick-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.tick-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.tick-form input[type="date"],
+.tick-form select,
+.tick-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.tick-form input:focus,
+.tick-form select:focus,
+.tick-form textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.tick-form small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #7f8c8d;
+  font-size: 0.85rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.modal-actions .btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-actions .btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.modal-actions .btn-primary:hover {
+  background: #5568d3;
+}
+
+.modal-actions .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.modal-actions .btn-secondary:hover {
+  background: #5a6268;
+}
+
+.modal-actions .btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.modal-actions .btn-danger:hover {
+  background: #c82333;
 }
 
 @media (max-width: 768px) {
@@ -523,5 +712,9 @@
 
   .ticks-list-header h2 {
     font-size: 1.5rem;
+  }
+
+  .modal-content {
+    max-width: 100%;
   }
 }

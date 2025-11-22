@@ -1,6 +1,24 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Use environment variable or detect hostname dynamically
+// When accessing from phone, use the same hostname as the frontend
+const getApiBaseUrl = () => {
+  // Check if we have an explicit API URL in environment
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  
+  // If accessing from a non-localhost address, use the same hostname
+  const hostname = window.location.hostname;
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    return `http://${hostname}:8000/api`;
+  }
+  
+  // Default to localhost for local development
+  return 'http://localhost:8000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create axios instance
 const api = axios.create({
@@ -133,7 +151,10 @@ export const commentsAPI = {
 // Ticks API
 export const ticksAPI = {
   list: () => api.get('/ticks/my_ticks/'),
+  get: (id) => api.get(`/ticks/${id}/`),
   create: (data) => api.post('/ticks/', data),
+  update: (id, data) => api.put(`/ticks/${id}/`, data),
+  patch: (id, data) => api.patch(`/ticks/${id}/`, data),
   delete: (id) => api.delete(`/ticks/${id}/`),
   importLezecDiary: (lezecUsername) => api.post('/ticks/import_lezec_diary/', { lezec_username: lezecUsername }),
   getStatistics: () => api.get('/ticks/statistics/'),

@@ -42,6 +42,13 @@ class Tick(models.Model):
     )
     date = models.DateField(help_text="Date when the problem was completed")
     notes = models.TextField(blank=True, max_length=500)
+    tick_grade = models.CharField(
+        max_length=10,
+        choices=GRADE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="The actual grade you climbed (may differ from problem grade if you used easier beta)",
+    )
     suggested_grade = models.CharField(
         max_length=10,
         choices=GRADE_CHOICES,

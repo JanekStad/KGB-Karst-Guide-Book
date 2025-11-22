@@ -128,15 +128,13 @@ class Command(BaseCommand):
         # Filter for Moravský Kras only
         # Known areas in Moravský Kras: Panský Les, Sloup, Holštejn, Rudice, Ostrov, etc.
         moravsky_kras_areas = [
-            "Panský Les",
-            "Sloup",
             "Holštejn",
+            "Josefovské Údolí",
             "Rudice",
-            "Ostrov",
-            "Ostaš",
-            "Ludvíkov",
-            "Ludvíkov (Nad Hřbitovem)",
-            "Moravský Kras",
+            "Skály V Údolí Říčky",
+            "Sloup",
+            "Vyvřelina",
+            "Žleby",
         ]
 
         moravsky_kras_ticks = [

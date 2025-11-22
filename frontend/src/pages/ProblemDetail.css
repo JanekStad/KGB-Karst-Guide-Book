@@ -95,6 +95,12 @@
   text-decoration: underline;
 }
 
+.problem-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .btn-tick {
   padding: 0.75rem 1.5rem;
   border: 2px solid #667eea;
@@ -111,10 +117,31 @@
   color: white;
 }
 
-.btn-tick.ticked {
+.tick-status {
+  padding: 0.75rem 1.5rem;
   background: #27ae60;
-  border-color: #27ae60;
   color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-edit {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #667eea;
+  background: #667eea;
+  color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover {
+  background: #5568d3;
+  border-color: #5568d3;
 }
 
 .problem-description,
@@ -375,6 +402,18 @@
   .problem-grade-large {
     width: 80px;
     margin: 0 auto;
+  }
+
+  .problem-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tick-status,
+  .btn-tick,
+  .btn-edit {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
   }
 
 
