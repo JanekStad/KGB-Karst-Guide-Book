@@ -44,6 +44,51 @@ source venv/bin/activate
 python3 manage.py runserver
 ```
 
+## Database Management
+
+### Dump Boulder Data
+
+To save all boulder-related data (areas, sectors, walls, problems) to a JSON fixture file:
+
+```bash
+python manage.py dump_boulders
+# Or specify a custom output file:
+python manage.py dump_boulders --output my_backup.json
+```
+
+This creates a `boulders_fixture.json` file that can be restored later.
+
+### Load Boulder Data
+
+To restore boulder data from a fixture file:
+
+```bash
+python manage.py load_boulders
+# Or specify a custom input file:
+python manage.py load_boulders --input my_backup.json
+```
+
+To clear existing data before loading (WARNING: This deletes all boulder data):
+
+```bash
+python manage.py load_boulders --clear
+```
+
+### Quick Database Reset
+
+If you need to reset the database and restore from a fixture:
+
+```bash
+# 1. Delete the database
+rm db.sqlite3
+
+# 2. Run migrations
+python manage.py migrate
+
+# 3. Load the fixture
+python manage.py load_boulders
+```
+
 ## Expected Output
 
 When the server starts successfully, you should see:
