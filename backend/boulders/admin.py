@@ -1,46 +1,54 @@
 from django.contrib import admin
-from .models import City, Crag, Wall, BoulderProblem, BoulderImage, ProblemLine
+from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
 
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
-    list_display = ["name", "crag_count", "created_by", "created_at"]
+    list_display = ["name", "area_count", "created_by", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["name", "description"]
-    readonly_fields = ["created_at", "updated_at", "crag_count"]
+    readonly_fields = ["created_at", "updated_at", "area_count"]
 
-    def crag_count(self, obj):
-        return obj.crag_count
+    def area_count(self, obj):
+        return obj.area_count
 
-    crag_count.short_description = "Crags"
+    area_count.short_description = "Areas"
 
 
-@admin.register(Crag)
-class CragAdmin(admin.ModelAdmin):
-    list_display = ["name", "city", "latitude", "longitude", "created_by", "created_at"]
-    list_filter = ["city", "created_at"]
+@admin.register(Area)
+class AreaAdmin(admin.ModelAdmin):
+    list_display = ["name", "city", "is_secret", "created_by", "created_at"]
+    list_filter = ["city", "is_secret", "created_at"]
     search_fields = ["name", "description", "city__name"]
-    readonly_fields = ["created_at", "updated_at"]
+    readonly_fields = ["created_at", "updated_at", "problem_count", "sector_count"]
+
+
+@admin.register(Sector)
+class SectorAdmin(admin.ModelAdmin):
+    list_display = ["name", "area", "latitude", "longitude", "created_by", "created_at"]
+    list_filter = ["area", "created_at"]
+    search_fields = ["name", "description", "area__name"]
+    readonly_fields = ["created_at", "updated_at", "problem_count", "wall_count"]
 
 
 @admin.register(Wall)
 class WallAdmin(admin.ModelAdmin):
-    list_display = ["name", "crag", "created_by", "created_at"]
-    list_filter = ["crag", "created_at"]
-    search_fields = ["name", "description", "crag__name"]
-    readonly_fields = ["created_at", "updated_at"]
+    list_display = ["name", "sector", "created_by", "created_at"]
+    list_filter = ["sector", "created_at"]
+    search_fields = ["name", "description", "sector__name", "sector__area__name"]
+    readonly_fields = ["created_at", "updated_at", "problem_count"]
 
 
 @admin.register(BoulderProblem)
 class BoulderProblemAdmin(admin.ModelAdmin):
-    list_display = ["name", "crag", "wall", "grade", "created_by", "created_at"]
-    list_filter = ["crag", "wall", "grade", "created_at"]
-    search_fields = ["name", "crag__name", "wall__name", "description"]
+    list_display = ["name", "area", "sector", "wall", "grade", "created_by", "created_at"]
+    list_filter = ["area", "sector", "wall", "grade", "created_at"]
+    search_fields = ["name", "area__name", "sector__name", "wall__name", "description"]
     readonly_fields = ["created_at", "updated_at"]
     fieldsets = (
         (
             "Basic Information",
-            {"fields": ("name", "crag", "wall", "grade", "description")},
+            {"fields": ("name", "area", "sector", "wall", "grade", "description")},
         ),
         (
             "Media & Links",
@@ -57,14 +65,14 @@ class BoulderProblemAdmin(admin.ModelAdmin):
 class BoulderImageAdmin(admin.ModelAdmin):
     list_display = [
         "id",
-        "wall",
+        "sector",
         "problem_count",
         "is_primary",
         "uploaded_by",
         "uploaded_at",
     ]
-    list_filter = ["is_primary", "uploaded_at", "wall"]
-    search_fields = ["caption", "wall__name"]
+    list_filter = ["is_primary", "uploaded_at", "sector"]
+    search_fields = ["caption", "sector__name"]
     readonly_fields = ["uploaded_at", "problem_count"]
 
     def problem_count(self, obj):

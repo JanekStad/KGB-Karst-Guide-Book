@@ -2,12 +2,14 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import City, Crag, Wall, BoulderProblem, BoulderImage
+from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
 from .serializers import (
     CitySerializer,
     CityListSerializer,
-    CragSerializer,
-    CragListSerializer,
+    AreaSerializer,
+    AreaListSerializer,
+    SectorSerializer,
+    SectorListSerializer,
     WallSerializer,
     BoulderProblemSerializer,
     BoulderProblemListSerializer,
@@ -35,16 +37,21 @@ class CityViewSet(viewsets.ModelViewSet):
         serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
-    def crags(self, request, pk=None):
-        """Get all crags for a specific city"""
+    def areas(self, request, pk=None):
+        """Get all areas for a specific city"""
         city = self.get_object()
-        crags = city.crags.filter(is_secret=False)
-        serializer = CragListSerializer(crags, many=True)
+        areas = city.areas.filter(is_secret=False)
+        serializer = AreaListSerializer(areas, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"])
+    def crags(self, request, pk=None):
+        """Backward compatibility: alias for areas"""
+        return self.areas(request, pk)
 
-class CragViewSet(viewsets.ModelViewSet):
-    queryset = Crag.objects.all()
+
+class AreaViewSet(viewsets.ModelViewSet):
+    queryset = Area.objects.all()
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -56,34 +63,77 @@ class CragViewSet(viewsets.ModelViewSet):
     ordering = ["city", "name"]
 
     def get_queryset(self):
-        """Filter out secret crags by default unless user has permission"""
+        """Filter out secret areas by default unless user has permission"""
         queryset = super().get_queryset()
         # TODO: Add permission check here when user authentication is implemented
-        # For now, always filter out secret crags
+        # For now, always filter out secret areas
         queryset = queryset.filter(is_secret=False)
         return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
-            return CragListSerializer
-        return CragSerializer
+            return AreaListSerializer
+        return AreaSerializer
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
-        """Get all problems for a specific crag"""
-        crag = self.get_object()
-        problems = crag.problems.all()
+        """Get all problems for a specific area"""
+        area = self.get_object()
+        problems = area.problems.all()
+        serializer = BoulderProblemListSerializer(problems, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    def sectors(self, request, pk=None):
+        """Get all sectors for a specific area"""
+        area = self.get_object()
+        sectors = area.sectors.all()
+        serializer = SectorListSerializer(sectors, many=True)
+        return Response(serializer.data)
+
+
+class SectorViewSet(viewsets.ModelViewSet):
+    queryset = Sector.objects.all()
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ["area"]
+    search_fields = ["name", "description", "area__name"]
+    ordering_fields = ["name", "created_at", "area"]
+    ordering = ["area", "name"]
+
+    def get_queryset(self):
+        """Filter out sectors from secret areas"""
+        queryset = super().get_queryset()
+        queryset = queryset.filter(area__is_secret=False)
+        return queryset
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return SectorListSerializer
+        return SectorSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @action(detail=True, methods=["get"])
+    def problems(self, request, pk=None):
+        """Get all problems for a specific sector"""
+        sector = self.get_object()
+        problems = sector.problems.all()
         serializer = BoulderProblemListSerializer(problems, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     def walls(self, request, pk=None):
-        """Get all walls for a specific crag"""
-        crag = self.get_object()
-        walls = crag.walls.all()
+        """Get all walls for a specific sector"""
+        sector = self.get_object()
+        walls = sector.walls.all()
         serializer = WallSerializer(walls, many=True)
         return Response(serializer.data)
 
@@ -96,15 +146,15 @@ class WallViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_fields = ["crag"]
-    search_fields = ["name", "description"]
+    filterset_fields = ["sector"]
+    search_fields = ["name", "description", "sector__name", "sector__area__name"]
     ordering_fields = ["name", "created_at"]
-    ordering = ["crag", "name"]
+    ordering = ["sector", "name"]
 
     def get_queryset(self):
-        """Filter out walls from secret crags"""
+        """Filter out walls from secret areas"""
         queryset = super().get_queryset()
-        queryset = queryset.filter(crag__is_secret=False)
+        queryset = queryset.filter(sector__area__is_secret=False)
         return queryset
 
     def perform_create(self, serializer):
@@ -126,15 +176,15 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_fields = ["crag", "wall", "grade"]
-    search_fields = ["name", "description", "crag__name", "wall__name"]
+    filterset_fields = ["area", "sector", "wall", "grade"]
+    search_fields = ["name", "description", "area__name", "sector__name", "wall__name"]
     ordering_fields = ["grade", "name", "created_at"]
-    ordering = ["crag", "wall", "name"]
+    ordering = ["area", "sector", "wall", "name"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        # Filter out problems from secret crags
-        queryset = queryset.filter(crag__is_secret=False)
+        # Filter out problems from secret areas
+        queryset = queryset.filter(area__is_secret=False)
         if self.action == "retrieve":
             # Prefetch image_lines and their images for detail view
             queryset = queryset.prefetch_related(
@@ -209,7 +259,7 @@ class BoulderImageViewSet(viewsets.ModelViewSet):
     queryset = BoulderImage.objects.all()
     serializer_class = BoulderImageSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["wall", "is_primary"]
+    filterset_fields = ["sector", "is_primary"]
     # Note: To filter by problem, use the problem_lines relationship:
     # /api/boulders/images/?problem_lines__problem=<problem_id>
 

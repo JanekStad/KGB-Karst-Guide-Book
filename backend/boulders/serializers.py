@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import City, Crag, Wall, BoulderProblem, BoulderImage, ProblemLine
+from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
 
 
 class CitySerializer(serializers.ModelSerializer):
-    crag_count = serializers.SerializerMethodField()
+    area_count = serializers.SerializerMethodField()
 
     class Meta:
         model = City
@@ -12,28 +12,28 @@ class CitySerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
-            "crag_count",
+            "area_count",
             "created_at",
             "updated_at",
             "created_by",
         ]
         read_only_fields = ["created_at", "updated_at", "created_by"]
 
-    def get_crag_count(self, obj):
-        return obj.crag_count
+    def get_area_count(self, obj):
+        return obj.area_count
 
 
 class CityListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for city list views"""
 
-    crag_count = serializers.SerializerMethodField()
+    area_count = serializers.SerializerMethodField()
 
     class Meta:
         model = City
-        fields = ["id", "name", "crag_count"]
+        fields = ["id", "name", "area_count"]
 
-    def get_crag_count(self, obj):
-        return obj.crag_count
+    def get_area_count(self, obj):
+        return obj.area_count
 
 
 class ProblemLineSerializer(serializers.ModelSerializer):
@@ -101,13 +101,18 @@ class BoulderImageSerializer(serializers.ModelSerializer):
 
 
 class WallSerializer(serializers.ModelSerializer):
+    """Serializer for Wall (sub-sector within Sector)"""
     problem_count = serializers.SerializerMethodField()
+    sector_name = serializers.CharField(source="sector.name", read_only=True)
+    area_name = serializers.CharField(source="sector.area.name", read_only=True)
 
     class Meta:
         model = Wall
         fields = [
             "id",
-            "crag",
+            "sector",
+            "sector_name",
+            "area_name",
             "name",
             "description",
             "problem_count",
@@ -121,23 +126,77 @@ class WallSerializer(serializers.ModelSerializer):
         return obj.problem_count
 
 
-class CragSerializer(serializers.ModelSerializer):
+class SectorSerializer(serializers.ModelSerializer):
+    """Serializer for Sector (within Area)"""
     problem_count = serializers.SerializerMethodField()
-    city_detail = CityListSerializer(source="city", read_only=True)
-    walls = WallSerializer(many=True, read_only=True)
+    wall_count = serializers.SerializerMethodField()
+    area_name = serializers.CharField(source="area.name", read_only=True)
 
     class Meta:
-        model = Crag
+        model = Sector
+        fields = [
+            "id",
+            "area",
+            "area_name",
+            "name",
+            "description",
+            "latitude",
+            "longitude",
+            "problem_count",
+            "wall_count",
+            "created_at",
+            "updated_at",
+            "created_by",
+        ]
+        read_only_fields = ["created_at", "updated_at", "created_by"]
+
+    def get_problem_count(self, obj):
+        return obj.problem_count
+
+    def get_wall_count(self, obj):
+        return obj.wall_count
+
+
+class SectorListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for sector list views"""
+    problem_count = serializers.SerializerMethodField()
+    area_name = serializers.CharField(source="area.name", read_only=True)
+
+    class Meta:
+        model = Sector
+        fields = [
+            "id",
+            "area",
+            "area_name",
+            "name",
+            "latitude",
+            "longitude",
+            "problem_count",
+        ]
+
+    def get_problem_count(self, obj):
+        return obj.problem_count
+
+
+class AreaSerializer(serializers.ModelSerializer):
+    """Serializer for Area (large geographic region)"""
+    problem_count = serializers.SerializerMethodField()
+    sector_count = serializers.SerializerMethodField()
+    city_detail = CityListSerializer(source="city", read_only=True)
+    sectors = SectorListSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Area
         fields = [
             "id",
             "city",
             "city_detail",
             "name",
             "description",
-            "latitude",
-            "longitude",
+            "is_secret",
             "problem_count",
-            "walls",
+            "sector_count",
+            "sectors",
             "created_at",
             "updated_at",
             "created_by",
@@ -147,9 +206,12 @@ class CragSerializer(serializers.ModelSerializer):
     def get_problem_count(self, obj):
         return obj.problem_count
 
+    def get_sector_count(self, obj):
+        return obj.sector_count
 
-class CragListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for crag list views"""
+
+class AreaListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for area list views"""
 
     problem_count = serializers.SerializerMethodField()
     city_name = serializers.CharField(
@@ -157,14 +219,13 @@ class CragListSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Crag
+        model = Area
         fields = [
             "id",
             "city",
             "city_name",
             "name",
-            "latitude",
-            "longitude",
+            "is_secret",
             "problem_count",
         ]
 
@@ -173,7 +234,8 @@ class CragListSerializer(serializers.ModelSerializer):
 
 
 class BoulderProblemSerializer(serializers.ModelSerializer):
-    crag_detail = CragListSerializer(source="crag", read_only=True)
+    area_detail = AreaListSerializer(source="area", read_only=True)
+    sector_detail = SectorListSerializer(source="sector", read_only=True)
     wall_detail = WallSerializer(source="wall", read_only=True)
     images = serializers.SerializerMethodField()
     tick_count = serializers.SerializerMethodField()
@@ -183,27 +245,27 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     )
 
     def get_images(self, obj):
-        """Get images associated with this problem through ProblemLine or wall"""
+        """Get images associated with this problem through ProblemLine or sector"""
         from .models import BoulderImage
 
         # Get images from two sources:
         # 1. Images that have ProblemLines for this problem (priority - these are explicitly linked)
-        # 2. Images from the wall (if problem has a wall) - but only if no ProblemLine images exist
-        #    OR if we want to show all wall images regardless
+        # 2. Images from the sector (if problem has a sector) - but only if no ProblemLine images exist
+        #    OR if we want to show all sector images regardless
 
         # Images with ProblemLines for this problem (explicitly linked)
         # Don't use .distinct() here - we'll apply it after combining querysets
         images_with_lines = BoulderImage.objects.filter(problem_lines__problem=obj)
 
-        # Images from the wall (if problem has a wall)
-        # Only include wall images if they don't already have ProblemLines for this problem
+        # Images from the sector (if problem has a sector)
+        # Only include sector images if they don't already have ProblemLines for this problem
         # This prevents duplicates and ensures ProblemLine-linked images take priority
-        if obj.wall:
+        if obj.sector:
             # Get IDs from images_with_lines as a list to avoid queryset combination issues
             images_with_lines_ids = list(images_with_lines.values_list("id", flat=True))
-            wall_images = obj.wall.images.exclude(id__in=images_with_lines_ids)
+            sector_images = obj.sector.images.exclude(id__in=images_with_lines_ids)
             # Combine both querysets - now both are regular querysets, so this will work
-            image_queryset = (images_with_lines | wall_images).distinct()
+            image_queryset = (images_with_lines | sector_images).distinct()
         else:
             image_queryset = images_with_lines.distinct()
 
@@ -239,8 +301,10 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
         model = BoulderProblem
         fields = [
             "id",
-            "crag",
-            "crag_detail",
+            "area",
+            "area_detail",
+            "sector",
+            "sector_detail",
             "wall",
             "wall_detail",
             "name",
@@ -282,7 +346,10 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
 class BoulderProblemListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for problem list views"""
 
-    crag_name = serializers.CharField(source="crag.name", read_only=True)
+    area_name = serializers.CharField(source="area.name", read_only=True)
+    sector_name = serializers.CharField(
+        source="sector.name", read_only=True, allow_null=True
+    )
     wall_name = serializers.CharField(
         source="wall.name", read_only=True, allow_null=True
     )
@@ -300,8 +367,10 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
         model = BoulderProblem
         fields = [
             "id",
-            "crag",
-            "crag_name",
+            "area",
+            "area_name",
+            "sector",
+            "sector_name",
             "wall",
             "wall_name",
             "name",
@@ -341,9 +410,9 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
 
         request = self.context.get("request")
 
-        # Try to get a primary image from the wall first
-        if obj.wall:
-            primary = obj.wall.images.filter(is_primary=True).first()
+        # Try to get a primary image from the sector first
+        if obj.sector:
+            primary = obj.sector.images.filter(is_primary=True).first()
             if primary and primary.image:
                 if request:
                     return request.build_absolute_uri(primary.image.url)

@@ -2,18 +2,23 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
-import { problemsAPI } from '../services/api';
+import { cragsAPI, problemsAPI, wallsAPI } from '../services/api';
 import './Problems.css';
 
 const Problems = () => {
   const { isAuthenticated } = useAuth();
   const [problems, setProblems] = useState([]);
+  const [allProblems, setAllProblems] = useState([]); // For client-side rating filter
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState(null);
+  const [selectedGrade, setSelectedGrade] = useState('');
+  const [selectedCrag, setSelectedCrag] = useState('');
+  const [selectedWall, setSelectedWall] = useState('');
+  const [selectedMinRating, setSelectedMinRating] = useState('');
+  const [crags, setCrags] = useState([]);
+  const [walls, setWalls] = useState([]);
   const [availableGrades, setAvailableGrades] = useState([]);
-  const [gradeCounts, setGradeCounts] = useState({});
   const [pagination, setPagination] = useState({
     count: 0,
     next: null,
@@ -21,47 +26,80 @@ const Problems = () => {
     currentPage: 1,
     totalPages: 1,
   });
+  const [filteredCount, setFilteredCount] = useState(0); // Count after client-side rating filter
   const PAGE_SIZE = 21;
 
   const GRADE_CHOICES = [
-    '3', '3+', '4', '4+', '5', '5+',
+    '', '3', '3+', '4', '4+', '5', '5+',
     '6A', '6A+', '6B', '6B+', '6C', '6C+',
     '7A', '7A+', '7B', '7B+', '7C', '7C+',
     '8A', '8A+', '8B', '8B+', '8C', '8C+',
     '9A',
   ];
 
-  useEffect(() => {
-    fetchProblems(1);
-  }, [selectedGrade]); // eslint-disable-line react-hooks/exhaustive-deps
+  const RATING_CHOICES = [
+    { value: '', label: 'Any Rating' },
+    { value: '4.5', label: '4.5+ ⭐' },
+    { value: '4.0', label: '4.0+ ⭐' },
+    { value: '3.5', label: '3.5+ ⭐' },
+    { value: '3.0', label: '3.0+ ⭐' },
+    { value: '2.5', label: '2.5+ ⭐' },
+    { value: '2.0', label: '2.0+ ⭐' },
+    { value: '1.5', label: '1.5+ ⭐' },
+    { value: '1.0', label: '1.0+ ⭐' },
+  ];
 
+  // Fetch crags on mount
   useEffect(() => {
-    // Fetch available grades on initial load
-    fetchAvailableGrades();
+    fetchCrags();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchAvailableGrades = async () => {
+  // Fetch walls when crag changes
+  useEffect(() => {
+    if (selectedCrag) {
+      fetchWalls(selectedCrag);
+    } else {
+      setWalls([]);
+      setSelectedWall('');
+    }
+  }, [selectedCrag]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch problems when filters change (including initial mount)
+  useEffect(() => {
+    fetchProblems(1);
+  }, [selectedGrade, selectedCrag, selectedWall]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchCrags = async () => {
     try {
-      // Fetch first page without filters to get available grades
-      // We'll get grades from the first page, and update as user navigates
-      const response = await problemsAPI.list({ page: 1 });
-      const problems = response.data.results || response.data;
-      if (problems && problems.length > 0) {
-        updateAvailableGrades(problems);
-      }
+      const response = await cragsAPI.list();
+      const fetchedCrags = response.data.results || response.data;
+      setCrags(fetchedCrags || []);
     } catch (err) {
-      console.error('❌ Failed to fetch available grades:', err);
+      console.error('❌ Failed to fetch crags:', err);
+    }
+  };
+
+  const fetchWalls = async (cragId) => {
+    try {
+      const response = await wallsAPI.list({ crag: cragId });
+      const fetchedWalls = response.data.results || response.data;
+      setWalls(fetchedWalls || []);
+    } catch (err) {
+      console.error('❌ Failed to fetch walls:', err);
+      setWalls([]);
     }
   };
 
   const fetchProblems = async (page = 1) => {
     try {
-      console.log('📡 Fetching problems...', { searchTerm, page });
+      console.log('📡 Fetching problems...', { searchTerm, page, selectedGrade, selectedCrag, selectedWall });
       setLoading(true);
       const params = {
         page: page,
         ...(searchTerm ? { search: searchTerm } : {}),
         ...(selectedGrade ? { grade: selectedGrade } : {}),
+        ...(selectedCrag ? { crag: selectedCrag } : {}),
+        ...(selectedWall ? { wall: selectedWall } : {}),
       };
       const response = await problemsAPI.list(params);
       console.log('✅ Problems fetched successfully:', response.data);
@@ -69,7 +107,13 @@ const Problems = () => {
       // Handle paginated response
       if (response.data.results) {
         const fetchedProblems = response.data.results;
-        setProblems(fetchedProblems);
+        // Store all problems for client-side rating filtering
+        setAllProblems(fetchedProblems);
+        // Apply rating filter if selected
+        const filteredProblems = applyRatingFilter(fetchedProblems);
+        setProblems(filteredProblems);
+        // Update filtered count for pagination display
+        setFilteredCount(filteredProblems.length);
         setPagination({
           count: response.data.count || 0,
           next: response.data.next,
@@ -77,11 +121,16 @@ const Problems = () => {
           currentPage: page,
           totalPages: Math.ceil((response.data.count || 0) / PAGE_SIZE),
         });
-        // Update available grades from current page (adds to existing set)
+        // Update available grades from current page
         updateAvailableGrades(fetchedProblems);
       } else {
         // Non-paginated response (fallback)
-        setProblems(response.data);
+        const fetchedProblems = response.data;
+        setAllProblems(fetchedProblems);
+        const filteredProblems = applyRatingFilter(fetchedProblems);
+        setProblems(filteredProblems);
+        // Update filtered count for pagination display
+        setFilteredCount(filteredProblems.length);
         setPagination({
           count: response.data.length || 0,
           next: null,
@@ -109,6 +158,29 @@ const Problems = () => {
     }
   };
 
+  const applyRatingFilter = (problemsList) => {
+    if (!selectedMinRating || selectedMinRating === '') {
+      return problemsList;
+    }
+    const minRating = parseFloat(selectedMinRating);
+    return problemsList.filter(problem => {
+      const rating = parseFloat(problem.average_rating || problem.rating || 0);
+      return rating >= minRating;
+    });
+  };
+
+  // Apply rating filter when it changes
+  useEffect(() => {
+    if (allProblems.length > 0) {
+      const filtered = applyRatingFilter(allProblems);
+      setProblems(filtered);
+      // Update filtered count for pagination display
+      setFilteredCount(filtered.length);
+    } else {
+      setFilteredCount(0);
+    }
+  }, [selectedMinRating, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSearch = (e) => {
     e.preventDefault();
     fetchProblems(1);
@@ -116,7 +188,14 @@ const Problems = () => {
 
   const handleClearFilters = () => {
     setSearchTerm('');
-    setSelectedGrade(null);
+    setSelectedGrade('');
+    setSelectedCrag('');
+    setSelectedWall('');
+    setSelectedMinRating('');
+  };
+
+  const hasActiveFilters = () => {
+    return selectedGrade || selectedCrag || selectedWall || selectedMinRating || searchTerm;
   };
 
   const updateAvailableGrades = (problemsList) => {
@@ -132,29 +211,9 @@ const Problems = () => {
         }
       });
       
-      // Sort grades according to GRADE_CHOICES order
-      return GRADE_CHOICES.filter(grade => currentGrades.has(grade));
+      // Sort grades according to GRADE_CHOICES order (excluding empty string)
+      return GRADE_CHOICES.filter(grade => grade && currentGrades.has(grade));
     });
-    
-    setGradeCounts(prevCounts => {
-      const currentCounts = { ...prevCounts };
-      
-      problemsList.forEach(problem => {
-        if (problem.grade) {
-          // For counts, we only track from current page (not accurate total, but shows presence)
-          if (!currentCounts[problem.grade]) {
-            currentCounts[problem.grade] = 0;
-          }
-          currentCounts[problem.grade] += 1;
-        }
-      });
-      
-      return currentCounts;
-    });
-  };
-
-  const handleGradeFilter = (grade) => {
-    setSelectedGrade(selectedGrade === grade ? null : grade);
   };
 
   const handlePageChange = (newPage) => {
@@ -208,39 +267,108 @@ const Problems = () => {
           </button>
         </form>
 
-        {/* Grade Filter */}
-        <div className="grade-filters">
-          <div className="grade-filters-header">
-            <div className="grade-filters-label">Filter by Grade:</div>
-            {(selectedGrade || searchTerm) && (
+        {/* Filters Section */}
+        <div className="filters-section">
+          <div className="filters-header">
+            <h2 className="filters-title">Filters</h2>
+            {hasActiveFilters() && (
               <button
                 onClick={handleClearFilters}
                 className="btn-clear-filters"
               >
-                Clear Filters
+                Clear All
               </button>
             )}
           </div>
-          <div className="grade-buttons">
-            <button
-              onClick={() => handleGradeFilter(null)}
-              className={`grade-btn ${selectedGrade === null ? 'active' : ''}`}
-            >
-              All
-            </button>
-            {availableGrades.map((grade) => (
-              <button
-                key={grade}
-                onClick={() => handleGradeFilter(grade)}
-                className={`grade-btn ${selectedGrade === grade ? 'active' : ''}`}
-                title={`${gradeCounts[grade] || 0} problem${(gradeCounts[grade] || 0) !== 1 ? 's' : ''}`}
+          
+          <div className="filters-grid">
+            {/* Crag Filter */}
+            <div className="filter-group">
+              <label htmlFor="crag-filter" className="filter-label">
+                Crag
+              </label>
+              <select
+                id="crag-filter"
+                value={selectedCrag}
+                onChange={(e) => setSelectedCrag(e.target.value)}
+                className="filter-select"
               >
-                {grade}
-                {gradeCounts[grade] > 0 && (
-                  <span className="grade-count"> ({gradeCounts[grade]})</span>
+                <option value="">All Crags</option>
+                {crags.map((crag) => (
+                  <option key={crag.id} value={crag.id}>
+                    {crag.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Wall Filter */}
+            <div className="filter-group">
+              <label htmlFor="wall-filter" className="filter-label">
+                Wall
+              </label>
+              <select
+                id="wall-filter"
+                value={selectedWall}
+                onChange={(e) => setSelectedWall(e.target.value)}
+                className="filter-select"
+                disabled={!selectedCrag}
+              >
+                <option value="">All Walls</option>
+                {walls.map((wall) => (
+                  <option key={wall.id} value={wall.id}>
+                    {wall.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Grade Filter */}
+            <div className="filter-group">
+              <label htmlFor="grade-filter" className="filter-label">
+                Grade
+              </label>
+              <select
+                id="grade-filter"
+                value={selectedGrade}
+                onChange={(e) => setSelectedGrade(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Grades</option>
+                {availableGrades.length > 0 ? (
+                  availableGrades.map((grade) => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))
+                ) : (
+                  GRADE_CHOICES.filter(g => g).map((grade) => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))
                 )}
-              </button>
-            ))}
+              </select>
+            </div>
+
+            {/* Rating Filter */}
+            <div className="filter-group">
+              <label htmlFor="rating-filter" className="filter-label">
+                Min Rating
+              </label>
+              <select
+                id="rating-filter"
+                value={selectedMinRating}
+                onChange={(e) => setSelectedMinRating(e.target.value)}
+                className="filter-select"
+              >
+                {RATING_CHOICES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -294,7 +422,17 @@ const Problems = () => {
       {pagination.totalPages > 1 && (
         <div className="pagination">
           <div className="pagination-info">
-            Showing {((pagination.currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(pagination.currentPage * PAGE_SIZE, pagination.count)} of {pagination.count} problems
+            {selectedMinRating ? (
+              // When rating filter is active, show filtered count for current page
+              filteredCount > 0 ? (
+                `Showing ${filteredCount} of ${allProblems.length} problems on this page (filtered by rating)`
+              ) : (
+                `No problems match the rating filter on this page (${allProblems.length} total on page ${pagination.currentPage})`
+              )
+            ) : (
+              // When no rating filter, show backend pagination counts
+              `Showing ${((pagination.currentPage - 1) * PAGE_SIZE) + 1} - ${Math.min(pagination.currentPage * PAGE_SIZE, pagination.count)} of ${pagination.count} problems`
+            )}
           </div>
           <div className="pagination-controls">
             <button

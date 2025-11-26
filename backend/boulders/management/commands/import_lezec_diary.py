@@ -185,7 +185,7 @@ class Command(BaseCommand):
             if boulder_id:
                 # SQLite doesn't support contains lookup for JSONField
                 # So we'll iterate through boulders and check their external_links
-                # But we can filter by crag first to make it faster
+                # But we can filter by area first to make it faster
                 lezec_url = f"https://www.lezec.cz/cesta.php?key={boulder_id}"
                 url_variations = [
                     lezec_url,
@@ -193,26 +193,26 @@ class Command(BaseCommand):
                     f"cesta.php?key={boulder_id}",
                 ]
 
-                # Get Moravský Kras crags first to narrow down search
-                from boulders.models import Crag
+                # Get Moravský Kras areas first to narrow down search
+                from boulders.models import Area
 
-                moravsky_kras_crags = Crag.objects.filter(
+                moravsky_kras_areas = Area.objects.filter(
                     name__icontains="Moravský"
-                ) | Crag.objects.filter(name__icontains="Kras")
+                ) | Area.objects.filter(name__icontains="Kras")
 
-                # Also include crags that match the area from the tick
+                # Also include areas that match the area from the tick
                 tick_area = tick_data.get("location", "")
                 if tick_area:
-                    area_crags = Crag.objects.filter(name__icontains=tick_area)
-                    moravsky_kras_crags = moravsky_kras_crags | area_crags
+                    matching_areas = Area.objects.filter(name__icontains=tick_area)
+                    moravsky_kras_areas = moravsky_kras_areas | matching_areas
 
-                if moravsky_kras_crags.exists():
-                    # Filter by crag first (much faster than checking all boulders)
+                if moravsky_kras_areas.exists():
+                    # Filter by area first (much faster than checking all boulders)
                     boulders_to_check = BoulderProblem.objects.filter(
-                        crag__in=moravsky_kras_crags
+                        area__in=moravsky_kras_areas
                     )
                 else:
-                    # Fallback to all boulders if no crags found
+                    # Fallback to all boulders if no areas found
                     boulders_to_check = BoulderProblem.objects.all()
 
                 # Check external_links for matching lezec.cz URL
@@ -231,37 +231,37 @@ class Command(BaseCommand):
                     if problem:
                         break
 
-            # Strategy 2: Try by name in Moravský Kras crags
+            # Strategy 2: Try by name in Moravský Kras areas
             if not problem:
-                from boulders.models import Crag
+                from boulders.models import Area
 
-                # Find Moravský Kras crags
-                moravsky_kras_crags = Crag.objects.filter(
+                # Find Moravský Kras areas
+                moravsky_kras_areas = Area.objects.filter(
                     name__icontains="Moravský"
-                ) | Crag.objects.filter(name__icontains="Kras")
+                ) | Area.objects.filter(name__icontains="Kras")
 
-                if moravsky_kras_crags.exists():
+                if moravsky_kras_areas.exists():
                     # Try exact match first
-                    for crag in moravsky_kras_crags:
+                    for area in moravsky_kras_areas:
                         problem = BoulderProblem.find_by_normalized_name(
-                            boulder_name, crag=crag
+                            boulder_name, area=area
                         ).first()
                         if problem:
                             self.stdout.write(
-                                f"  Matched by name '{boulder_name}' in crag '{crag.name}'"
+                                f"  Matched by name '{boulder_name}' in area '{area.name}'"
                             )
                             break
 
                     # If still not found, try partial match
                     if not problem:
-                        for crag in moravsky_kras_crags:
+                        for area in moravsky_kras_areas:
                             problems = BoulderProblem.objects.filter(
-                                crag=crag, name__icontains=boulder_name[:10]
+                                area=area, name__icontains=boulder_name[:10]
                             )
                             if problems.exists():
                                 problem = problems.first()
                                 self.stdout.write(
-                                    f"  Matched by partial name in crag '{crag.name}'"
+                                    f"  Matched by partial name in area '{area.name}'"
                                 )
                                 break
 

@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 import requests
 from bs4 import BeautifulSoup
 
-from boulders.models import BoulderProblem, Crag
+from boulders.models import BoulderProblem, Area
 from .models import Tick
 
 

@@ -1,11 +1,12 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from .utils import normalize_problem_name
 
 
 class City(models.Model):
-    """Represents a city/area where climbing crags are located"""
+    """Represents a city/area where climbing areas are located"""
 
     name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
@@ -23,20 +24,65 @@ class City(models.Model):
         return self.name
 
     @property
+    def area_count(self):
+        """Count of areas in this city"""
+        return self.areas.count()
+
+    @property
     def crag_count(self):
-        return self.crags.count()
+        """Backward compatibility: alias for area_count"""
+        return self.area_count
 
 
-class Crag(models.Model):
-    """Represents a climbing crag/area (massive wall)"""
+class Area(models.Model):
+    """Represents a large geographic climbing area (e.g., Sloup, Holstejn, Rudice)"""
 
     city = models.ForeignKey(
         City,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="crags",
-        help_text="City/area where this crag is located",
+        related_name="areas",
+        help_text="City/area where this climbing area is located",
+    )
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    is_secret = models.BooleanField(
+        default=False,
+        help_text="If True, this area is hidden from public view (secret/illegal climbing spots)",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="created_areas"
+    )
+
+    class Meta:
+        ordering = ["city", "name"]
+        verbose_name_plural = "Areas"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def problem_count(self):
+        """Count of problems in this area"""
+        return self.problems.count()
+
+    @property
+    def sector_count(self):
+        """Count of sectors in this area"""
+        return self.sectors.count()
+
+
+class Sector(models.Model):
+    """Represents a sector within an area (e.g., Lidomorna, Vanousovy diry, Stara rasovna)"""
+
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.CASCADE,
+        related_name="sectors",
+        help_text="Area this sector belongs to",
     )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -50,31 +96,40 @@ class Crag(models.Model):
         decimal_places=6,
         help_text="Longitude coordinate for map positioning",
     )
-    is_secret = models.BooleanField(
-        default=False,
-        help_text="If True, this crag is hidden from public view (secret/illegal climbing spots)",
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name="created_crags"
+        User, on_delete=models.SET_NULL, null=True, related_name="created_sectors"
     )
 
     class Meta:
-        ordering = ["city", "name"]
+        ordering = ["area", "name"]
+        unique_together = [["area", "name"]]
+        verbose_name_plural = "Sectors"
 
     def __str__(self):
-        return self.name
+        return f"{self.area.name} - {self.name}"
 
     @property
     def problem_count(self):
+        """Count of problems in this sector"""
         return self.problems.count()
+
+    @property
+    def wall_count(self):
+        """Count of walls in this sector"""
+        return self.walls.count()
 
 
 class Wall(models.Model):
-    """Optional: Represents a wall/sector within a crag for organization"""
+    """Represents a sub-sector/wall within a sector (e.g., Vlevo, Vpravo, Central)"""
 
-    crag = models.ForeignKey(Crag, on_delete=models.CASCADE, related_name="walls")
+    sector = models.ForeignKey(
+        Sector,
+        on_delete=models.CASCADE,
+        related_name="walls",
+        help_text="Sector this wall belongs to",
+    )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -84,19 +139,21 @@ class Wall(models.Model):
     )
 
     class Meta:
-        ordering = ["crag", "name"]
-        unique_together = [["crag", "name"]]
+        ordering = ["sector", "name"]
+        unique_together = [["sector", "name"]]
+        verbose_name_plural = "Walls"
 
     def __str__(self):
-        return f"{self.crag.name} - {self.name}"
+        return f"{self.sector.area.name} - {self.sector.name} - {self.name}"
 
     @property
     def problem_count(self):
+        """Count of problems on this wall"""
         return self.problems.count()
 
 
 class BoulderProblem(models.Model):
-    """Represents a specific climbing problem on a crag/wall"""
+    """Represents a specific climbing problem on an area/sector/wall"""
 
     GRADE_CHOICES = [
         ("3", "3"),
@@ -127,14 +184,27 @@ class BoulderProblem(models.Model):
         ("9A+", "9A+"),
     ]
 
-    crag = models.ForeignKey(Crag, on_delete=models.CASCADE, related_name="problems")
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.CASCADE,
+        related_name="problems",
+        help_text="Area this problem belongs to",
+    )
+    sector = models.ForeignKey(
+        Sector,
+        on_delete=models.CASCADE,
+        related_name="problems",
+        null=True,
+        blank=True,
+        help_text="Optional: Sector this problem belongs to. Required if wall is not specified.",
+    )
     wall = models.ForeignKey(
         Wall,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="problems",
-        help_text="Optional: Wall/sector within the crag",
+        help_text="Optional: Wall/sub-sector this problem belongs to. If specified, sector must match wall.sector.",
     )
     name = models.CharField(max_length=200)
     name_normalized = models.CharField(
@@ -177,77 +247,128 @@ class BoulderProblem(models.Model):
     )
 
     class Meta:
-        ordering = ["crag", "wall", "name"]
-        unique_together = [["crag", "name"]]
+        ordering = ["area", "sector", "wall", "name"]
+        unique_together = [["area", "name"]]
         indexes = [
-            models.Index(fields=["crag", "name_normalized"]),
+            models.Index(fields=["area", "name_normalized"]),
+            models.Index(fields=["sector", "name_normalized"]),
         ]
 
+    def clean(self):
+        """Validate relationships"""
+        # If wall is specified, ensure sector matches wall.sector
+        if self.wall:
+            if self.sector and self.sector != self.wall.sector:
+                raise ValidationError(
+                    {
+                        "sector": "Sector must match the wall's sector if wall is specified."
+                    }
+                )
+            # Auto-set sector from wall if not specified
+            if not self.sector:
+                self.sector = self.wall.sector
+
+        # Ensure sector belongs to area
+        if self.sector and self.sector.area != self.area:
+            raise ValidationError(
+                {"sector": "Sector must belong to the specified area."}
+            )
+
+        # Problem must have either sector or wall
+        if not self.sector and not self.wall:
+            raise ValidationError(
+                {
+                    "sector": "Problem must have either a sector or a wall specified.",
+                    "wall": "Problem must have either a sector or a wall specified.",
+                }
+            )
+
     def save(self, *args, **kwargs):
-        """Auto-populate name_normalized before saving"""
-        if self.name:
+        """Auto-populate name_normalized and validate relationships before saving"""
+        # Auto-set sector from wall if wall is specified but sector is not
+        if self.wall and not self.sector:
+            self.sector = self.wall.sector
+
+        # Auto-populate name_normalized BEFORE validation (always set it)
+        if not self.name_normalized and self.name:
             self.name_normalized = normalize_problem_name(self.name)
+        elif not self.name_normalized:
+            # Fallback: set empty string if name is also empty (shouldn't happen, but be safe)
+            self.name_normalized = ""
+
+        # Validate relationships (after name_normalized is set)
+        self.full_clean()
+
         super().save(*args, **kwargs)
 
     @classmethod
-    def find_by_normalized_name(cls, name, crag=None):
+    def find_by_normalized_name(cls, name, area=None, sector=None):
         """
         Find a problem by normalized name (case-insensitive, diacritic-insensitive).
 
         Args:
             name (str): Problem name (will be normalized)
-            crag (Crag, optional): Optional crag to filter by
+            area (Area, optional): Optional area to filter by
+            sector (Sector, optional): Optional sector to filter by
 
         Returns:
             QuerySet: QuerySet of matching problems
         """
         normalized = normalize_problem_name(name)
         queryset = cls.objects.filter(name_normalized=normalized)
-        if crag:
-            queryset = queryset.filter(crag=crag)
+        if area:
+            queryset = queryset.filter(area=area)
+        if sector:
+            queryset = queryset.filter(sector=sector)
         return queryset
 
     def __str__(self):
-        wall_str = f" ({self.wall.name})" if self.wall else ""
-        return f"{self.crag.name}{wall_str} - {self.name} ({self.grade})"
+        parts = [self.area.name]
+        if self.sector:
+            parts.append(self.sector.name)
+        if self.wall:
+            parts.append(self.wall.name)
+        location_str = " - ".join(parts[1:]) if len(parts) > 1 else ""
+        location_str = f" ({location_str})" if location_str else ""
+        return f"{self.area.name}{location_str} - {self.name} ({self.grade})"
 
 
 class BoulderImage(models.Model):
-    """Images associated with walls or shared across multiple problems via ProblemLine"""
+    """Images associated with sectors or shared across multiple problems via ProblemLine"""
 
-    # Images can be associated with a wall (optional)
+    # Images can be associated with a sector (optional)
     # Problems are linked to images through ProblemLine model (many-to-many relationship)
-    wall = models.ForeignKey(
-        Wall,
+    sector = models.ForeignKey(
+        Sector,
         on_delete=models.CASCADE,
         related_name="images",
         null=True,
         blank=True,
-        help_text="Optional: Wall this image belongs to. Images can also be shared across problems via ProblemLine.",
+        help_text="Optional: Sector this image belongs to. Images can also be shared across problems via ProblemLine.",
     )
     image = models.ImageField(upload_to="boulder_images/")
     caption = models.CharField(max_length=255, blank=True)
     is_primary = models.BooleanField(
         default=False,
-        help_text="Primary image for a wall (if wall is specified). This flag only affects wall-level image ordering and display. For images linked to problems via ProblemLine, this flag is ignored.",
+        help_text="Primary image for a sector (if sector is specified). This flag only affects sector-level image ordering and display. For images linked to problems via ProblemLine, this flag is ignored.",
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        # Order by is_primary only for wall images, but this doesn't affect problem-linked images
+        # Order by is_primary only for sector images, but this doesn't affect problem-linked images
         ordering = ["-is_primary", "uploaded_at"]
 
     def __str__(self):
-        if self.wall:
-            return f"Image for {self.wall}"
+        if self.sector:
+            return f"Image for {self.sector}"
         problem_count = self.problem_lines.count()
         if problem_count > 0:
             return f"Shared image ({problem_count} problem{'s' if problem_count > 1 else ''})"
         return f"Image #{self.id}"
 
     def clean(self):
-        # Validation is optional - images can exist without wall if they have ProblemLines
+        # Validation is optional - images can exist without sector if they have ProblemLines
         # We can't validate ProblemLines here since it's a reverse relation
         pass
 

@@ -8,7 +8,7 @@ Usage:
 
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from boulders.models import Crag, Wall, BoulderProblem
+from boulders.models import Area, Sector, Wall, BoulderProblem
 import json
 import os
 
@@ -27,13 +27,13 @@ class Command(BaseCommand):
             "--crag-lat",
             type=float,
             default=49.4,
-            help="Default latitude for crags (default: 49.4)",
+            help="Default latitude for sectors (default: 49.4)",
         )
         parser.add_argument(
             "--crag-lon",
             type=float,
             default=16.7,
-            help="Default longitude for crags (default: 16.7)",
+            help="Default longitude for sectors (default: 16.7)",
         )
         parser.add_argument(
             "--dry-run",
@@ -84,8 +84,10 @@ class Command(BaseCommand):
 
         # Statistics
         stats = {
-            "crags_created": 0,
-            "crags_existing": 0,
+            "areas_created": 0,
+            "areas_existing": 0,
+            "sectors_created": 0,
+            "sectors_existing": 0,
             "walls_created": 0,
             "walls_existing": 0,
             "problems_created": 0,
@@ -97,8 +99,9 @@ class Command(BaseCommand):
         for item in data:
             problem_name = item.get("name", "").strip()
             grade = item.get("grade", "").strip()
-            crag_name = item.get("crag", "").strip()
-            wall_name = item.get("wall", "").strip()
+            area_name = item.get("crag", "").strip() or item.get("area", "").strip()  # Support both old and new field names
+            sector_name = item.get("sector", "").strip() or item.get("wall", "").strip()  # Support both old and new field names
+            wall_name = item.get("wall", "").strip()  # This is now sub-sector/wall
             city = item.get("city", "").strip()
             location = item.get("location", "").strip()
 
@@ -109,9 +112,9 @@ class Command(BaseCommand):
                 stats["problems_skipped"] += 1
                 continue
 
-            if not crag_name:
+            if not area_name:
                 self.stdout.write(
-                    self.style.WARNING(f'Skipping "{problem_name}" - no crag name')
+                    self.style.WARNING(f'Skipping "{problem_name}" - no area name')
                 )
                 stats["problems_skipped"] += 1
                 continue
@@ -132,9 +135,27 @@ class Command(BaseCommand):
                 stats["problems_skipped"] += 1
                 continue
 
-            # Get or create crag
-            crag, created = Crag.objects.get_or_create(
-                name=crag_name,
+            # Get or create area
+            area, created = Area.objects.get_or_create(
+                name=area_name,
+                defaults={
+                    "description": (
+                        f"Located in {city}, {location}" if city or location else ""
+                    ),
+                    "created_by": user,
+                },
+            )
+            if created:
+                stats["areas_created"] += 1
+                self.stdout.write(self.style.SUCCESS(f"Created area: {area_name}"))
+            else:
+                stats["areas_existing"] += 1
+
+            # Get or create sector (use sector_name or default to area_name)
+            sector_name_final = sector_name if sector_name else area_name
+            sector, created = Sector.objects.get_or_create(
+                area=area,
+                name=sector_name_final,
                 defaults={
                     "latitude": default_lat,
                     "longitude": default_lon,
@@ -145,16 +166,18 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                stats["crags_created"] += 1
-                self.stdout.write(self.style.SUCCESS(f"Created crag: {crag_name}"))
+                stats["sectors_created"] += 1
+                self.stdout.write(
+                    self.style.SUCCESS(f"Created sector: {area_name} - {sector_name_final}")
+                )
             else:
-                stats["crags_existing"] += 1
+                stats["sectors_existing"] += 1
 
-            # Get or create wall if specified
+            # Get or create wall (sub-sector) if specified
             wall = None
-            if wall_name:
+            if wall_name and wall_name != sector_name_final:  # Only create if different from sector
                 wall, created = Wall.objects.get_or_create(
-                    crag=crag,
+                    sector=sector,
                     name=wall_name,
                     defaults={
                         "created_by": user,
@@ -163,7 +186,7 @@ class Command(BaseCommand):
                 if created:
                     stats["walls_created"] += 1
                     self.stdout.write(
-                        self.style.SUCCESS(f"Created wall: {crag_name} - {wall_name}")
+                        self.style.SUCCESS(f"Created wall: {area_name} - {sector_name_final} - {wall_name}")
                     )
                 else:
                     stats["walls_existing"] += 1
@@ -171,50 +194,59 @@ class Command(BaseCommand):
             # Create problem
             if not dry_run:
                 problem, created = BoulderProblem.objects.get_or_create(
-                    crag=crag,
+                    area=area,
                     name=problem_name,
                     defaults={
                         "grade": grade,
+                        "sector": sector,
                         "wall": wall,
                         "created_by": user,
                     },
                 )
                 if created:
                     stats["problems_created"] += 1
+                    location_str = f"{area_name} - {sector_name_final}"
+                    if wall:
+                        location_str += f" - {wall_name}"
                     self.stdout.write(
                         self.style.SUCCESS(
-                            f"Created problem: {problem_name} ({grade}) at {crag_name}"
+                            f"Created problem: {problem_name} ({grade}) at {location_str}"
                         )
                     )
                 else:
                     stats["problems_existing"] += 1
                     self.stdout.write(
                         self.style.WARNING(
-                            f"Problem already exists: {problem_name} at {crag_name}"
+                            f"Problem already exists: {problem_name} at {area_name}"
                         )
                     )
             else:
                 # Dry run - just check if it would be created
                 exists = BoulderProblem.objects.filter(
-                    crag=crag, name=problem_name
+                    area=area, name=problem_name
                 ).exists()
                 if exists:
                     stats["problems_existing"] += 1
                     self.stdout.write(
-                        f"Would skip (exists): {problem_name} at {crag_name}"
+                        f"Would skip (exists): {problem_name} at {area_name}"
                     )
                 else:
                     stats["problems_created"] += 1
+                    location_str = f"{area_name} - {sector_name_final}"
+                    if wall:
+                        location_str += f" - {wall_name}"
                     self.stdout.write(
-                        f"Would create: {problem_name} ({grade}) at {crag_name}"
+                        f"Would create: {problem_name} ({grade}) at {location_str}"
                     )
 
         # Print summary
         self.stdout.write(self.style.SUCCESS("\n" + "=" * 50))
         self.stdout.write(self.style.SUCCESS("Import Summary:"))
         self.stdout.write(self.style.SUCCESS("=" * 50))
-        self.stdout.write(f'Crags created: {stats["crags_created"]}')
-        self.stdout.write(f'Crags existing: {stats["crags_existing"]}')
+        self.stdout.write(f'Areas created: {stats["areas_created"]}')
+        self.stdout.write(f'Areas existing: {stats["areas_existing"]}')
+        self.stdout.write(f'Sectors created: {stats["sectors_created"]}')
+        self.stdout.write(f'Sectors existing: {stats["sectors_existing"]}')
         self.stdout.write(f'Walls created: {stats["walls_created"]}')
         self.stdout.write(f'Walls existing: {stats["walls_existing"]}')
         self.stdout.write(f'Problems created: {stats["problems_created"]}')

@@ -12,7 +12,7 @@ Usage:
 """
 
 from django.core.management.base import BaseCommand
-from boulders.models import Crag, BoulderProblem, City, Wall
+from boulders.models import Area, Sector, BoulderProblem, City, Wall
 
 
 class Command(BaseCommand):
@@ -51,27 +51,48 @@ class Command(BaseCommand):
         issues_found = []
         issues_fixed = []
 
-        # Check Crags
-        self.stdout.write("\nChecking Crags...")
-        for crag in Crag.objects.all():
-            if self._has_encoding_issue(crag.name):
-                issues_found.append(("Crag", crag.id, "name", crag.name))
+        # Check Areas
+        self.stdout.write("\nChecking Areas...")
+        for area in Area.objects.all():
+            if self._has_encoding_issue(area.name):
+                issues_found.append(("Area", area.id, "name", area.name))
                 if fix:
-                    fixed = self._try_fix_string(crag.name)
-                    if fixed and fixed != crag.name:
+                    fixed = self._try_fix_string(area.name)
+                    if fixed and fixed != area.name:
                         # Save if we made any improvement (even if not perfect)
-                        crag.name = fixed
-                        crag.save()
-                        issues_fixed.append(("Crag", crag.id, "name", fixed))
+                        area.name = fixed
+                        area.save()
+                        issues_fixed.append(("Area", area.id, "name", fixed))
 
-            if crag.description and self._has_encoding_issue(crag.description):
-                issues_found.append(("Crag", crag.id, "description", crag.description))
+            if area.description and self._has_encoding_issue(area.description):
+                issues_found.append(("Area", area.id, "description", area.description))
                 if fix:
-                    fixed = self._try_fix_string(crag.description)
-                    if fixed and fixed != crag.description:
-                        crag.description = fixed
-                        crag.save()
-                        issues_fixed.append(("Crag", crag.id, "description", fixed))
+                    fixed = self._try_fix_string(area.description)
+                    if fixed and fixed != area.description:
+                        area.description = fixed
+                        area.save()
+                        issues_fixed.append(("Area", area.id, "description", fixed))
+
+        # Check Sectors
+        self.stdout.write("Checking Sectors...")
+        for sector in Sector.objects.all():
+            if self._has_encoding_issue(sector.name):
+                issues_found.append(("Sector", sector.id, "name", sector.name))
+                if fix:
+                    fixed = self._try_fix_string(sector.name)
+                    if fixed and fixed != sector.name:
+                        sector.name = fixed
+                        sector.save()
+                        issues_fixed.append(("Sector", sector.id, "name", fixed))
+
+            if sector.description and self._has_encoding_issue(sector.description):
+                issues_found.append(("Sector", sector.id, "description", sector.description))
+                if fix:
+                    fixed = self._try_fix_string(sector.description)
+                    if fixed and fixed != sector.description:
+                        sector.description = fixed
+                        sector.save()
+                        issues_fixed.append(("Sector", sector.id, "description", fixed))
 
         # Check Cities
         self.stdout.write("Checking Cities...")

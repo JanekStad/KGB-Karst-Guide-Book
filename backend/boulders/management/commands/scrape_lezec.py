@@ -35,7 +35,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from boulders.models import Crag, BoulderProblem
+from boulders.models import Area, Sector, Wall, BoulderProblem
 import requests
 from bs4 import BeautifulSoup
 
@@ -199,7 +199,7 @@ class Command(BaseCommand):
             "--crag-lon",
             type=float,
             default=None,
-            help="Default longitude for new crags (required when creating new crags)",
+            help="Default longitude for new areas/sectors (required when creating new areas/sectors)",
         )
 
     def handle(self, *args, **options):
@@ -410,8 +410,13 @@ class Command(BaseCommand):
             self.stdout.write("\n" + "=" * 50)
             self.stdout.write("Import Summary:")
             self.stdout.write("=" * 50)
-            self.stdout.write(f"Crags created: {stats['crags_created']}")
-            self.stdout.write(f"Crags existing: {stats['crags_existing']}")
+            self.stdout.write(f"Areas created: {stats['areas_created']}")
+            self.stdout.write(f"Areas existing: {stats['areas_existing']}")
+            self.stdout.write(f"Sectors created: {stats['sectors_created']}")
+            self.stdout.write(f"Sectors existing: {stats['sectors_existing']}")
+            if stats.get('walls_created', 0) > 0 or stats.get('walls_existing', 0) > 0:
+                self.stdout.write(f"Walls created: {stats.get('walls_created', 0)}")
+                self.stdout.write(f"Walls existing: {stats.get('walls_existing', 0)}")
             self.stdout.write(f"Problems created: {stats['problems_created']}")
             self.stdout.write(f"Problems existing: {stats['problems_existing']}")
             self.stdout.write(f"Problems skipped: {stats['problems_skipped']}")
@@ -892,12 +897,16 @@ class Command(BaseCommand):
 
         Returns statistics about the import.
         """
-        from boulders.models import Crag, Wall
+        from boulders.models import Area, Sector, Wall
         from boulders.utils import normalize_problem_name
 
         stats = {
-            "crags_created": 0,
-            "crags_existing": 0,
+            "areas_created": 0,
+            "areas_existing": 0,
+            "sectors_created": 0,
+            "sectors_existing": 0,
+            "walls_created": 0,
+            "walls_existing": 0,
             "problems_created": 0,
             "problems_existing": 0,
             "problems_skipped": 0,
@@ -929,23 +938,23 @@ class Command(BaseCommand):
                 stats["problems_skipped"] += 1
                 continue
 
-            # Use area as crag name, fallback to location if area is empty
-            crag_name = area or location or "Unknown Crag"
-            if crag_name == "Unknown Crag":
+            # Use area as area name, fallback to location if area is empty
+            area_name = area or location or "Unknown Area"
+            if area_name == "Unknown Area":
                 self.stdout.write(
                     self.style.WARNING(
-                        f'Skipping "{problem_name}" - no crag/area information'
+                        f'Skipping "{problem_name}" - no area information'
                     )
                 )
                 stats["problems_skipped"] += 1
                 continue
 
-            # Final validation of crag_name before database operations
-            crag_name = self._validate_and_clean_string(crag_name, "crag_name")
-            if not crag_name or crag_name == "Unknown Crag":
+            # Final validation of area_name before database operations
+            area_name = self._validate_and_clean_string(area_name, "area_name")
+            if not area_name or area_name == "Unknown Area":
                 self.stdout.write(
                     self.style.WARNING(
-                        f'Skipping "{problem_name}" - invalid crag name after validation'
+                        f'Skipping "{problem_name}" - invalid area name after validation'
                     )
                 )
                 stats["problems_skipped"] += 1
@@ -980,48 +989,70 @@ class Command(BaseCommand):
                 stats["problems_skipped"] += 1
                 continue
 
-            # Prepare crag description with validation
-            crag_description = (
+            # Prepare area description with validation
+            area_description = (
                 f"Imported from lezec.cz. Location: {location}"
                 if location
                 else "Imported from lezec.cz"
             )
-            crag_description = (
-                self._validate_and_clean_string(crag_description, "crag_description")
+            area_description = (
+                self._validate_and_clean_string(area_description, "area_description")
                 or "Imported from lezec.cz"
             )
 
-            # Get or create crag
-            crag, crag_created = Crag.objects.get_or_create(
-                name=crag_name,
+            # Get or create area (no coordinates - coordinates go on Sector)
+            area_obj, area_created = Area.objects.get_or_create(
+                name=area_name,
                 defaults={
-                    "latitude": default_lat,
-                    "longitude": default_lon,
-                    "description": crag_description,
+                    "description": area_description,
                     "created_by": user,
                 },
             )
-            if crag_created:
-                stats["crags_created"] += 1
-                self.stdout.write(self.style.SUCCESS(f"Created crag: {crag_name}"))
+            if area_created:
+                stats["areas_created"] += 1
+                self.stdout.write(self.style.SUCCESS(f"Created area: {area_name}"))
             else:
-                stats["crags_existing"] += 1
+                stats["areas_existing"] += 1
 
-            # Get or create wall if sector is specified
-            wall = None
-            if sector and sector != "-":
-                # Validate sector name
-                sector = self._validate_and_clean_string(sector, "sector")
-                if sector and sector != "-":
-                    wall, wall_created = Wall.objects.get_or_create(
-                        crag=crag,
-                        name=sector,
-                        defaults={"created_by": user},
+            # Get or create sector (coordinates go here)
+            # Use sector name from scraped data, or default to area name if no sector
+            sector_name = sector if sector and sector != "-" else area_name
+            sector_name = self._validate_and_clean_string(sector_name, "sector_name")
+            
+            if not sector_name:
+                sector_name = area_name  # Fallback to area name
+            
+            # Validate coordinates
+            if not default_lat or not default_lon:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'Skipping "{problem_name}" - coordinates required for sector creation. Use --crag-lat and --crag-lon.'
                     )
-                if wall_created:
-                    self.stdout.write(
-                        self.style.SUCCESS(f"Created wall: {crag_name} - {sector}")
-                    )
+                )
+                stats["problems_skipped"] += 1
+                continue
+
+            sector_obj, sector_created = Sector.objects.get_or_create(
+                area=area_obj,
+                name=sector_name,
+                defaults={
+                    "latitude": default_lat,
+                    "longitude": default_lon,
+                    "description": f"Imported from lezec.cz",
+                    "created_by": user,
+                },
+            )
+            if sector_created:
+                stats["sectors_created"] += 1
+                self.stdout.write(
+                    self.style.SUCCESS(f"Created sector: {area_name} - {sector_name}")
+                )
+            else:
+                stats["sectors_existing"] += 1
+
+            # Wall is optional (sub-sector) - for now we'll skip creating walls
+            # and just use sectors. Users can manually create walls later if needed.
+            wall_obj = None
 
             # Prepare external link for lezec.cz
             lezec_link = {
@@ -1031,7 +1062,7 @@ class Command(BaseCommand):
 
             # Check if problem already exists
             existing_problem = BoulderProblem.objects.filter(
-                crag=crag, name=problem_name
+                area=area_obj, name=problem_name
             ).first()
 
             if existing_problem:
@@ -1070,8 +1101,9 @@ class Command(BaseCommand):
                             description, "problem_description"
                         )
                     problem = BoulderProblem.objects.create(
-                        crag=crag,
-                        wall=wall,
+                        area=area_obj,
+                        sector=sector_obj,
+                        wall=wall_obj,
                         name=problem_name,
                         grade=grade,
                         description=description or "",
@@ -1081,13 +1113,13 @@ class Command(BaseCommand):
                     stats["problems_created"] += 1
                     self.stdout.write(
                         self.style.SUCCESS(
-                            f"Created problem: {problem_name} ({grade}) at {crag_name}"
+                            f"Created problem: {problem_name} ({grade}) at {area_name} - {sector_name}"
                         )
                     )
                 else:
                     stats["problems_created"] += 1
                     self.stdout.write(
-                        f"Would create: {problem_name} ({grade}) at {crag_name}"
+                        f"Would create: {problem_name} ({grade}) at {area_name} - {sector_name}"
                     )
 
         return stats

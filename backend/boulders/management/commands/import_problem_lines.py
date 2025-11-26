@@ -24,7 +24,7 @@ Usage:
 
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from boulders.models import BoulderProblem, BoulderImage, ProblemLine, Crag
+from boulders.models import BoulderProblem, BoulderImage, ProblemLine, Area
 import json
 import os
 
@@ -199,14 +199,14 @@ class Command(BaseCommand):
 
             # Find the problem using normalized name matching
             # This handles special characters and diacritics more safely
-            crag = None
-            if crag_name:
+            area = None
+            if crag_name:  # Support old field name "crag" in JSON
                 try:
-                    crag = Crag.objects.get(name=crag_name)
-                except Crag.DoesNotExist:
+                    area = Area.objects.get(name=crag_name)
+                except Area.DoesNotExist:
                     self.stdout.write(
                         self.style.WARNING(
-                            f'Crag "{crag_name}" not found. Skipping "{problem_name}".'
+                            f'Area "{crag_name}" not found. Skipping "{problem_name}".'
                         )
                     )
                     stats["problems_not_found"] += 1
@@ -214,7 +214,7 @@ class Command(BaseCommand):
 
             # Use normalized name matching for safer lookups
             problems = list(
-                BoulderProblem.find_by_normalized_name(problem_name, crag=crag)
+                BoulderProblem.find_by_normalized_name(problem_name, area=area)
             )
 
             if len(problems) == 0:
