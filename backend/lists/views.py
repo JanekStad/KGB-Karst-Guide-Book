@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Count, Avg, Min, Max, Q
 from django.db.models.functions import ExtractYear, ExtractMonth
 from collections import Counter
@@ -25,6 +25,14 @@ class TickViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Tick.objects.filter(user=self.request.user)
 
+    def get_permissions(self):
+        """
+        Allow public read access for problem_ticks and user_diary actions
+        """
+        if self.action in ['problem_ticks', 'user_diary']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
     def get_serializer_class(self):
         if self.action == "create":
             return TickCreateSerializer
@@ -37,6 +45,49 @@ class TickViewSet(viewsets.ModelViewSet):
     def my_ticks(self, request):
         """Get current user's ticks"""
         ticks = self.get_queryset()
+        serializer = self.get_serializer(ticks, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
+    def problem_ticks(self, request):
+        """Get all ticks for a specific problem (public access)"""
+        problem_id = request.query_params.get("problem")
+        if not problem_id:
+            return Response(
+                {"error": "problem parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        ticks = Tick.objects.filter(problem_id=problem_id).select_related(
+            "user", "user__profile", "problem"
+        ).order_by("-date", "-created_at")
+        
+        serializer = self.get_serializer(ticks, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
+    def user_diary(self, request):
+        """Get all ticks for a specific user (public access - user's diary)"""
+        user_id = request.query_params.get("user")
+        if not user_id:
+            return Response(
+                {"error": "user parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        try:
+            from django.contrib.auth.models import User
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        ticks = Tick.objects.filter(user=user).select_related(
+            "user", "user__profile", "problem", "problem__area", "problem__area__city"
+        ).order_by("-date", "-created_at")
+        
         serializer = self.get_serializer(ticks, many=True)
         return Response(serializer.data)
 

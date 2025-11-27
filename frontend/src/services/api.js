@@ -158,6 +158,8 @@ export const ticksAPI = {
   delete: (id) => api.delete(`/ticks/${id}/`),
   importLezecDiary: (lezecUsername) => api.post('/ticks/import_lezec_diary/', { lezec_username: lezecUsername }),
   getStatistics: () => api.get('/ticks/statistics/'),
+  getProblemTicks: (problemId) => api.get('/ticks/problem_ticks/', { params: { problem: problemId } }),
+  getUserDiary: (userId) => api.get('/ticks/user_diary/', { params: { user: userId } }),
 };
 
 // Lists API

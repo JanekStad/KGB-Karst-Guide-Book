@@ -19,6 +19,8 @@ const ProblemDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [statistics, setStatistics] = useState(null);
   const [showTickModal, setShowTickModal] = useState(false);
+  const [problemTicks, setProblemTicks] = useState([]);
+  const [loadingTicks, setLoadingTicks] = useState(false);
   const [tickFormData, setTickFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -31,6 +33,7 @@ const ProblemDetail = () => {
     fetchProblem();
     fetchComments();
     fetchStatistics();
+    fetchProblemTicks();
   }, [id]);
 
   const checkTick = useCallback(async () => {
@@ -131,6 +134,21 @@ const ProblemDetail = () => {
     }
   };
 
+  const fetchProblemTicks = async () => {
+    try {
+      console.log('📡 Fetching ticks for problem ID:', id);
+      setLoadingTicks(true);
+      const response = await ticksAPI.getProblemTicks(id);
+      console.log('✅ Problem ticks fetched successfully:', response.data);
+      setProblemTicks(response.data || []);
+    } catch (err) {
+      console.error('❌ Failed to fetch problem ticks:', err);
+      setProblemTicks([]);
+    } finally {
+      setLoadingTicks(false);
+    }
+  };
+
 
   const handleTickSubmit = async (e) => {
     e.preventDefault();
@@ -183,6 +201,7 @@ const ProblemDetail = () => {
       });
       await checkTick();
       fetchStatistics();
+      fetchProblemTicks();
     } catch (err) {
       console.error('❌ Failed to save tick:', err);
       alert(`Failed to ${isTicked ? 'update' : 'create'} tick. Please try again.`);
@@ -449,6 +468,64 @@ const ProblemDetail = () => {
         </div>
       )}
 
+      {problemTicks.length > 0 && (
+        <div className="ticks-section">
+          <h2>Who Ticked This Problem ({problemTicks.length})</h2>
+          <div className="ticks-table-container">
+            <table className="ticks-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Date</th>
+                  <th>Grade</th>
+                  <th>Rating</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {problemTicks.map((tick) => (
+                  <tr key={tick.id}>
+                    <td>
+                      <Link 
+                        to={`/users/${tick.user?.id}/diary`}
+                        className="user-link"
+                      >
+                        {tick.user?.username || 'Anonymous'}
+                      </Link>
+                    </td>
+                    <td>{new Date(tick.date).toLocaleDateString()}</td>
+                    <td>
+                      {tick.tick_grade || tick.problem?.grade || '-'}
+                    </td>
+                    <td>
+                      {tick.rating ? (
+                        <StarRating 
+                          rating={parseFloat(tick.rating)} 
+                          size="small" 
+                        />
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="tick-notes">
+                      {tick.notes ? (
+                        <span title={tick.notes}>
+                          {tick.notes.length > 50 
+                            ? `${tick.notes.substring(0, 50)}...` 
+                            : tick.notes}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {statistics && (
         <div className="statistics-section">
           <h2>Statistics</h2>
@@ -659,6 +736,7 @@ const ProblemDetail = () => {
                           setShowTickModal(false);
                           await checkTick();
                           fetchStatistics();
+                          fetchProblemTicks();
                         } catch (err) {
                           console.error('❌ Failed to delete tick:', err);
                           alert('Failed to delete tick. Please try again.');

@@ -15,6 +15,7 @@ import ProblemDetail from './pages/ProblemDetail';
 import Problems from './pages/Problems';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
+import UserDiary from './pages/UserDiary';
 
 function App() {
   console.log('🎯 App component rendering');
@@ -39,6 +40,7 @@ function App() {
               <Route path="/problems/:id/edit" element={<AddProblem />} />
                   <Route path="/my-lists" element={<MyLists />} />
                   <Route path="/my-ticks" element={<MyTicks />} />
+                  <Route path="/users/:userId/diary" element={<UserDiary />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
