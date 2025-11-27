@@ -36,6 +36,7 @@ function App() {
               <Route path="/problems" element={<Problems />} />
               <Route path="/problems/add" element={<AddProblem />} />
               <Route path="/problems/:id" element={<ProblemDetail />} />
+              <Route path="/problems/:id/edit" element={<AddProblem />} />
                   <Route path="/my-lists" element={<MyLists />} />
                   <Route path="/my-ticks" element={<MyTicks />} />
                   <Route path="/profile" element={<Profile />} />

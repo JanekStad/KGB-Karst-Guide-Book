@@ -238,7 +238,12 @@ class BoulderProblem(models.Model):
         null=True,
         blank=True,
         related_name="authored_problems",
-        help_text="Author/establisher of this boulder problem",
+        help_text="Author/establisher of this boulder problem (Django User if exists)",
+    )
+    author_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Author name as string (used when author is not a Django User)",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

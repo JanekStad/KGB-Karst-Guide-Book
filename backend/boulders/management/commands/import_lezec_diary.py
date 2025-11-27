@@ -20,7 +20,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from boulders.models import BoulderProblem
+from boulders.models import Area, BoulderProblem
 from lists.models import Tick
 import requests
 from bs4 import BeautifulSoup
@@ -194,8 +194,6 @@ class Command(BaseCommand):
                 ]
 
                 # Get Moravský Kras areas first to narrow down search
-                from boulders.models import Area
-
                 moravsky_kras_areas = Area.objects.filter(
                     name__icontains="Moravský"
                 ) | Area.objects.filter(name__icontains="Kras")
@@ -233,8 +231,6 @@ class Command(BaseCommand):
 
             # Strategy 2: Try by name in Moravský Kras areas
             if not problem:
-                from boulders.models import Area
-
                 # Find Moravský Kras areas
                 moravsky_kras_areas = Area.objects.filter(
                     name__icontains="Moravský"

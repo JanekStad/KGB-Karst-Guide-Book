@@ -261,20 +261,20 @@ def import_lezec_diary(user, lezec_username):
                 f"cesta.php?key={boulder_id}",
             ]
 
-            # Get Moravský Kras crags first to narrow down search
-            moravsky_kras_crags = Crag.objects.filter(
+            # Get Moravský Kras areas first to narrow down search
+            moravsky_kras_areas = Area.objects.filter(
                 name__icontains="Moravský"
-            ) | Crag.objects.filter(name__icontains="Kras")
+            ) | Area.objects.filter(name__icontains="Kras")
 
-            # Also include crags that match the area from the tick
+            # Also include areas that match the area from the tick
             tick_area = tick_data.get("location", "")
             if tick_area:
-                area_crags = Crag.objects.filter(name__icontains=tick_area)
-                moravsky_kras_crags = moravsky_kras_crags | area_crags
+                matching_areas = Area.objects.filter(name__icontains=tick_area)
+                moravsky_kras_areas = moravsky_kras_areas | matching_areas
 
-            if moravsky_kras_crags.exists():
+            if moravsky_kras_areas.exists():
                 boulders_to_check = BoulderProblem.objects.filter(
-                    crag__in=moravsky_kras_crags
+                    area__in=moravsky_kras_areas
                 )
             else:
                 boulders_to_check = BoulderProblem.objects.all()
@@ -291,26 +291,26 @@ def import_lezec_diary(user, lezec_username):
                 if problem:
                     break
 
-        # Strategy 2: Try by name in Moravský Kras crags
+        # Strategy 2: Try by name in Moravský Kras areas
         if not problem:
-            moravsky_kras_crags = Crag.objects.filter(
+            moravsky_kras_areas = Area.objects.filter(
                 name__icontains="Moravský"
-            ) | Crag.objects.filter(name__icontains="Kras")
+            ) | Area.objects.filter(name__icontains="Kras")
 
-            if moravsky_kras_crags.exists():
+            if moravsky_kras_areas.exists():
                 # Try exact match first
-                for crag in moravsky_kras_crags:
+                for area in moravsky_kras_areas:
                     problem = BoulderProblem.find_by_normalized_name(
-                        boulder_name, crag=crag
+                        boulder_name, area=area
                     ).first()
                     if problem:
                         break
 
                 # If still not found, try partial match
                 if not problem:
-                    for crag in moravsky_kras_crags:
+                    for area in moravsky_kras_areas:
                         problems = BoulderProblem.objects.filter(
-                            crag=crag, name__icontains=boulder_name[:10]
+                            area=area, name__icontains=boulder_name[:10]
                         )
                         if problems.exists():
                             problem = problems.first()

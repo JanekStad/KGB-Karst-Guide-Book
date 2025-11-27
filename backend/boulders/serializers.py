@@ -240,9 +240,15 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
     tick_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
-    author_username = serializers.CharField(
-        source="author.username", read_only=True, allow_null=True
-    )
+    suggested_grade = serializers.SerializerMethodField()
+    suggested_grade_votes = serializers.SerializerMethodField()
+    author_username = serializers.SerializerMethodField()
+    
+    def get_author_username(self, obj):
+        """Return author username if User exists, otherwise return author_name"""
+        if obj.author:
+            return obj.author.username
+        return obj.author_name if obj.author_name else None
 
     def get_images(self, obj):
         """Get images associated with this problem through ProblemLine or sector"""
@@ -309,11 +315,14 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
             "wall_detail",
             "name",
             "grade",
+            "suggested_grade",
+            "suggested_grade_votes",
             "description",
             "rating",
             "average_rating",
             "author",
             "author_username",
+            "author_name",
             "images",
             "external_links",
             "video_links",
@@ -326,6 +335,37 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
 
     def get_tick_count(self, obj):
         return obj.ticks.count()
+
+    def get_suggested_grade(self, obj):
+        """Get the most common suggested grade from ticks (grade with most votes)"""
+        from django.db.models import Count
+        from lists.models import Tick
+
+        grade_counts = (
+            Tick.objects.filter(problem=obj)
+            .exclude(suggested_grade__isnull=True)
+            .exclude(suggested_grade="")
+            .values("suggested_grade")
+            .annotate(count=Count("suggested_grade"))
+            .order_by("-count")
+        )
+
+        if grade_counts:
+            return grade_counts[0]["suggested_grade"]
+        return None
+
+    def get_suggested_grade_votes(self, obj):
+        """Get the number of votes for the most common suggested grade"""
+        from lists.models import Tick
+
+        suggested_grade = self.get_suggested_grade(obj)
+        if suggested_grade:
+            return (
+                Tick.objects.filter(
+                    problem=obj, suggested_grade=suggested_grade
+                ).count()
+            )
+        return 0
 
     def get_average_rating(self, obj):
         """Calculate average rating from all tick ratings"""
@@ -355,13 +395,19 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
     )
     tick_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
+    recommended_percentage = serializers.SerializerMethodField()
+    media_count = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
     has_video = serializers.SerializerMethodField()
     has_external_links = serializers.SerializerMethodField()
     description_preview = serializers.SerializerMethodField()
-    author_username = serializers.CharField(
-        source="author.username", read_only=True, allow_null=True
-    )
+    author_username = serializers.SerializerMethodField()
+    
+    def get_author_username(self, obj):
+        """Return author username if User exists, otherwise return author_name"""
+        if obj.author:
+            return obj.author.username
+        return obj.author_name if obj.author_name else None
 
     class Meta:
         model = BoulderProblem
@@ -379,7 +425,11 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
             "average_rating",
             "author",
             "author_username",
+            "author_name",
+            "created_by",
             "tick_count",
+            "recommended_percentage",
+            "media_count",
             "primary_image",
             "has_video",
             "has_external_links",
@@ -403,6 +453,29 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
             return float(avg_rating)
         # Fallback to problem.rating if no tick ratings exist
         return float(obj.rating) if obj.rating else None
+
+    def get_recommended_percentage(self, obj):
+        """Calculate percentage of ticks that recommended this problem (rating >= 4.0)"""
+        from lists.models import Tick
+
+        total_ticks = obj.ticks.count()
+        if total_ticks == 0:
+            return 0
+
+        recommended_ticks = Tick.objects.filter(
+            problem=obj, rating__gte=4.0
+        ).count()
+
+        return round((recommended_ticks / total_ticks) * 100)
+
+    def get_media_count(self, obj):
+        """Count total media items (images + videos)"""
+        from .models import BoulderImage
+        # Count images associated with this problem through ProblemLines
+        image_count = BoulderImage.objects.filter(problem_lines__problem=obj).distinct().count()
+        # Count videos
+        video_count = len(obj.video_links) if obj.video_links else 0
+        return image_count + video_count
 
     def get_primary_image(self, obj):
         """Get primary image for this problem through ProblemLine"""

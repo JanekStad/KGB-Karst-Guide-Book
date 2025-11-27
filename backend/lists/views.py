@@ -70,7 +70,7 @@ class TickViewSet(viewsets.ModelViewSet):
     def statistics(self, request):
         """Get statistics for the current user's ticks"""
         ticks = self.get_queryset().select_related(
-            "problem", "problem__crag", "problem__crag__city"
+            "problem", "problem__area", "problem__area__city"
         )
 
         if not ticks.exists():
@@ -143,28 +143,28 @@ class TickViewSet(viewsets.ModelViewSet):
                     hardest_index = idx
                     hardest_grade = effective_grade
 
-        # Crag statistics
-        crag_counts = Counter(
-            (tick.problem.crag.id, tick.problem.crag.name)
+        # Area statistics
+        area_counts = Counter(
+            (tick.problem.area.id, tick.problem.area.name)
             for tick in ticks
-            if tick.problem.crag
+            if tick.problem.area
         )
-        most_climbed_crag = None
-        if crag_counts:
-            most_climbed_crag_id, most_climbed_crag_name = crag_counts.most_common(1)[
+        most_climbed_area = None
+        if area_counts:
+            most_climbed_area_id, most_climbed_area_name = area_counts.most_common(1)[
                 0
             ][0]
-            most_climbed_crag = {
-                "id": most_climbed_crag_id,
-                "name": most_climbed_crag_name,
-                "tick_count": crag_counts.most_common(1)[0][1],
+            most_climbed_area = {
+                "id": most_climbed_area_id,
+                "name": most_climbed_area_name,
+                "tick_count": area_counts.most_common(1)[0][1],
             }
 
         # City statistics
         city_counts = Counter(
-            (tick.problem.crag.city.id, tick.problem.crag.city.name)
+            (tick.problem.area.city.id, tick.problem.area.city.name)
             for tick in ticks
-            if tick.problem.crag and tick.problem.crag.city
+            if tick.problem.area and tick.problem.area.city
         )
         most_climbed_city = None
         if city_counts:
@@ -178,14 +178,14 @@ class TickViewSet(viewsets.ModelViewSet):
             }
 
         # Unique locations
-        unique_crags = len(
-            set(tick.problem.crag.id for tick in ticks if tick.problem.crag)
+        unique_areas = len(
+            set(tick.problem.area.id for tick in ticks if tick.problem.area)
         )
         unique_cities = len(
             set(
-                tick.problem.crag.city.id
+                tick.problem.area.city.id
                 for tick in ticks
-                if tick.problem.crag and tick.problem.crag.city
+                if tick.problem.area and tick.problem.area.city
             )
         )
 
@@ -268,9 +268,11 @@ class TickViewSet(viewsets.ModelViewSet):
                     else None
                 ),
                 "climbing_span_years": climbing_span_years,
-                "unique_crags": unique_crags,
+                "unique_areas": unique_areas,
+                "unique_crags": unique_areas,  # Backward compatibility alias
                 "unique_cities": unique_cities,
-                "most_climbed_crag": most_climbed_crag,
+                "most_climbed_area": most_climbed_area,
+                "most_climbed_crag": most_climbed_area,  # Backward compatibility alias
                 "most_climbed_city": most_climbed_city,
                 "average_rating": round(average_rating, 2) if average_rating else None,
                 "rated_problems_count": rated_problems_count,
