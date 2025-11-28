@@ -1,7 +1,19 @@
+/* Mobile-first base styles - Dark Theme */
 .user-diary-page {
-  max-width: 1000px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 30%, #0F172A 70%, #000000 100%);
+  color: var(--text-white);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+.user-diary-content {
+  max-width: 75rem; /* 1200px */
   margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
 }
 
 .user-diary-container {
@@ -11,36 +23,41 @@
 .user-diary-header {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 2px solid #ecf0f1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .user-diary-header h1 {
-  font-size: 2.5rem;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
   margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+  color: var(--text-white);
+  font-weight: 700;
 }
 
 .user-diary-header .subtitle {
-  color: #7f8c8d;
-  font-size: 1.1rem;
+  color: var(--text-muted);
+  font-size: clamp(1rem, 3vw, 1.1rem);
   margin: 0;
 }
 
 .loading,
 .error {
   text-align: center;
-  padding: 3rem;
-  font-size: 1.2rem;
+  padding: clamp(2rem, 6vw, 3rem);
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  color: var(--text-muted);
 }
 
 .error {
-  color: #e74c3c;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
 }
 
 .empty-state {
   text-align: center;
-  padding: 3rem;
-  color: #7f8c8d;
+  padding: clamp(2rem, 6vw, 3rem);
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -51,15 +68,19 @@
 }
 
 .tick-item {
-  background: white;
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: box-shadow 0.2s, background 0.2s;
 }
 
 .tick-item:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .tick-main {
@@ -75,15 +96,15 @@
 }
 
 .problem-name {
-  font-size: 1.3rem;
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text-white);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .problem-name:hover {
-  color: #667eea;
+  color: var(--energy-orange);
 }
 
 .tick-grades {
@@ -94,17 +115,17 @@
 }
 
 .tick-grade {
-  color: #27ae60;
+  color: var(--energy-orange);
   font-weight: 600;
 }
 
 .problem-grade {
-  color: #7f8c8d;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .grade-separator {
-  color: #bdc3c7;
+  color: var(--text-muted);
 }
 
 .tick-meta {
@@ -116,18 +137,18 @@
 }
 
 .tick-date {
-  color: #7f8c8d;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .tick-crag {
-  color: #667eea;
+  color: var(--energy-orange);
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: color 0.2s;
 }
 
 .tick-crag:hover {
-  opacity: 0.8;
+  color: var(--energy-orange-hover);
   text-decoration: underline;
 }
 
@@ -137,11 +158,11 @@
 }
 
 .tick-notes {
-  color: #7f8c8d;
+  color: var(--text-muted);
   font-style: italic;
   line-height: 1.5;
   padding-top: 0.5rem;
-  border-top: 1px solid #ecf0f1;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 768px) {
@@ -150,7 +171,7 @@
   }
 
   .user-diary-header h1 {
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
   }
 
   .tick-item {
@@ -166,4 +187,3 @@
     gap: 0.75rem;
   }
 }
-

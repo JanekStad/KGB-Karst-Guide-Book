@@ -1,8 +1,19 @@
-/* Mobile-first base styles */
+/* Mobile-first base styles - Dark Theme */
 .crags-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 30%, #0F172A 70%, #000000 100%);
+  color: var(--text-white);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+.crags-content {
   max-width: 75rem; /* 1200px */
   margin: 0 auto;
-  padding: clamp(1rem, 4vw, 2rem);
+  width: 100%;
 }
 
 .page-header {
@@ -20,7 +31,8 @@
 .page-header h1 {
   font-size: clamp(1.75rem, 5vw, 2.5rem);
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-white);
+  font-weight: 700;
 }
 
 .search-form {
@@ -34,14 +46,22 @@
   flex: 1;
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   font-size: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-white);
+  transition: all 0.2s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--energy-orange);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
 }
 
 .crags-grid {
@@ -51,36 +71,41 @@
 }
 
 .crag-card {
-  background: white;
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
   padding: clamp(1.25rem, 3vw, 1.5rem);
 }
 
 .crag-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .crag-info h3 {
   margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+  color: var(--text-white);
   font-size: clamp(1.125rem, 3vw, 1.3rem);
+  font-weight: 600;
 }
 
 .stats {
-  color: #7f8c8d;
+  color: var(--text-muted);
   margin: 0.5rem 0;
   font-weight: 500;
   font-size: clamp(0.875rem, 2.5vw, 1rem);
 }
 
 .coordinates {
-  color: #95a5a6;
+  color: var(--text-muted);
   font-size: clamp(0.85rem, 2.5vw, 0.9rem);
   margin: 0.5rem 0 0 0;
 }
@@ -91,14 +116,14 @@
   text-align: center;
   padding: clamp(2rem, 6vw, 3rem);
   font-size: clamp(1rem, 3vw, 1.2rem);
-  color: #7f8c8d;
+  color: var(--text-muted);
 }
 
 .error {
-  color: #e74c3c;
+  color: #ef4444;
   padding: clamp(1.5rem, 4vw, 2rem);
-  background: #fee;
-  border: 2px solid #e74c3c;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 8px;
 }
 
@@ -119,8 +144,9 @@
   display: flex;
   gap: 0.5rem;
   margin-top: clamp(1rem, 3vw, 1.5rem);
-  border-radius: 6px;
-  background: #f5f7fa;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 0.25rem;
   width: fit-content;
 }
@@ -129,11 +155,11 @@
   padding: 0.5rem 1rem;
   border: none;
   background: transparent;
-  color: #7f8c8d;
+  color: var(--text-muted);
   font-size: clamp(0.875rem, 2.5vw, 1rem);
   font-weight: 500;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -141,18 +167,18 @@
 }
 
 .view-toggle-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(249, 115, 22, 0.1);
+  color: var(--energy-orange);
 }
 
 .view-toggle-btn.active {
-  background: #667eea;
+  background: var(--energy-orange);
   color: white;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
 }
 
 .view-toggle-btn.active:hover {
-  background: #5568d3;
+  background: var(--energy-orange-hover);
 }
 
 /* Map View */
@@ -193,5 +219,12 @@
   .crags-grid {
     gap: 2rem;
   }
+}
+
+/* Apply content wrapper */
+.crags-page > * {
+  max-width: 75rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 

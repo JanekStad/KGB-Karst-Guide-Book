@@ -1,44 +1,58 @@
+/* Mobile-first base styles - Dark Theme */
 .boulder-detail-page {
-  max-width: 1200px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 30%, #0F172A 70%, #000000 100%);
+  color: var(--text-white);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+.boulder-detail-content {
+  max-width: 75rem; /* 1200px */
   margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
 }
 
 .back-link {
   display: inline-block;
   margin-bottom: 1.5rem;
-  color: #667eea;
+  color: var(--energy-orange);
   text-decoration: none;
   font-weight: 500;
-  transition: opacity 0.2s;
+  transition: color 0.2s;
 }
 
 .back-link:hover {
-  opacity: 0.8;
+  color: var(--energy-orange-hover);
+  text-decoration: underline;
 }
 
 .boulder-header {
   margin-bottom: 3rem;
   padding-bottom: 2rem;
-  border-bottom: 2px solid #ecf0f1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .boulder-header h1 {
-  font-size: 2.5rem;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
   margin-bottom: 1rem;
-  color: #2c3e50;
+  color: var(--text-white);
+  font-weight: 700;
 }
 
 .description {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 3vw, 1.1rem);
   line-height: 1.6;
-  color: #7f8c8d;
+  color: var(--text-muted);
   margin-bottom: 1rem;
 }
 
 .coordinates {
-  color: #95a5a6;
-  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-size: clamp(0.875rem, 2.5vw, 0.95rem);
 }
 
 .images-section,
@@ -55,23 +69,26 @@
 }
 
 .problems-section h2 {
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-white);
+  font-weight: 700;
 }
 
 .crag-link {
-  color: #667eea;
+  color: var(--text-muted);
   margin: 0.5rem 0;
   font-weight: 500;
 }
 
 .crag-link a {
-  color: #667eea;
+  color: var(--energy-orange);
   text-decoration: none;
+  transition: color 0.2s;
 }
 
 .crag-link a:hover {
+  color: var(--energy-orange-hover);
   text-decoration: underline;
 }
 
@@ -83,10 +100,13 @@
 }
 
 .image-item {
-  background: white;
-  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .image-item img {
@@ -98,7 +118,7 @@
 .image-caption {
   padding: 1rem;
   margin: 0;
-  color: #7f8c8d;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -111,18 +131,22 @@
 .problem-card {
   display: flex;
   gap: 1.5rem;
-  background: white;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .problem-card:hover {
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .problem-grade {
@@ -142,20 +166,35 @@
   flex: 1;
 }
 
+.problem-grade {
+  min-width: 60px;
+  height: 60px;
+  background: var(--energy-orange);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
 .problem-info h3 {
   margin: 0 0 0.5rem 0;
-  color: #2c3e50;
-  font-size: 1.3rem;
+  color: var(--text-white);
+  font-size: clamp(1.1rem, 3vw, 1.3rem);
+  font-weight: 600;
 }
 
 .problem-description {
-  color: #7f8c8d;
+  color: var(--text-muted);
   margin: 0.5rem 0;
   line-height: 1.5;
 }
 
 .tick-count {
-  color: #95a5a6;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0.5rem 0 0 0;
 }
@@ -163,19 +202,23 @@
 .no-problems {
   text-align: center;
   padding: 2rem;
-  color: #7f8c8d;
-  font-size: 1.1rem;
+  color: var(--text-muted);
+  font-size: clamp(1rem, 3vw, 1.1rem);
 }
 
 .loading,
 .error {
   text-align: center;
-  padding: 3rem;
-  font-size: 1.2rem;
+  padding: clamp(2rem, 6vw, 3rem);
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  color: var(--text-muted);
 }
 
 .error {
-  color: #e74c3c;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
 }
 
 @media (max-width: 768px) {
