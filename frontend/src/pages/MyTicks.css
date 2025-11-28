@@ -18,6 +18,9 @@
 
 .my-ticks-header {
   margin-bottom: 2rem;
+  max-width: 60rem; /* Match statistics-section width */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .my-ticks-header h1 {
@@ -104,6 +107,9 @@
   border: 1px solid rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  max-width: 60rem; /* Match ticks-list width */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .statistics-section > h2 {
@@ -350,6 +356,9 @@
 .ticks-list-header {
   margin-bottom: 1.5rem;
   margin-top: 2rem;
+  max-width: 60rem; /* Match statistics-section width */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .ticks-list-header h2 {
@@ -361,11 +370,145 @@
 }
 
 .ticks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  max-width: 60rem; /* Match statistics-section width */
+  margin-left: auto;
+  margin-right: auto;
 }
 
+/* Table format for ticks */
+.ticks-table-wrapper {
+  overflow-x: auto;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 100%;
+}
+
+.ticks-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  table-layout: auto;
+}
+
+.ticks-table thead {
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ticks-table th {
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.ticks-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background-color 0.15s;
+}
+
+.ticks-table tbody tr:hover {
+  background-color: rgba(15, 23, 42, 0.5);
+}
+
+.ticks-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.ticks-table td {
+  padding: 0.75rem 0.5rem;
+  vertical-align: middle;
+}
+
+.tick-table-problem {
+  min-width: 150px;
+  max-width: 250px;
+}
+
+.tick-table-problem-link {
+  font-weight: 600;
+  color: var(--text-white);
+  text-decoration: none;
+  transition: color 0.2s;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tick-table-problem-link:hover {
+  color: var(--energy-orange);
+}
+
+.tick-table-grade {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tick-table-grade-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.tick-table-date {
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.tick-table-crag {
+  white-space: nowrap;
+}
+
+.tick-table-crag-link {
+  color: var(--energy-orange);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.tick-table-crag-link:hover {
+  color: var(--energy-orange-hover);
+  text-decoration: underline;
+}
+
+.tick-table-rating {
+  text-align: center;
+}
+
+.tick-table-notes {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.tick-table-actions {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tick-table-actions-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Keep tick-item for backward compatibility if needed, but table format is preferred */
 .tick-item {
   display: flex;
   justify-content: space-between;
@@ -701,6 +844,32 @@
 @media (max-width: 768px) {
   .my-ticks-page {
     padding: 1rem;
+  }
+
+  .ticks-table-wrapper {
+    margin: 0 -1rem;
+    padding: 0 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ticks-table {
+    font-size: 0.85rem;
+    min-width: 600px;
+  }
+
+  .ticks-table th,
+  .ticks-table td {
+    padding: 0.5rem 0.375rem;
+  }
+
+  .tick-table-problem {
+    min-width: 120px;
+    max-width: 180px;
+  }
+
+  .tick-table-notes {
+    max-width: 120px;
   }
 
   .tick-item {

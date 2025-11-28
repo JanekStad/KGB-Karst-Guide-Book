@@ -332,64 +332,93 @@ const MyTicks = () => {
             </div>
 
             <div className="ticks-list">
-              {ticks.map((tick) => (
-                <div key={tick.id} className="tick-item">
-                  <div className="tick-main">
-                    <div className="tick-problem">
-                      <Link to={`/problems/${tick.problem.id}`} className="problem-name">
-                        {tick.problem.name}
-                      </Link>
-                      <div className="tick-grades">
-                        {tick.tick_grade && tick.tick_grade !== tick.problem.grade ? (
-                          <>
-                            <span className="tick-grade" title="Grade you climbed">
-                              {tick.tick_grade}
-                            </span>
-                            <span className="grade-separator">/</span>
-                            <span className="problem-grade" title="Problem grade">
-                              {tick.problem.grade}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="problem-grade">{tick.problem.grade}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="tick-meta">
-                      <span className="tick-date">{formatDate(tick.date)}</span>
-                      {tick.problem.crag && (
-                        <Link to={`/crags/${tick.problem.crag.id}`} className="tick-crag">
-                          {tick.problem.crag.name}
-                        </Link>
-                      )}
-                      {tick.rating && (
-                        <div className="tick-rating">
-                          <StarRating rating={parseFloat(tick.rating)} size="small" />
-                        </div>
-                      )}
-                    </div>
-                    {tick.notes && (
-                      <div className="tick-notes">{tick.notes}</div>
-                    )}
-                  </div>
-                  <div className="tick-actions">
-                    <button
-                      className="edit-btn"
-                      onClick={() => handleEdit(tick)}
-                      title="Edit tick"
-                    >
-                      ✎
-                    </button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDelete(tick.id)}
-                      title="Delete tick"
-                    >
-                      ×
-                    </button>
-                  </div>
+              {ticks.length === 0 ? (
+                <div className="empty-state">
+                  <p>No ascents logged yet. Start climbing and log your sends!</p>
                 </div>
-              ))}
+              ) : (
+                <div className="ticks-table-wrapper">
+                  <table className="ticks-table">
+                    <thead>
+                      <tr>
+                        <th>PROBLEM</th>
+                        <th>GRADE</th>
+                        <th>DATE</th>
+                        <th>AREA</th>
+                        <th>RATING</th>
+                        <th>NOTES</th>
+                        <th>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ticks.map((tick) => (
+                        <tr key={tick.id}>
+                          <td className="tick-table-problem">
+                            <Link to={`/problems/${tick.problem.id}`} className="tick-table-problem-link">
+                              {tick.problem.name}
+                            </Link>
+                          </td>
+                          <td className="tick-table-grade">
+                            <div className="tick-table-grade-content">
+                              {tick.tick_grade && tick.tick_grade !== tick.problem.grade ? (
+                                <>
+                                  <span className="tick-grade" title="Grade you climbed">
+                                    {tick.tick_grade}
+                                  </span>
+                                  <span className="grade-separator">/</span>
+                                  <span className="problem-grade" title="Problem grade">
+                                    {tick.problem.grade}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="problem-grade">{tick.problem.grade}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="tick-table-date">{formatDate(tick.date)}</td>
+                          <td className="tick-table-crag">
+                            {tick.problem.crag ? (
+                              <Link to={`/crags/${tick.problem.crag.id}`} className="tick-table-crag-link">
+                                {tick.problem.crag.name}
+                              </Link>
+                            ) : (
+                              <span className="tick-table-date">-</span>
+                            )}
+                          </td>
+                          <td className="tick-table-rating">
+                            {tick.rating ? (
+                              <StarRating rating={parseFloat(tick.rating)} size="small" />
+                            ) : (
+                              <span className="tick-table-date">-</span>
+                            )}
+                          </td>
+                          <td className="tick-table-notes" title={tick.notes || ''}>
+                            {tick.notes || '-'}
+                          </td>
+                          <td className="tick-table-actions">
+                            <div className="tick-table-actions-buttons">
+                              <button
+                                className="edit-btn"
+                                onClick={() => handleEdit(tick)}
+                                title="Edit tick"
+                              >
+                                ✎
+                              </button>
+                              <button
+                                className="delete-btn"
+                                onClick={() => handleDelete(tick.id)}
+                                title="Delete tick"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </>
         )}
