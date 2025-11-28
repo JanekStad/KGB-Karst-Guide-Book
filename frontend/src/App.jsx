@@ -30,14 +30,18 @@ function App() {
               <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Home />} />
-              <Route path="/crags" element={<Crags />} />
-              <Route path="/crags/add" element={<AddCrag />} />
-              <Route path="/crags/:id" element={<CragDetail />} />
-              <Route path="/crags/:cragId/problems/add" element={<AddProblem />} />
-              <Route path="/problems" element={<Problems />} />
-              <Route path="/problems/add" element={<AddProblem />} />
-              <Route path="/problems/:id" element={<ProblemDetail />} />
-              <Route path="/problems/:id/edit" element={<AddProblem />} />
+                  {/* Explore route (primary) */}
+                  <Route path="/explore" element={<Crags />} />
+                  {/* Crags routes (aliases for backward compatibility) */}
+                  <Route path="/crags" element={<Crags />} />
+                  <Route path="/crags/add" element={<AddCrag />} />
+                  <Route path="/crags/:id" element={<CragDetail />} />
+                  <Route path="/crags/:cragId/problems/add" element={<AddProblem />} />
+                  {/* Problems routes (kept for direct links/bookmarks) */}
+                  <Route path="/problems" element={<Problems />} />
+                  <Route path="/problems/add" element={<AddProblem />} />
+                  <Route path="/problems/:id" element={<ProblemDetail />} />
+                  <Route path="/problems/:id/edit" element={<AddProblem />} />
                   <Route path="/my-lists" element={<MyLists />} />
                   <Route path="/my-ticks" element={<MyTicks />} />
                   <Route path="/users/:userId/diary" element={<UserDiary />} />

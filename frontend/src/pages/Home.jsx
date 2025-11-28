@@ -1,42 +1,49 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import CommunityStats from '../components/CommunityStats';
+import NewProblemsCard from '../components/NewProblemsCard';
+import RecentActivityFeed from '../components/RecentActivityFeed';
+import TrendingProjectsCard from '../components/TrendingProjectsCard';
 import './Home.css';
 
 const Home = () => {
-  const { isAuthenticated } = useAuth();
-  
-  console.log('🏠 Home page rendering:', { isAuthenticated });
+  console.log('🏠 Home page rendering');
 
   return (
-    <div className="home">
-      <div className="hero">
-        <h1>Welcome to Karst Guide Book</h1>
-        <p className="subtitle">Your local boulder problems database</p>
-        <div className="hero-actions">
-          <Link to="/crags" className="btn btn-primary">
-            Explore Crags
-          </Link>
+    <div className="home" data-theme="dark">
+      {/* Hero Section */}
+      <header className="hero-section">
+        <div className="hero-background">
+          {/* Background image placeholder - replace with actual Moravsky kras boulder photo */}
+          <div className="hero-image-placeholder"></div>
+          {/* Dark Overlay Gradient - Critical for text contrast */}
+          <div className="hero-overlay"></div>
         </div>
-      </div>
+        
+        {/* Hero Content - Centered */}
+        <div className="hero-content">
+          <h1 className="hero-title">
+            Moravský Kras
+            <br />
+            Boulder Guide
+          </h1>
+          <p className="hero-subtitle">
+            A community-maintained guide to bouldering in the region
+          </p>
+          
+          {/* Hero Tables Section */}
+          <div className="hero-tables">
+            <RecentActivityFeed limit={5} />
+            <CommunityStats />
+          </div>
+        </div>
+      </header>
 
-      <div className="features">
-        <div className="feature">
-          <h3>🗺️ Interactive Maps</h3>
-          <p>Find boulder positions on interactive maps</p>
+      {/* Dashboard Cards Section */}
+      <section className="dashboard-section">
+        <div className="dashboard-container">
+          <NewProblemsCard />
+          <TrendingProjectsCard />
         </div>
-        <div className="feature">
-          <h3>📸 Photo Gallery</h3>
-          <p>View photos of boulders and problems</p>
-        </div>
-        <div className="feature">
-          <h3>✅ Track Your Progress</h3>
-          <p>Tick problems and create custom lists</p>
-        </div>
-        <div className="feature">
-          <h3>💬 Community</h3>
-          <p>Comment and share your experiences</p>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

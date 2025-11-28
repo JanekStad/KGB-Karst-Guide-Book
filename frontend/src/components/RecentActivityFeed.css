@@ -1,0 +1,95 @@
+.recent-activity-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+}
+
+.recent-activity-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.recent-activity-table {
+  width: 100%;
+  min-width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.recent-activity-table thead {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.recent-activity-table th {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.activity-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background-color 0.2s;
+}
+
+.activity-row:hover {
+  background-color: rgba(15, 23, 42, 0.3);
+}
+
+.activity-row:hover .activity-problem {
+  color: var(--energy-orange);
+}
+
+.recent-activity-table td {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.activity-username {
+  font-weight: 600;
+  color: var(--energy-orange);
+}
+
+.activity-problem {
+  color: var(--text-white);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.activity-problem:hover {
+  color: var(--energy-orange);
+  text-decoration: underline;
+}
+
+.activity-grade {
+  color: var(--energy-orange);
+  font-weight: 600;
+}
+
+.activity-area {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.activity-date {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+/* Mobile adjustments */
+@media (max-width: 40rem) {
+  .recent-activity-table {
+    font-size: 0.75rem;
+  }
+  
+  .recent-activity-table th,
+  .recent-activity-table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+

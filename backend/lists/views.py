@@ -5,6 +5,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Count, Avg, Min, Max, Q
 from django.db.models.functions import ExtractYear, ExtractMonth
 from collections import Counter
+from datetime import datetime, timedelta
+from django.contrib.auth.models import User
+from boulders.models import BoulderProblem, Area
 from .models import Tick, UserList, ListEntry
 from .serializers import (
     TickSerializer,
@@ -27,9 +30,9 @@ class TickViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """
-        Allow public read access for problem_ticks and user_diary actions
+        Allow public read access for problem_ticks, user_diary, recent, and community_stats actions
         """
-        if self.action in ['problem_ticks', 'user_diary']:
+        if self.action in ['problem_ticks', 'user_diary', 'recent', 'community_stats']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -90,6 +93,69 @@ class TickViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(ticks, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
+    def recent(self, request):
+        """Get recent ticks from all users (public access - community activity feed)"""
+        limit = int(request.query_params.get("limit", 20))  # Default to 20, max 50
+        
+        # Cap the limit to prevent abuse
+        if limit > 50:
+            limit = 50
+        
+        ticks = Tick.objects.select_related(
+            "user", "user__profile", "problem", "problem__area", "problem__area__city"
+        ).order_by("-date", "-created_at")[:limit]
+        
+        serializer = self.get_serializer(ticks, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
+    def community_stats(self, request):
+        """Get community-wide statistics (public access)"""
+        # Total problems
+        total_problems = BoulderProblem.objects.filter(area__is_secret=False).count()
+        
+        # Total ticks
+        total_ticks = Tick.objects.count()
+        
+        # Active climbers (users who have at least one tick)
+        active_climbers = User.objects.filter(ticks__isnull=False).distinct().count()
+        
+        # Total areas
+        total_areas = Area.objects.filter(is_secret=False).count()
+        
+        # Recent activity (ticks in last 30 days)
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_ticks = Tick.objects.filter(
+            created_at__gte=thirty_days_ago
+        ).count()
+        
+        # Most ticked problem
+        most_ticked = Tick.objects.values('problem').annotate(
+            tick_count=Count('id')
+        ).order_by('-tick_count').first()
+        
+        most_ticked_problem = None
+        if most_ticked:
+            try:
+                problem = BoulderProblem.objects.get(id=most_ticked['problem'])
+                most_ticked_problem = {
+                    'name': problem.name,
+                    'grade': problem.grade,
+                    'tick_count': most_ticked['tick_count']
+                }
+            except BoulderProblem.DoesNotExist:
+                pass
+        
+        return Response({
+            'total_problems': total_problems,
+            'total_ticks': total_ticks,
+            'active_climbers': active_climbers,
+            'total_areas': total_areas,
+            'recent_ticks_30d': recent_ticks,
+            'most_ticked_problem': most_ticked_problem,
+        })
 
     @action(detail=False, methods=["post"])
     def import_lezec_diary(self, request):

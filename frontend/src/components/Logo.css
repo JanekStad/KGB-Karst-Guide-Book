@@ -1,0 +1,109 @@
+.logo-container {
+  position: relative;
+  width: var(--logo-size, 3.125rem);
+  height: var(--logo-size, 3.125rem);
+  flex-shrink: 0;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  cursor: pointer;
+}
+
+.logo-link {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.3s ease, filter 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-container:hover .logo-image {
+  transform: scale(1.05);
+  filter: drop-shadow(0 4px 8px rgba(249, 115, 22, 0.4));
+}
+
+.logo-fallback {
+  width: 100%;
+  height: 100%;
+  display: none; /* Hidden by default, shown when image fails to load */
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+.logo-text {
+  font-weight: bold;
+  font-size: 0.6em;
+  letter-spacing: 0.1em;
+}
+
+.logo-text-below {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Hero logo specific styles */
+.logo-hero {
+  animation: logoFadeIn 0.8s ease-out;
+  margin-bottom: 2rem;
+}
+
+@keyframes logoFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Loading spinner animation */
+.logo-loading {
+  animation: logoRotate 2s linear infinite;
+}
+
+@keyframes logoRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Size variants */
+.logo-small {
+  --logo-size: 2.5rem;
+}
+
+.logo-medium {
+  --logo-size: 3.125rem;
+}
+
+.logo-large {
+  --logo-size: 7.5rem;
+}
+
+.logo-xlarge {
+  --logo-size: 9.375rem;
+}
+

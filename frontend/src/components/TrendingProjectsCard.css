@@ -1,0 +1,77 @@
+.trending-projects-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto; /* Allow horizontal scroll if table is too wide */
+}
+
+.trending-table {
+  width: 100%;
+  min-width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.trending-table thead {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trending-table th {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trending-table th.table-route {
+  text-align: left;
+}
+
+.trending-table th.table-grade,
+.trending-table th.table-ticks {
+  text-align: right;
+}
+
+.trending-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background-color 0.2s;
+}
+
+.trending-row:hover {
+  background-color: rgba(15, 23, 42, 0.3); /* Subtle hover - less contrast */
+}
+
+.trending-row:hover .trending-link {
+  color: var(--energy-orange);
+}
+
+.trending-table td {
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.table-route {
+  text-align: left;
+}
+
+.table-grade,
+.table-ticks {
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.trending-link {
+  color: var(--text-white);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.trending-link:hover {
+  color: var(--energy-orange);
+}
+

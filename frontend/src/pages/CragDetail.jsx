@@ -394,7 +394,7 @@ const CragDetail = () => {
 
   return (
     <div className="crag-detail-page">
-      <Link to="/crags" className="back-link">← Back to Crags</Link>
+      <Link to="/explore" className="back-link">← Back to Explore</Link>
       
       <div className="crag-header">
         <h1>{crag.name}</h1>

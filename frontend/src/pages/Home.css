@@ -1,123 +1,196 @@
-/* Mobile-first base styles */
+/* Mobile-first base styles - Dark Theme */
 .home {
-  min-height: calc(100vh - 12.5rem); /* 200px equivalent */
+  min-height: 100vh;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 30%, #0F172A 70%, #000000 100%);
+  color: var(--text-white);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  box-sizing: border-box;
 }
 
-.hero {
-  text-align: center;
-  padding: clamp(2rem, 8vw, 4rem) clamp(1rem, 4vw, 2rem);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.hero h1 {
-  font-size: clamp(2rem, 6vw, 3rem);
-  margin-bottom: 1rem;
-  font-weight: bold;
-}
-
-.subtitle {
-  font-size: clamp(1.2rem, 3.5vw, 1.5rem);
-  margin-bottom: 2rem;
-  opacity: 0.9;
-}
-
-.hero-actions {
+/* Hero Section */
+.hero-section {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-height: 75vh;
   display: flex;
-  gap: 1rem;
+  align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.btn {
-  padding: clamp(0.625rem, 2vw, 0.75rem) clamp(1.5rem, 5vw, 2rem);
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: clamp(0.875rem, 2.5vw, 1rem);
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: inline-block;
+.hero-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
-.btn-primary {
-  background-color: white;
-  color: #667eea;
+.hero-image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #000000 0%, #0a0a0a 30%, #0f172a 70%, #000000 100%);
+  /* Replace with actual image: background-image: url('/path-to-climber-sunset.jpg'); */
+  background-size: cover;
+  background-position: center;
 }
 
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    #000000 0%,
+    rgba(0, 0, 0, 0.6) 40%,
+    rgba(0, 0, 0, 0.3) 70%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+  z-index: 1;
 }
 
-.btn-secondary {
-  background-color: transparent;
-  color: white;
-  border: 2px solid white;
-}
-
-.btn-secondary:hover {
-  background-color: white;
-  color: #667eea;
-}
-
-.features {
-  max-width: 75rem; /* 1200px */
-  margin: clamp(2rem, 6vw, 4rem) auto;
+.hero-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 64rem; /* 1024px */
   padding: 0 clamp(1rem, 4vw, 2rem);
+  margin-top: 5rem; /* Account for header */
+  margin-bottom: 2rem; /* Reduced space before dashboard */
+  padding-bottom: 1rem; /* Reduced padding at bottom */
+}
+
+.hero-title {
+  font-size: clamp(2rem, 8vw, 3.75rem);
+  font-weight: 800;
+  color: var(--text-white);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0;
+  max-width: 42rem; /* 672px */
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: 300;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  line-height: 1.6;
+}
+
+/* Hero Tables Section */
+.hero-tables {
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(1.5rem, 4vw, 2rem);
-}
-
-.feature {
-  padding: clamp(1.5rem, 4vw, 2rem);
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.feature:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.feature h3 {
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
-  margin-bottom: 1rem;
-  color: #2c3e50;
-}
-
-.feature p {
-  color: #7f8c8d;
-  line-height: 1.6;
-  font-size: clamp(0.875rem, 2.5vw, 1rem);
-}
-
-/* Small tablets and up (640px+) */
-@media (min-width: 40rem) {
-  .features {
-    grid-template-columns: repeat(auto-fit, minmax(18.75rem, 1fr)); /* 300px */
-  }
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 100%;
+  align-items: flex-start; /* Align cards at the top */
 }
 
 /* Tablets and up (768px+) */
 @media (min-width: 48rem) {
-  .features {
-    grid-template-columns: repeat(auto-fit, minmax(15.625rem, 1fr)); /* 250px */
+  .hero-tables {
+    grid-template-columns: 1.5fr 1fr;
+    gap: clamp(1.5rem, 4vw, 2rem);
+    align-items: flex-start; /* Align cards at the top */
   }
 }
 
 /* Desktop and up (1024px+) */
 @media (min-width: 64rem) {
-  .hero {
-    padding: 4rem 2rem;
+  .hero-tables {
+    gap: 2rem;
+    max-width: 75rem; /* Match dashboard container */
+    margin-left: auto;
+    margin-right: auto;
+    align-items: flex-start; /* Align cards at the top */
   }
+}
 
-  .features {
-    margin: 4rem auto;
+.btn-hero-cta {
+  display: inline-block;
+  background-color: var(--energy-orange);
+  color: white;
+  font-weight: bold;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+  transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+  position: relative;
+  z-index: 15; /* Ensure button is above overlay */
+}
+
+.btn-hero-cta:hover {
+  transform: scale(1.05);
+  background-color: var(--energy-orange-hover);
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.7);
+}
+
+/* Dashboard Section */
+.dashboard-section {
+  position: relative;
+  z-index: 20;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 20%, #0F172A 60%, #000000 100%);
+  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, 2rem);
+  margin-top: 0;
+  padding-top: clamp(2rem, 6vw, 3rem); /* Reduced top padding for tighter spacing */
+  width: 100%;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
+.dashboard-container {
+  max-width: 75rem; /* 1200px */
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.5rem, 4vw, 2rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Small tablets and up (640px+) */
+@media (min-width: 40rem) {
+  .dashboard-container {
+    grid-template-columns: repeat(auto-fit, minmax(18.75rem, 1fr));
+  }
+}
+
+/* Tablets and up (768px+) */
+@media (min-width: 48rem) {
+  .dashboard-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .hero-section {
+    min-height: 70vh;
+  }
+}
+
+/* Desktop and up (1024px+) */
+@media (min-width: 64rem) {
+  .hero-content {
     padding: 0 2rem;
+    margin-bottom: 2rem; /* Reduced space before dashboard */
+    padding-bottom: 1rem;
+  }
+  
+  .dashboard-section {
+    padding: 4rem 2rem;
+    padding-top: 3rem; /* Reduced top padding for tighter spacing */
+  }
+  
+  .dashboard-container {
+    gap: 2rem;
+    padding: 0;
   }
 }
 

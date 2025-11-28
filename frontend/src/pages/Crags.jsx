@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { cragsAPI } from '../services/api';
+import CragMap from '../components/CragMap';
 import './Crags.css';
 
 const Crags = () => {
@@ -10,6 +11,10 @@ const Crags = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState(() => {
+    // Get saved preference or default to 'list'
+    return localStorage.getItem('exploreViewMode') || 'list';
+  });
 
   useEffect(() => {
     fetchCrags();
@@ -46,10 +51,15 @@ const Crags = () => {
     fetchCrags();
   };
 
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('exploreViewMode', mode);
+  };
+
   if (loading) {
     return (
       <div className="crags-page">
-        <div className="loading">Loading crags...</div>
+        <div className="loading">Loading areas...</div>
       </div>
     );
   }
@@ -58,7 +68,7 @@ const Crags = () => {
     return (
       <div className="crags-page">
         <div className="error">
-          <h3>Error loading crags</h3>
+          <h3>Error loading areas</h3>
           <p>{error}</p>
           <button onClick={fetchCrags} className="btn btn-primary">
             Retry
@@ -72,7 +82,7 @@ const Crags = () => {
     <div className="crags-page">
       <div className="page-header">
         <div className="header-top">
-          <h1>Crags</h1>
+          <h1>Explore</h1>
           {isAuthenticated && (
             <Link to="/crags/add" className="btn btn-primary">
               + Add Crag
@@ -82,7 +92,7 @@ const Crags = () => {
         <form onSubmit={handleSearch} className="search-form">
           <input
             type="text"
-            placeholder="Search crags..."
+            placeholder="Search areas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
@@ -91,12 +101,39 @@ const Crags = () => {
             Search
           </button>
         </form>
+        
+        {/* View Toggle */}
+        <div className="view-toggle">
+          <button
+            className={`view-toggle-btn ${viewMode === 'map' ? 'active' : ''}`}
+            onClick={() => handleViewModeChange('map')}
+            aria-label="Map view"
+          >
+            🗺️ Map
+          </button>
+          <button
+            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => handleViewModeChange('list')}
+            aria-label="List view"
+          >
+            📋 List
+          </button>
+        </div>
       </div>
 
-      <div className="crags-grid">
+      {/* Map View */}
+      {viewMode === 'map' && (
+        <div className="map-view">
+          <CragMap crags={crags} />
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="crags-grid">
         {crags.length === 0 ? (
           <div className="empty-state">
-            <p>No crags found. Be the first to add one!</p>
+            <p>No areas found. Be the first to add one!</p>
           </div>
         ) : (
           crags.map((crag) => (
@@ -119,7 +156,8 @@ const Crags = () => {
             </Link>
           ))
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

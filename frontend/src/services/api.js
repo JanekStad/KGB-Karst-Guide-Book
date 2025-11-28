@@ -109,6 +109,17 @@ export const cragsAPI = {
   getWalls: (id) => api.get(`/crags/${id}/walls/`),
 };
 
+// Sectors API
+export const sectorsAPI = {
+  list: (params) => api.get('/sectors/', { params }),
+  get: (id) => api.get(`/sectors/${id}/`),
+  create: (data) => api.post('/sectors/', data),
+  update: (id, data) => api.put(`/sectors/${id}/`, data),
+  delete: (id) => api.delete(`/sectors/${id}/`),
+  getProblems: (id) => api.get(`/sectors/${id}/problems/`),
+  getWalls: (id) => api.get(`/sectors/${id}/walls/`),
+};
+
 // Walls API
 export const wallsAPI = {
   list: (params) => api.get('/walls/', { params }),
@@ -160,6 +171,8 @@ export const ticksAPI = {
   getStatistics: () => api.get('/ticks/statistics/'),
   getProblemTicks: (problemId) => api.get('/ticks/problem_ticks/', { params: { problem: problemId } }),
   getUserDiary: (userId) => api.get('/ticks/user_diary/', { params: { user: userId } }),
+  getRecent: (limit = 20) => api.get('/ticks/recent/', { params: { limit } }),
+  getCommunityStats: () => api.get('/ticks/community_stats/'),
 };
 
 // Lists API

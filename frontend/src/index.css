@@ -3,8 +3,38 @@
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #2c3e50;
-  background-color: #f5f7fa;
+  
+  /* Light theme (default) */
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --accent: #667eea;
+  
+  /* Dark theme colors */
+  --slate-900: #0F172A;
+  --slate-800: #1E293B;
+  --slate-700: #334155;
+  --energy-orange: #F97316;
+  --energy-orange-hover: #EA580C;
+  --text-white: #FFFFFF;
+  --text-muted: #94A3B8;
+  
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Dark theme - apply to body or specific components */
+body[data-theme="dark"],
+[data-theme="dark"] {
+  --bg-primary: var(--slate-900);
+  --bg-secondary: var(--slate-800);
+  --text-primary: var(--text-white);
+  --text-secondary: var(--text-muted);
+  --accent: var(--energy-orange);
+  
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 }
 
 * {

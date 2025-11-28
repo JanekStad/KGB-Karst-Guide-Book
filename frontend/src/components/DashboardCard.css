@@ -1,0 +1,91 @@
+/* Shared styles for dashboard cards */
+.dashboard-card {
+  background: rgba(15, 23, 42, 0.4); /* slate-900 with low opacity - less contrast */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* Prevent content from overflowing */
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  background: rgba(15, 23, 42, 0.5); /* Slightly more visible on hover */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  color: var(--text-white);
+  font-weight: bold;
+  font-size: 1.125rem;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-view-all {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.card-view-all:hover {
+  color: var(--energy-orange);
+}
+
+.card-loading,
+.card-error,
+.card-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.card-error {
+  color: #ef4444;
+}
+
+.card-retry-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--energy-orange);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.card-retry-btn:hover {
+  background: var(--energy-orange-hover);
+}
+
+.card-link {
+  color: var(--energy-orange);
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  display: inline-block;
+}
+
+.card-link:hover {
+  text-decoration: underline;
+}
+

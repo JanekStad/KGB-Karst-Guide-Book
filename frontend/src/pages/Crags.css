@@ -114,6 +114,52 @@
   width: 100%;
 }
 
+/* View Toggle */
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: clamp(1rem, 3vw, 1.5rem);
+  border-radius: 6px;
+  background: #f5f7fa;
+  padding: 0.25rem;
+  width: fit-content;
+}
+
+.view-toggle-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: #7f8c8d;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-toggle-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.view-toggle-btn.active {
+  background: #667eea;
+  color: white;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+.view-toggle-btn.active:hover {
+  background: #5568d3;
+}
+
+/* Map View */
+.map-view {
+  margin-top: clamp(1rem, 3vw, 1.5rem);
+}
+
 /* Small tablets and up (640px+) */
 @media (min-width: 40rem) {
   .crags-grid {
