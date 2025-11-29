@@ -96,6 +96,11 @@ class Sector(models.Model):
         decimal_places=6,
         help_text="Longitude coordinate for map positioning",
     )
+    polygon_boundary = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Array of [lat, lng] coordinate pairs defining the sector boundary polygon. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(

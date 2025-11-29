@@ -68,6 +68,22 @@
   background-color: #5568d3;
 }
 
+/* Polygon styling - applied via Leaflet pathOptions, but adding CSS for cursor */
+:global(.leaflet-interactive) {
+  cursor: pointer;
+}
+
+:global(.leaflet-interactive:hover) {
+  cursor: pointer;
+}
+
+/* Sector label styling - container should be transparent */
+:global(.sector-label) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 /* Responsive map height */
 @media (max-width: 48rem) {
   .crag-map-container {

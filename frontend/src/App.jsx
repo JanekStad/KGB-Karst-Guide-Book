@@ -15,6 +15,7 @@ import ProblemDetail from './pages/ProblemDetail';
 import Problems from './pages/Problems';
 import Profile from './pages/Profile';
 import Register from './pages/Register';
+import SectorDetail from './pages/SectorDetail';
 import UserDiary from './pages/UserDiary';
 
 function App() {
@@ -37,6 +38,8 @@ function App() {
                   <Route path="/crags/add" element={<AddCrag />} />
                   <Route path="/crags/:id" element={<CragDetail />} />
                   <Route path="/crags/:cragId/problems/add" element={<AddProblem />} />
+                  {/* Sectors routes */}
+                  <Route path="/sectors/:id" element={<SectorDetail />} />
                   {/* Problems routes (kept for direct links/bookmarks) */}
                   <Route path="/problems" element={<Problems />} />
                   <Route path="/problems/add" element={<AddProblem />} />

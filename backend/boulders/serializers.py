@@ -142,6 +142,7 @@ class SectorSerializer(serializers.ModelSerializer):
             "description",
             "latitude",
             "longitude",
+            "polygon_boundary",
             "problem_count",
             "wall_count",
             "created_at",
@@ -171,6 +172,7 @@ class SectorListSerializer(serializers.ModelSerializer):
             "name",
             "latitude",
             "longitude",
+            "polygon_boundary",
             "problem_count",
         ]
 
