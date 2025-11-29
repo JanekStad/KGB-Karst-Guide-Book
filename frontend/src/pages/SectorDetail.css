@@ -109,6 +109,8 @@
   max-width: 60rem; /* Match problems-section width */
   margin-left: auto;
   margin-right: auto;
+  position: relative;
+  z-index: 10;
 }
 
 .search-wrapper {
@@ -166,6 +168,7 @@
 .grade-filter-wrapper {
   position: relative;
   width: 100%;
+  z-index: 11;
 }
 
 .grade-filter-toggle {
@@ -222,7 +225,7 @@
   border-top: none;
   border-radius: 0 0 8px 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  z-index: 999;
   max-height: 300px;
   display: flex;
   flex-direction: column;
@@ -363,6 +366,8 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .problems-table {
