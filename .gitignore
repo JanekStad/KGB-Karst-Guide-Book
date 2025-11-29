@@ -91,3 +91,9 @@ web-build/
 
 # JSON files
 *.json
+
+# GPX files
+*.gpx
+
+# READMEs
+*.md
