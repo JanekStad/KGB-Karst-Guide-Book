@@ -101,6 +101,10 @@ class Sector(models.Model):
         blank=True,
         help_text="Array of [lat, lng] coordinate pairs defining the sector boundary polygon. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
     )
+    is_secret = models.BooleanField(
+        default=False,
+        help_text="If True, this sector is hidden from public view (secret/illegal climbing spots)",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(

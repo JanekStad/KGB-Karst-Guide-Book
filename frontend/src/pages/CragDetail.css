@@ -68,6 +68,98 @@
   font-size: clamp(1rem, 3vw, 1.1rem);
 }
 
+/* Sectors Section */
+.sectors-section {
+  margin-bottom: 3rem;
+  max-width: 60rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.sectors-section h2 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  margin-bottom: 1.5rem;
+  color: var(--text-white);
+  font-weight: 700;
+}
+
+.sector-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sector-card {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.sector-card:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.sector-card.active {
+  border-color: var(--energy-orange);
+  background: rgba(249, 115, 22, 0.1);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.2);
+}
+
+.sector-card-header {
+  margin-bottom: 0.75rem;
+}
+
+.sector-card-header h3 {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-weight: 700;
+  color: var(--text-white);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.sector-card.active .sector-card-header h3 {
+  color: var(--energy-orange);
+}
+
+.sector-card-description {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sector-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.sector-problem-count {
+  font-size: 0.875rem;
+  color: var(--energy-orange);
+  font-weight: 600;
+}
+
+.sector-card.active .sector-problem-count {
+  color: var(--energy-orange);
+}
+
 .problems-section {
   margin-bottom: 3rem;
   max-width: 60rem; /* Narrower than page content */
@@ -718,6 +810,15 @@
 
 @media (max-width: 768px) {
   .crag-detail-page {
+    padding: 1rem;
+  }
+
+  .sector-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .sector-card {
     padding: 1rem;
   }
 

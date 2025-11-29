@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { cragsAPI, problemsAPI } from '../services/api';
 import StarRating from '../components/StarRating';
+import { useAuth } from '../contexts/AuthContext';
+import { areasAPI, problemsAPI } from '../services/api';
 import './AddProblem.css';
 
 const AddProblem = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { cragId } = useParams(); // Optional: if coming from crag detail page
-  const [crags, setCrags] = useState([]);
+  const { areaId, cragId } = useParams(); // Optional: if coming from area detail page (cragId for backward compatibility)
+  const [areas, setAreas] = useState([]);
   const [walls, setWalls] = useState([]);
   const [formData, setFormData] = useState({
-    crag: cragId || '',
+    area: areaId || cragId || '',
     wall: '',
     name: '',
     grade: '',
@@ -32,37 +32,40 @@ const AddProblem = () => {
   ];
 
   useEffect(() => {
-    fetchCrags();
+    fetchAreas();
   }, []);
 
   useEffect(() => {
-    if (formData.crag) {
-      fetchWalls(formData.crag);
+    if (formData.area) {
+      fetchWalls(formData.area);
     } else {
       setWalls([]);
       setFormData(prev => ({ ...prev, wall: '' }));
     }
-  }, [formData.crag]);
+  }, [formData.area]);
 
-  const fetchCrags = async () => {
+  const fetchAreas = async () => {
     try {
-      const response = await cragsAPI.list();
-      setCrags(response.data.results || response.data);
-      if (cragId) {
-        setFormData(prev => ({ ...prev, crag: cragId }));
+      const response = await areasAPI.list();
+      setAreas(response.data.results || response.data);
+      if (areaId || cragId) {
+        setFormData(prev => ({ ...prev, area: areaId || cragId }));
       }
     } catch (err) {
-      console.error('Failed to fetch crags:', err);
-      setError('Failed to load crags. Please try again.');
+      console.error('Failed to fetch areas:', err);
+      setError('Failed to load areas. Please try again.');
     } finally {
       setLoadingData(false);
     }
   };
 
-  const fetchWalls = async (cragId) => {
+  const fetchWalls = async (areaId) => {
     try {
-      const response = await cragsAPI.getWalls(cragId);
-      setWalls(response.data.results || response.data);
+      // Note: Walls belong to sectors, not areas directly. This might need backend support.
+      // For now, we'll keep this as a placeholder
+      const response = await areasAPI.getSectors(areaId);
+      // This would need to be updated when backend provides wall endpoints per area
+      setWalls([]);
     } catch (err) {
       console.error('Failed to fetch walls:', err);
       setWalls([]);
@@ -93,8 +96,8 @@ const AddProblem = () => {
     setError('');
     setLoading(true);
 
-    if (!formData.crag) {
-      setError('Please select a crag');
+    if (!formData.area) {
+      setError('Please select an area');
       setLoading(false);
       return;
     }
@@ -108,7 +111,7 @@ const AddProblem = () => {
     try {
       console.log('📡 Creating problem...', formData);
       const payload = {
-        crag: parseInt(formData.crag),
+        area: parseInt(formData.area),
         name: formData.name,
         grade: formData.grade,
         description: formData.description,
@@ -127,7 +130,7 @@ const AddProblem = () => {
       navigate(`/problems/${response.data.id}`);
     } catch (err) {
       console.error('❌ Failed to create problem:', err);
-      const errorMessage = err.response?.data?.crag?.[0] ||
+      const errorMessage = err.response?.data?.area?.[0] ||
                           err.response?.data?.name?.[0] ||
                           err.response?.data?.grade?.[0] ||
                           err.response?.data?.detail ||
@@ -151,31 +154,31 @@ const AddProblem = () => {
     <div className="add-problem-page">
       <div className="add-problem-container">
         <h1>Add Boulder Problem</h1>
-        <p className="subtitle">Add a new climbing problem to a crag</p>
+        <p className="subtitle">Add a new climbing problem to an area</p>
 
         <form onSubmit={handleSubmit} className="problem-form">
           {error && <div className="error-message">{error}</div>}
 
           <div className="form-group">
-            <label htmlFor="crag">Crag *</label>
+            <label htmlFor="area">Area *</label>
             <select
-              id="crag"
-              name="crag"
-              value={formData.crag}
+              id="area"
+              name="area"
+              value={formData.area}
               onChange={handleChange}
               required
-              disabled={!!cragId}
+              disabled={!!(areaId || cragId)}
             >
-              <option value="">Select a crag...</option>
-              {crags.map((crag) => (
-                <option key={crag.id} value={crag.id}>
-                  {crag.name}
+              <option value="">Select an area...</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
                 </option>
               ))}
             </select>
-            {crags.length === 0 && (
+            {areas.length === 0 && (
               <small>
-                No crags available. <a href="/crags/add">Create a crag first</a>
+                No areas available. <a href="/areas/add">Create an area first</a>
               </small>
             )}
           </div>
@@ -187,7 +190,7 @@ const AddProblem = () => {
               name="wall"
               value={formData.wall}
               onChange={handleChange}
-              disabled={!formData.crag}
+              disabled={!formData.area}
             >
               <option value="">No wall/sector</option>
               {walls.map((wall) => (
@@ -196,9 +199,9 @@ const AddProblem = () => {
                 </option>
               ))}
             </select>
-            {formData.crag && walls.length === 0 && (
+            {formData.area && walls.length === 0 && (
               <small>
-                No walls in this crag. Walls are optional - you can add the problem without one.
+                No walls in this area. Walls are optional - you can add the problem without one.
               </small>
             )}
           </div>
@@ -269,7 +272,7 @@ const AddProblem = () => {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.crag || !formData.grade}
+              disabled={loading || !formData.area || !formData.grade}
               className="btn btn-primary"
             >
               {loading ? 'Creating...' : 'Create Problem'}

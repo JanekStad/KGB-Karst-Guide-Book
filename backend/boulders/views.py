@@ -88,9 +88,9 @@ class AreaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def sectors(self, request, pk=None):
-        """Get all sectors for a specific area"""
+        """Get all sectors for a specific area (excluding secret sectors)"""
         area = self.get_object()
-        sectors = area.sectors.all()
+        sectors = area.sectors.filter(is_secret=False)
         serializer = SectorListSerializer(sectors, many=True)
         return Response(serializer.data)
 
@@ -108,9 +108,9 @@ class SectorViewSet(viewsets.ModelViewSet):
     ordering = ["area", "name"]
 
     def get_queryset(self):
-        """Filter out sectors from secret areas"""
+        """Filter out sectors from secret areas and secret sectors"""
         queryset = super().get_queryset()
-        queryset = queryset.filter(area__is_secret=False)
+        queryset = queryset.filter(area__is_secret=False, is_secret=False)
         return queryset
 
     def get_serializer_class(self):

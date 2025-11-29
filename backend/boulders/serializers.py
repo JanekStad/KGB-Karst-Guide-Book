@@ -143,6 +143,7 @@ class SectorSerializer(serializers.ModelSerializer):
             "latitude",
             "longitude",
             "polygon_boundary",
+            "is_secret",
             "problem_count",
             "wall_count",
             "created_at",
@@ -173,6 +174,7 @@ class SectorListSerializer(serializers.ModelSerializer):
             "latitude",
             "longitude",
             "polygon_boundary",
+            "is_secret",
             "problem_count",
         ]
 
@@ -185,7 +187,7 @@ class AreaSerializer(serializers.ModelSerializer):
     problem_count = serializers.SerializerMethodField()
     sector_count = serializers.SerializerMethodField()
     city_detail = CityListSerializer(source="city", read_only=True)
-    sectors = SectorListSerializer(many=True, read_only=True)
+    sectors = serializers.SerializerMethodField()
 
     class Meta:
         model = Area
@@ -210,6 +212,15 @@ class AreaSerializer(serializers.ModelSerializer):
 
     def get_sector_count(self, obj):
         return obj.sector_count
+
+    def get_sectors(self, obj):
+        """Filter out secret sectors"""
+        # Only include sectors if the area itself is not secret
+        if obj.is_secret:
+            return []
+        # Filter out secret sectors
+        sectors = obj.sectors.filter(is_secret=False)
+        return SectorListSerializer(sectors, many=True).data
 
 
 class AreaListSerializer(serializers.ModelSerializer):

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { cragsAPI } from '../services/api';
+import { areasAPI } from '../services/api';
 import './AddCrag.css';
 
 const AddCrag = () => {
@@ -55,23 +55,23 @@ const AddCrag = () => {
     }
 
     try {
-      console.log('📡 Creating crag...', formData);
-      const response = await cragsAPI.create({
+      console.log('📡 Creating area...', formData);
+      const response = await areasAPI.create({
         name: formData.name,
         description: formData.description,
         latitude: lat.toString(),
         longitude: lon.toString(),
       });
-      console.log('✅ Crag created successfully:', response.data);
-      navigate(`/crags/${response.data.id}`);
+      console.log('✅ Area created successfully:', response.data);
+      navigate(`/areas/${response.data.id}`);
     } catch (err) {
-      console.error('❌ Failed to create crag:', err);
+      console.error('❌ Failed to create area:', err);
       const errorMessage = err.response?.data?.name?.[0] ||
                           err.response?.data?.latitude?.[0] ||
                           err.response?.data?.longitude?.[0] ||
                           err.response?.data?.detail ||
                           err.message ||
-                          'Failed to create crag. Please try again.';
+                          'Failed to create area. Please try again.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -81,14 +81,14 @@ const AddCrag = () => {
   return (
     <div className="add-crag-page">
       <div className="add-crag-container">
-        <h1>Add New Crag</h1>
-        <p className="subtitle">Add a new climbing crag/area</p>
+        <h1>Add New Area</h1>
+        <p className="subtitle">Add a new climbing area (e.g., Holstejn, Sloup)</p>
 
         <form onSubmit={handleSubmit} className="crag-form">
           {error && <div className="error-message">{error}</div>}
 
           <div className="form-group">
-            <label htmlFor="name">Crag Name *</label>
+            <label htmlFor="name">Area Name *</label>
             <input
               type="text"
               id="name"
@@ -152,7 +152,7 @@ const AddCrag = () => {
           <div className="form-actions">
             <button
               type="button"
-              onClick={() => navigate('/crags')}
+              onClick={() => navigate('/areas')}
               className="btn btn-secondary"
               disabled={loading}
             >
@@ -163,7 +163,7 @@ const AddCrag = () => {
               disabled={loading}
               className="btn btn-primary"
             >
-              {loading ? 'Creating...' : 'Create Crag'}
+              {loading ? 'Creating...' : 'Create Area'}
             </button>
           </div>
         </form>
@@ -172,8 +172,8 @@ const AddCrag = () => {
           <h3>💡 Tips</h3>
           <ul>
             <li>Get coordinates from Google Maps by right-clicking on a location</li>
-            <li>Crags appear as points on the map in the mobile app</li>
-            <li>After creating a crag, you can add boulders and problems to it</li>
+            <li>Areas appear as points on the map in the mobile app</li>
+            <li>After creating an area, you can add sectors and problems to it</li>
           </ul>
         </div>
       </div>

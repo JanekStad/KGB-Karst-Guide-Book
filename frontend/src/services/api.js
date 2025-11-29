@@ -98,16 +98,19 @@ export const authAPI = {
   },
 };
 
-// Crags API
-export const cragsAPI = {
-  list: (params) => api.get('/crags/', { params }),
-  get: (id) => api.get(`/crags/${id}/`),
-  create: (data) => api.post('/crags/', data),
-  update: (id, data) => api.put(`/crags/${id}/`, data),
-  delete: (id) => api.delete(`/crags/${id}/`),
-  getProblems: (id) => api.get(`/crags/${id}/problems/`),
-  getWalls: (id) => api.get(`/crags/${id}/walls/`),
+// Areas API (previously called crags)
+export const areasAPI = {
+  list: (params) => api.get('/areas/', { params }),
+  get: (id) => api.get(`/areas/${id}/`),
+  create: (data) => api.post('/areas/', data),
+  update: (id, data) => api.put(`/areas/${id}/`, data),
+  delete: (id) => api.delete(`/areas/${id}/`),
+  getProblems: (id) => api.get(`/areas/${id}/problems/`),
+  getSectors: (id) => api.get(`/areas/${id}/sectors/`),
 };
+
+// Backward compatibility: keep cragsAPI as alias
+export const cragsAPI = areasAPI;
 
 // Sectors API
 export const sectorsAPI = {

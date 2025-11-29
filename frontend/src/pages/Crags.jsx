@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { cragsAPI } from '../services/api';
 import CragMap from '../components/CragMap';
+import { useAuth } from '../contexts/AuthContext';
+import { areasAPI } from '../services/api';
 import './Crags.css';
 
 const Crags = () => {
   const { isAuthenticated } = useAuth();
-  const [crags, setCrags] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,20 +17,20 @@ const Crags = () => {
   });
 
   useEffect(() => {
-    fetchCrags();
+    fetchAreas();
   }, []);
 
-  const fetchCrags = async () => {
+  const fetchAreas = async () => {
     try {
-      console.log('📡 Fetching crags...', { searchTerm });
+      console.log('📡 Fetching areas...', { searchTerm });
       setLoading(true);
       const params = searchTerm ? { search: searchTerm } : {};
-      const response = await cragsAPI.list(params);
-      console.log('✅ Crags fetched successfully:', response.data);
-      setCrags(response.data.results || response.data);
+      const response = await areasAPI.list(params);
+      console.log('✅ Areas fetched successfully:', response.data);
+      setAreas(response.data.results || response.data);
       setError(null);
     } catch (err) {
-      console.error('❌ Failed to fetch crags:', err);
+      console.error('❌ Failed to fetch areas:', err);
       console.error('Error details:', {
         message: err.message,
         response: err.response,
@@ -39,7 +39,7 @@ const Crags = () => {
       const errorMessage = err.response?.data?.detail || 
                           err.response?.data?.message || 
                           err.message || 
-                          'Failed to load crags. Please try again.';
+                          'Failed to load areas. Please try again.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -48,7 +48,7 @@ const Crags = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchCrags();
+    fetchAreas();
   };
 
   const handleViewModeChange = (mode) => {
@@ -70,7 +70,7 @@ const Crags = () => {
         <div className="error">
           <h3>Error loading areas</h3>
           <p>{error}</p>
-          <button onClick={fetchCrags} className="btn btn-primary">
+          <button onClick={fetchAreas} className="btn btn-primary">
             Retry
           </button>
         </div>
@@ -84,8 +84,8 @@ const Crags = () => {
         <div className="header-top">
           <h1>Explore</h1>
           {isAuthenticated && (
-            <Link to="/crags/add" className="btn btn-primary">
-              + Add Crag
+            <Link to="/areas/add" className="btn btn-primary">
+              + Add Area
             </Link>
           )}
         </div>
@@ -124,32 +124,32 @@ const Crags = () => {
       {/* Map View */}
       {viewMode === 'map' && (
         <div className="map-view">
-          <CragMap crags={crags} />
+          <CragMap crags={areas} />
         </div>
       )}
 
       {/* List View */}
       {viewMode === 'list' && (
         <div className="crags-grid">
-        {crags.length === 0 ? (
+        {areas.length === 0 ? (
           <div className="empty-state">
             <p>No areas found. Be the first to add one!</p>
           </div>
         ) : (
-          crags.map((crag) => (
+          areas.map((area) => (
             <Link
-              key={crag.id}
-              to={`/crags/${crag.id}`}
+              key={area.id}
+              to={`/areas/${area.id}`}
               className="crag-card"
             >
               <div className="crag-info">
-                <h3>{crag.name}</h3>
+                <h3>{area.name}</h3>
                 <p className="stats">
-                  {crag.problem_count || 0} problem{(crag.problem_count || 0) !== 1 ? 's' : ''}
+                  {area.problem_count || 0} problem{(area.problem_count || 0) !== 1 ? 's' : ''}
                 </p>
-                {crag.latitude && crag.longitude && (
+                {area.latitude && area.longitude && (
                   <p className="coordinates">
-                    📍 {crag.latitude}, {crag.longitude}
+                    📍 {area.latitude}, {area.longitude}
                   </p>
                 )}
               </div>

@@ -293,12 +293,12 @@ const ProblemDetail = () => {
 
   return (
     <div className="problem-detail-page">
-      {(problem.crag_detail || problem.crag) && (
+      {(problem.area_detail || problem.area || problem.crag_detail || problem.crag) && (
         <Link
-          to={`/crags/${(problem.crag_detail || problem.crag)?.id || problem.crag}`}
+          to={`/areas/${(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.id || problem.area || problem.crag}`}
           className="back-link"
         >
-          ← Back to Crag
+          ← Back to Area
         </Link>
       )}
 
@@ -307,11 +307,11 @@ const ProblemDetail = () => {
           <div className="problem-grade-large">{problem.grade}</div>
           <div>
             <h1>{problem.name}</h1>
-            {(problem.crag_detail || problem.crag) && (
+            {(problem.area_detail || problem.area || problem.crag_detail || problem.crag) && (
               <p className="crag-link">
                 At{' '}
-                <Link to={`/crags/${(problem.crag_detail || problem.crag)?.id || problem.crag}`}>
-                  {(problem.crag_detail || problem.crag)?.name || `Crag #${(problem.crag_detail || problem.crag)?.id || problem.crag}`}
+                <Link to={`/areas/${(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.id || problem.area || problem.crag}`}>
+                  {(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.name || `Area #${(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.id || problem.area || problem.crag}`}
                 </Link>
                 {(problem.wall_detail || problem.wall) && (
                   <span> - {(problem.wall_detail || problem.wall)?.name}</span>

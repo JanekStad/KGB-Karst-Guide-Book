@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
-import { cragsAPI, ticksAPI } from '../services/api';
+import { areasAPI, ticksAPI } from '../services/api';
 import './CragDetail.css';
 
 const CragDetail = () => {
   const { id } = useParams();
   const { isAuthenticated, user } = useAuth();
-  const [crag, setCrag] = useState(null);
+  const [area, setArea] = useState(null);
   const [problems, setProblems] = useState([]);
   const [allProblems, setAllProblems] = useState([]);
   const [availableGrades, setAvailableGrades] = useState([]);
@@ -17,6 +17,7 @@ const CragDetail = () => {
   const [error, setError] = useState(null);
   const [groupByWall, setGroupByWall] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState(null);
+  const [selectedSector, setSelectedSector] = useState(null);
   const [sortField, setSortField] = useState('grade');
   const [sortOrder, setSortOrder] = useState('desc');
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,20 +55,20 @@ const CragDetail = () => {
   };
 
   useEffect(() => {
-    fetchCrag();
+    fetchArea();
     fetchProblems();
   }, [id]);
 
-  const fetchCrag = async () => {
+  const fetchArea = async () => {
     try {
-      console.log('📡 Fetching crag details for ID:', id);
+      console.log('📡 Fetching area details for ID:', id);
       setLoading(true);
-      const response = await cragsAPI.get(id);
-      console.log('✅ Crag fetched successfully:', response.data);
-      setCrag(response.data);
+      const response = await areasAPI.get(id);
+      console.log('✅ Area fetched successfully:', response.data);
+      setArea(response.data);
       setError(null);
     } catch (err) {
-      console.error('❌ Failed to fetch crag:', err);
+      console.error('❌ Failed to fetch area:', err);
       console.error('Error details:', {
         message: err.message,
         response: err.response,
@@ -77,7 +78,7 @@ const CragDetail = () => {
       const errorMessage = err.response?.data?.detail || 
                           err.response?.data?.message || 
                           err.message || 
-                          'Failed to load crag details.';
+                          'Failed to load area details.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -86,13 +87,13 @@ const CragDetail = () => {
 
   const fetchProblems = async () => {
     try {
-      console.log('📡 Fetching problems for crag ID:', id);
-      const response = await cragsAPI.getProblems(id);
+      console.log('📡 Fetching problems for area ID:', id);
+      const response = await areasAPI.getProblems(id);
       console.log('✅ Problems fetched successfully:', response.data);
       const fetchedProblems = response.data.results || response.data;
       setAllProblems(fetchedProblems);
       updateAvailableGrades(fetchedProblems);
-      filterProblems(fetchedProblems, selectedGrade);
+      filterProblems(fetchedProblems, selectedGrade, selectedSector);
     } catch (err) {
       console.error('❌ Failed to fetch problems:', err);
     }
@@ -235,8 +236,17 @@ const CragDetail = () => {
     setGradeCounts(counts);
   };
 
-  const filterProblems = (problemsList, grade, search = '') => {
+  const filterProblems = (problemsList, grade, sector, search = '') => {
     let filtered = problemsList;
+    
+    // Filter by sector
+    if (sector) {
+      const sectorId = sector.id || sector;
+      filtered = filtered.filter(p => {
+        const problemSectorId = p.sector?.id || p.sector;
+        return problemSectorId === sectorId;
+      });
+    }
     
     // Filter by grade
     if (grade) {
@@ -257,9 +267,9 @@ const CragDetail = () => {
 
   useEffect(() => {
     if (allProblems.length > 0) {
-      filterProblems(allProblems, selectedGrade, searchTerm);
+      filterProblems(allProblems, selectedGrade, selectedSector, searchTerm);
     }
-  }, [selectedGrade, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedGrade, selectedSector, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -341,11 +351,11 @@ const CragDetail = () => {
   });
 
   // Group problems by wall if groupByWall is true
-  const groupedProblems = groupByWall && crag.walls && crag.walls.length > 0
+  const groupedProblems = groupByWall && area?.walls && area.walls.length > 0
     ? (() => {
-        // Create a map of all walls from the crag
+        // Create a map of all walls from the area
         const wallMap = new Map();
-        crag.walls.forEach(wall => {
+        area.walls.forEach(wall => {
           wallMap.set(wall.name, []);
         });
         
@@ -355,7 +365,7 @@ const CragDetail = () => {
           if (wallMap.has(wallKey)) {
             wallMap.get(wallKey).push(problem);
           } else {
-            // If wall doesn't exist in crag.walls, add to "No Wall" group
+            // If wall doesn't exist in area.walls, add to "No Wall" group
             if (!wallMap.has('No Wall')) {
               wallMap.set('No Wall', []);
             }
@@ -365,7 +375,7 @@ const CragDetail = () => {
         
         // Convert map to object, preserving wall order
         const result = {};
-        crag.walls.forEach(wall => {
+        area.walls.forEach(wall => {
           result[wall.name] = wallMap.get(wall.name) || [];
         });
         // Add "No Wall" group if it exists
@@ -379,15 +389,15 @@ const CragDetail = () => {
   if (loading) {
     return (
       <div className="crag-detail-page">
-        <div className="loading">Loading crag details...</div>
+        <div className="loading">Loading area details...</div>
       </div>
     );
   }
 
-  if (error || !crag) {
+  if (error || !area) {
     return (
       <div className="crag-detail-page">
-        <div className="error">{error || 'Crag not found'}</div>
+        <div className="error">{error || 'Area not found'}</div>
       </div>
     );
   }
@@ -397,29 +407,85 @@ const CragDetail = () => {
       <Link to="/explore" className="back-link">← Back to Explore</Link>
       
       <div className="crag-header">
-        <h1>{crag.name}</h1>
-        {crag.description && <p className="description">{crag.description}</p>}
-        {crag.latitude && crag.longitude && (
+        <h1>{area.name}</h1>
+        {area.description && <p className="description">{area.description}</p>}
+        {area.latitude && area.longitude && (
           <p className="coordinates">
-            📍 Coordinates: {crag.latitude}, {crag.longitude}
+            📍 Coordinates: {area.latitude}, {area.longitude}
           </p>
         )}
         <div className="stats">
           <span>{problems.length} Problem{problems.length !== 1 ? 's' : ''}</span>
-          {crag.walls && crag.walls.length > 0 && (
+          {area.sectors && area.sectors.length > 0 && !area.is_secret && (
             <>
               <span>•</span>
-              <span>{crag.walls.length} Wall{crag.walls.length !== 1 ? 's' : ''}</span>
+              <span>{area.sectors.length} Sector{area.sectors.length !== 1 ? 's' : ''}</span>
+            </>
+          )}
+          {area.walls && area.walls.length > 0 && (
+            <>
+              <span>•</span>
+              <span>{area.walls.length} Wall{area.walls.length !== 1 ? 's' : ''}</span>
             </>
           )}
         </div>
       </div>
 
+      {/* Sector Cards */}
+      {area.sectors && area.sectors.length > 0 && !area.is_secret && (
+        <div className="sectors-section">
+          <h2>Sectors</h2>
+          <div className="sector-cards">
+            <button
+              className={`sector-card ${selectedSector === null ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedSector(null);
+              }}
+            >
+              <div className="sector-card-header">
+                <h3>All Sectors</h3>
+              </div>
+              <div className="sector-card-stats">
+                <span className="sector-problem-count">{allProblems.length} Problems</span>
+              </div>
+            </button>
+            {area.sectors
+              .filter(sector => !sector.is_secret)
+              .map((sector) => {
+              const sectorProblemCount = allProblems.filter(p => {
+                const problemSectorId = p.sector?.id || p.sector;
+                return problemSectorId === sector.id;
+              }).length;
+              
+              return (
+                <button
+                  key={sector.id}
+                  className={`sector-card ${selectedSector?.id === sector.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedSector(selectedSector?.id === sector.id ? null : sector);
+                  }}
+                >
+                  <div className="sector-card-header">
+                    <h3>{sector.name}</h3>
+                  </div>
+                  {sector.description && (
+                    <p className="sector-card-description">{sector.description}</p>
+                  )}
+                  <div className="sector-card-stats">
+                    <span className="sector-problem-count">{sectorProblemCount} Problem{sectorProblemCount !== 1 ? 's' : ''}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="problems-section">
         <div className="problems-header">
           <h2>Problems ({problems.length})</h2>
           <div className="header-actions">
-            {crag.walls && crag.walls.length > 0 && (
+            {area.walls && area.walls.length > 0 && (
               <button
                 onClick={() => setGroupByWall(!groupByWall)}
                 className="btn btn-secondary"
@@ -428,7 +494,7 @@ const CragDetail = () => {
               </button>
             )}
             {isAuthenticated && (
-              <Link to={`/crags/${crag.id}/problems/add`} className="btn btn-primary">
+              <Link to={`/areas/${area.id}/problems/add`} className="btn btn-primary">
                 + Add Problem
               </Link>
             )}
@@ -518,10 +584,11 @@ const CragDetail = () => {
           </div>
 
           {/* Clear all filters */}
-          {(selectedGrade || searchTerm) && (
+          {(selectedGrade || selectedSector || searchTerm) && (
             <button
               onClick={() => {
                 setSelectedGrade(null);
+                setSelectedSector(null);
                 setSearchTerm('');
               }}
               className="clear-all-filters"
@@ -622,7 +689,7 @@ const CragDetail = () => {
                           <Link to={`/problems/${problem.id}`} className="problem-name-link">
                             <div className="problem-name-main">{problem.name}</div>
                             <div className="problem-location">
-                              {crag.name}
+                              {area.name}
                               {problem.wall_name && `, ${problem.wall_name}`}
                               {!problem.wall_name && problem.sector_name && `, ${problem.sector_name}`}
                             </div>

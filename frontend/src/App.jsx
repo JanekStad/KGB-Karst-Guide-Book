@@ -33,7 +33,12 @@ function App() {
                   <Route path="/" element={<Home />} />
                   {/* Explore route (primary) */}
                   <Route path="/explore" element={<Crags />} />
-                  {/* Crags routes (aliases for backward compatibility) */}
+                  {/* Areas routes (primary) */}
+                  <Route path="/areas" element={<Crags />} />
+                  <Route path="/areas/add" element={<AddCrag />} />
+                  <Route path="/areas/:id" element={<CragDetail />} />
+                  <Route path="/areas/:areaId/problems/add" element={<AddProblem />} />
+                  {/* Crags routes (backward compatibility aliases) */}
                   <Route path="/crags" element={<Crags />} />
                   <Route path="/crags/add" element={<AddCrag />} />
                   <Route path="/crags/:id" element={<CragDetail />} />
