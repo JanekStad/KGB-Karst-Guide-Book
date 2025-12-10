@@ -104,7 +104,9 @@ class Command(BaseCommand):
             filtered = []
             for problem, url in problems_with_lezec_links:
                 # Skip if has description AND (has author User OR has author_name)
-                if not problem.description or (not problem.author and not problem.author_name):
+                if not problem.description or (
+                    not problem.author and not problem.author_name
+                ):
                     filtered.append((problem, url))
                 else:
                     self.stdout.write(
@@ -178,9 +180,7 @@ class Command(BaseCommand):
                     except User.DoesNotExist:
                         # Try case-insensitive match
                         try:
-                            author_user = User.objects.get(
-                                username__iexact=author_name
-                            )
+                            author_user = User.objects.get(username__iexact=author_name)
                             self.stdout.write(
                                 self.style.SUCCESS(
                                     f"  ✓ Matched author (case-insensitive) to User: {author_user.username}"
@@ -214,7 +214,10 @@ class Command(BaseCommand):
                         updated_fields.append("author_name")
                     elif author_name and not author_user:
                         # Store author as string if no User match found
-                        if not problem.author_name or problem.author_name != author_name:
+                        if (
+                            not problem.author_name
+                            or problem.author_name != author_name
+                        ):
                             problem.author_name = author_name
                             updated_fields.append("author_name")
                     if description and (
@@ -323,9 +326,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Authors not found: {stats['author_not_found']}")
         self.stdout.write(f"Descriptions added: {stats['description_added']}")
         if update_created_at:
-            self.stdout.write(
-                f"Created dates updated: {stats['created_at_updated']}"
-            )
+            self.stdout.write(f"Created dates updated: {stats['created_at_updated']}")
         self.stdout.write(f"Errors: {stats['errors']}")
 
         if dry_run:
@@ -424,10 +425,10 @@ class Command(BaseCommand):
         - "J. Novák, 2017" (comma-separated year)
         - "Asu, 2017" (comma-separated year)
         - "1991" (standalone year - rare, might be just a year)
-        
+
         Args:
             author_string: Raw author string from lezec.cz
-            
+
         Returns:
             tuple: (author_name, establishment_date) - date can be None
         """
@@ -515,4 +516,3 @@ class Command(BaseCommand):
 
         # No date found, return author name as-is
         return author_string.strip(), None
-

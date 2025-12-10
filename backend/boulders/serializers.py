@@ -102,6 +102,7 @@ class BoulderImageSerializer(serializers.ModelSerializer):
 
 class WallSerializer(serializers.ModelSerializer):
     """Serializer for Wall (sub-sector within Sector)"""
+
     problem_count = serializers.SerializerMethodField()
     sector_name = serializers.CharField(source="sector.name", read_only=True)
     area_name = serializers.CharField(source="sector.area.name", read_only=True)
@@ -128,6 +129,7 @@ class WallSerializer(serializers.ModelSerializer):
 
 class SectorSerializer(serializers.ModelSerializer):
     """Serializer for Sector (within Area)"""
+
     problem_count = serializers.SerializerMethodField()
     wall_count = serializers.SerializerMethodField()
     area_name = serializers.CharField(source="area.name", read_only=True)
@@ -161,6 +163,7 @@ class SectorSerializer(serializers.ModelSerializer):
 
 class SectorListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for sector list views"""
+
     problem_count = serializers.SerializerMethodField()
     area_name = serializers.CharField(source="area.name", read_only=True)
 
@@ -184,6 +187,7 @@ class SectorListSerializer(serializers.ModelSerializer):
 
 class AreaSerializer(serializers.ModelSerializer):
     """Serializer for Area (large geographic region)"""
+
     problem_count = serializers.SerializerMethodField()
     sector_count = serializers.SerializerMethodField()
     city_detail = CityListSerializer(source="city", read_only=True)
@@ -256,7 +260,7 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     suggested_grade = serializers.SerializerMethodField()
     suggested_grade_votes = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
-    
+
     def get_author_username(self, obj):
         """Return author username if User exists, otherwise return author_name"""
         if obj.author:
@@ -373,11 +377,9 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
 
         suggested_grade = self.get_suggested_grade(obj)
         if suggested_grade:
-            return (
-                Tick.objects.filter(
-                    problem=obj, suggested_grade=suggested_grade
-                ).count()
-            )
+            return Tick.objects.filter(
+                problem=obj, suggested_grade=suggested_grade
+            ).count()
         return 0
 
     def get_average_rating(self, obj):
@@ -415,7 +417,7 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
     has_external_links = serializers.SerializerMethodField()
     description_preview = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
-    
+
     def get_author_username(self, obj):
         """Return author username if User exists, otherwise return author_name"""
         if obj.author:
@@ -475,17 +477,18 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
         if total_ticks == 0:
             return 0
 
-        recommended_ticks = Tick.objects.filter(
-            problem=obj, rating__gte=4.0
-        ).count()
+        recommended_ticks = Tick.objects.filter(problem=obj, rating__gte=4.0).count()
 
         return round((recommended_ticks / total_ticks) * 100)
 
     def get_media_count(self, obj):
         """Count total media items (images + videos)"""
         from .models import BoulderImage
+
         # Count images associated with this problem through ProblemLines
-        image_count = BoulderImage.objects.filter(problem_lines__problem=obj).distinct().count()
+        image_count = (
+            BoulderImage.objects.filter(problem_lines__problem=obj).distinct().count()
+        )
         # Count videos
         video_count = len(obj.video_links) if obj.video_links else 0
         return image_count + video_count

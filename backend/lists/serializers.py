@@ -29,6 +29,18 @@ class TickCreateSerializer(serializers.ModelSerializer):
         model = Tick
         fields = ["problem", "date", "notes", "tick_grade", "suggested_grade", "rating"]
 
+    def validate(self, attrs):
+        """Check if a tick already exists for this user and problem"""
+        user = self.context["request"].user
+        problem = attrs.get("problem")
+
+        if problem and Tick.objects.filter(user=user, problem=problem).exists():
+            raise serializers.ValidationError(
+                {"non_field_errors": ["You have already ticked this problem."]}
+            )
+
+        return attrs
+
 
 class ListEntrySerializer(serializers.ModelSerializer):
     problem = BoulderProblemSerializer(read_only=True)

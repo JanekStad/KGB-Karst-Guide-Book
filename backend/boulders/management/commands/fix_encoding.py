@@ -86,7 +86,9 @@ class Command(BaseCommand):
                         issues_fixed.append(("Sector", sector.id, "name", fixed))
 
             if sector.description and self._has_encoding_issue(sector.description):
-                issues_found.append(("Sector", sector.id, "description", sector.description))
+                issues_found.append(
+                    ("Sector", sector.id, "description", sector.description)
+                )
                 if fix:
                     fixed = self._try_fix_string(sector.description)
                     if fixed and fixed != sector.description:

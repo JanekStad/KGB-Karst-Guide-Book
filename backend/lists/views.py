@@ -32,7 +32,7 @@ class TickViewSet(viewsets.ModelViewSet):
         """
         Allow public read access for problem_ticks, user_diary, recent, and community_stats actions
         """
-        if self.action in ['problem_ticks', 'user_diary', 'recent', 'community_stats']:
+        if self.action in ["problem_ticks", "user_diary", "recent", "community_stats"]:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -60,11 +60,13 @@ class TickViewSet(viewsets.ModelViewSet):
                 {"error": "problem parameter is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
-        ticks = Tick.objects.filter(problem_id=problem_id).select_related(
-            "user", "user__profile", "problem"
-        ).order_by("-date", "-created_at")
-        
+
+        ticks = (
+            Tick.objects.filter(problem_id=problem_id)
+            .select_related("user", "user__profile", "problem")
+            .order_by("-date", "-created_at")
+        )
+
         serializer = self.get_serializer(ticks, many=True)
         return Response(serializer.data)
 
@@ -77,20 +79,29 @@ class TickViewSet(viewsets.ModelViewSet):
                 {"error": "user parameter is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         try:
             from django.contrib.auth.models import User
+
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response(
                 {"error": "User not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        
-        ticks = Tick.objects.filter(user=user).select_related(
-            "user", "user__profile", "problem", "problem__area", "problem__area__city"
-        ).order_by("-date", "-created_at")
-        
+
+        ticks = (
+            Tick.objects.filter(user=user)
+            .select_related(
+                "user",
+                "user__profile",
+                "problem",
+                "problem__area",
+                "problem__area__city",
+            )
+            .order_by("-date", "-created_at")
+        )
+
         serializer = self.get_serializer(ticks, many=True)
         return Response(serializer.data)
 
@@ -98,15 +109,15 @@ class TickViewSet(viewsets.ModelViewSet):
     def recent(self, request):
         """Get recent ticks from all users (public access - community activity feed)"""
         limit = int(request.query_params.get("limit", 20))  # Default to 20, max 50
-        
+
         # Cap the limit to prevent abuse
         if limit > 50:
             limit = 50
-        
+
         ticks = Tick.objects.select_related(
             "user", "user__profile", "problem", "problem__area", "problem__area__city"
         ).order_by("-date", "-created_at")[:limit]
-        
+
         serializer = self.get_serializer(ticks, many=True)
         return Response(serializer.data)
 
@@ -115,47 +126,50 @@ class TickViewSet(viewsets.ModelViewSet):
         """Get community-wide statistics (public access)"""
         # Total problems
         total_problems = BoulderProblem.objects.filter(area__is_secret=False).count()
-        
+
         # Total ticks
         total_ticks = Tick.objects.count()
-        
+
         # Active climbers (users who have at least one tick)
         active_climbers = User.objects.filter(ticks__isnull=False).distinct().count()
-        
+
         # Total areas
         total_areas = Area.objects.filter(is_secret=False).count()
-        
+
         # Recent activity (ticks in last 30 days)
         thirty_days_ago = datetime.now() - timedelta(days=30)
-        recent_ticks = Tick.objects.filter(
-            created_at__gte=thirty_days_ago
-        ).count()
-        
+        recent_ticks = Tick.objects.filter(created_at__gte=thirty_days_ago).count()
+
         # Most ticked problem
-        most_ticked = Tick.objects.values('problem').annotate(
-            tick_count=Count('id')
-        ).order_by('-tick_count').first()
-        
+        most_ticked = (
+            Tick.objects.values("problem")
+            .annotate(tick_count=Count("id"))
+            .order_by("-tick_count")
+            .first()
+        )
+
         most_ticked_problem = None
         if most_ticked:
             try:
-                problem = BoulderProblem.objects.get(id=most_ticked['problem'])
+                problem = BoulderProblem.objects.get(id=most_ticked["problem"])
                 most_ticked_problem = {
-                    'name': problem.name,
-                    'grade': problem.grade,
-                    'tick_count': most_ticked['tick_count']
+                    "name": problem.name,
+                    "grade": problem.grade,
+                    "tick_count": most_ticked["tick_count"],
                 }
             except BoulderProblem.DoesNotExist:
                 pass
-        
-        return Response({
-            'total_problems': total_problems,
-            'total_ticks': total_ticks,
-            'active_climbers': active_climbers,
-            'total_areas': total_areas,
-            'recent_ticks_30d': recent_ticks,
-            'most_ticked_problem': most_ticked_problem,
-        })
+
+        return Response(
+            {
+                "total_problems": total_problems,
+                "total_ticks": total_ticks,
+                "active_climbers": active_climbers,
+                "total_areas": total_areas,
+                "recent_ticks_30d": recent_ticks,
+                "most_ticked_problem": most_ticked_problem,
+            }
+        )
 
     @action(detail=False, methods=["post"])
     def import_lezec_diary(self, request):
@@ -413,6 +427,16 @@ class UserListViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return UserListCreateSerializer
         return UserListSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        response_serializer = UserListSerializer(serializer.instance)
+        return Response(
+            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

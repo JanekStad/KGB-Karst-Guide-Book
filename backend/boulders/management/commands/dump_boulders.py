@@ -36,12 +36,12 @@ class Command(BaseCommand):
         indent = options["indent"]
 
         # Ensure output directory exists
-        output_dir = os.path.dirname(output_file) if os.path.dirname(output_file) else "."
+        output_dir = (
+            os.path.dirname(output_file) if os.path.dirname(output_file) else "."
+        )
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir)
-            self.stdout.write(
-                self.style.SUCCESS(f"Created directory: {output_dir}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Created directory: {output_dir}"))
 
         self.stdout.write("Dumping boulder data...")
         self.stdout.write(f"Output file: {output_file}")
@@ -87,8 +87,5 @@ class Command(BaseCommand):
                 )
 
         except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f"✗ Error dumping data: {str(e)}")
-            )
+            self.stdout.write(self.style.ERROR(f"✗ Error dumping data: {str(e)}"))
             raise
-

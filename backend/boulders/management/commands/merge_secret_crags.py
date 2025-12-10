@@ -57,15 +57,11 @@ class Command(BaseCommand):
         secret_areas = moravsky_kras_areas.exclude(name__in=allowed_areas)
 
         if not secret_areas.exists():
-            self.stdout.write(
-                self.style.SUCCESS("No secret areas found to merge.")
-            )
+            self.stdout.write(self.style.SUCCESS("No secret areas found to merge."))
             return
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Found {secret_areas.count()} secret area(s) to merge:"
-            )
+            self.style.SUCCESS(f"Found {secret_areas.count()} secret area(s) to merge:")
         )
         for area in secret_areas:
             problem_count = area.problems.count()
@@ -120,9 +116,7 @@ class Command(BaseCommand):
         )
 
         if created:
-            self.stdout.write(
-                self.style.SUCCESS(f"Created area: {secret_spot_name}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Created area: {secret_spot_name}"))
         else:
             # Update existing Secret Spot to ensure it's marked as secret
             secret_spot_area.is_secret = True
@@ -174,13 +168,15 @@ class Command(BaseCommand):
                     existing_sector = Sector.objects.filter(
                         area=secret_spot_area, name=sector.name
                     ).first()
-                    
+
                     if existing_sector:
                         # Rename the sector to include the original area name
                         new_name = f"{area.name} - {sector.name}"
                         if len(new_name) > 200:
                             max_area_len = 200 - len(sector.name) - 3
-                            area_prefix = area.name[:max_area_len] if max_area_len > 0 else ""
+                            area_prefix = (
+                                area.name[:max_area_len] if max_area_len > 0 else ""
+                            )
                             new_name = f"{area_prefix} - {sector.name}"[:200]
                         sector.name = new_name
                         self.stdout.write(
@@ -188,7 +184,7 @@ class Command(BaseCommand):
                                 f"  Renamed sector '{sector.name}' to avoid conflict"
                             )
                         )
-                    
+
                     sector.area = secret_spot_area
                     sector.save()
                     stats["sectors_moved"] += 1
@@ -222,4 +218,3 @@ class Command(BaseCommand):
                 f'\nSecret Spot area "{secret_spot_name}" now contains all merged areas and is marked as secret.'
             )
         )
-

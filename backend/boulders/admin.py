@@ -41,7 +41,18 @@ class SectorAdmin(admin.ModelAdmin):
                 "description": "Latitude/longitude for marker positioning. Polygon boundary is an array of [lat, lng] pairs defining the sector boundary. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
             },
         ),
-        ("Metadata", {"fields": ("created_by", "created_at", "updated_at", "problem_count", "wall_count")}),
+        (
+            "Metadata",
+            {
+                "fields": (
+                    "created_by",
+                    "created_at",
+                    "updated_at",
+                    "problem_count",
+                    "wall_count",
+                )
+            },
+        ),
     )
 
 
@@ -55,7 +66,15 @@ class WallAdmin(admin.ModelAdmin):
 
 @admin.register(BoulderProblem)
 class BoulderProblemAdmin(admin.ModelAdmin):
-    list_display = ["name", "area", "sector", "wall", "grade", "created_by", "created_at"]
+    list_display = [
+        "name",
+        "area",
+        "sector",
+        "wall",
+        "grade",
+        "created_by",
+        "created_at",
+    ]
     list_filter = ["area", "sector", "wall", "grade", "created_at"]
     search_fields = ["name", "area__name", "sector__name", "wall__name", "description"]
     readonly_fields = ["created_at", "updated_at"]

@@ -102,16 +102,23 @@ class Command(BaseCommand):
                 "problems": BoulderProblem.objects.count(),
             }
 
-            self.stdout.write(self.style.SUCCESS("\n✓ Successfully loaded boulder data!"))
+            self.stdout.write(
+                self.style.SUCCESS("\n✓ Successfully loaded boulder data!")
+            )
             self.stdout.write("\nSummary:")
-            self.stdout.write(f"  Areas: {before_counts['areas']} → {after_counts['areas']} (+{after_counts['areas'] - before_counts['areas']})")
-            self.stdout.write(f"  Sectors: {before_counts['sectors']} → {after_counts['sectors']} (+{after_counts['sectors'] - before_counts['sectors']})")
-            self.stdout.write(f"  Walls: {before_counts['walls']} → {after_counts['walls']} (+{after_counts['walls'] - before_counts['walls']})")
-            self.stdout.write(f"  Problems: {before_counts['problems']} → {after_counts['problems']} (+{after_counts['problems'] - before_counts['problems']})")
+            self.stdout.write(
+                f"  Areas: {before_counts['areas']} → {after_counts['areas']} (+{after_counts['areas'] - before_counts['areas']})"
+            )
+            self.stdout.write(
+                f"  Sectors: {before_counts['sectors']} → {after_counts['sectors']} (+{after_counts['sectors'] - before_counts['sectors']})"
+            )
+            self.stdout.write(
+                f"  Walls: {before_counts['walls']} → {after_counts['walls']} (+{after_counts['walls'] - before_counts['walls']})"
+            )
+            self.stdout.write(
+                f"  Problems: {before_counts['problems']} → {after_counts['problems']} (+{after_counts['problems'] - before_counts['problems']})"
+            )
 
         except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f"\n✗ Error loading data: {str(e)}")
-            )
+            self.stdout.write(self.style.ERROR(f"\n✗ Error loading data: {str(e)}"))
             raise
-

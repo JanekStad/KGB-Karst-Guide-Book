@@ -1,4 +1,5 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import Comment
 from .serializers import CommentSerializer, CommentCreateSerializer
@@ -22,6 +23,18 @@ class CommentViewSet(viewsets.ModelViewSet):
         if problem_id:
             queryset = queryset.filter(problem_id=problem_id)
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        """Override create to return full CommentSerializer in response"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        # Return the full serializer for the response
+        response_serializer = CommentSerializer(serializer.instance)
+        return Response(
+            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

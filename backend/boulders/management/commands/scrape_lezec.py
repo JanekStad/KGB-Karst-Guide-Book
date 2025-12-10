@@ -414,7 +414,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Areas existing: {stats['areas_existing']}")
             self.stdout.write(f"Sectors created: {stats['sectors_created']}")
             self.stdout.write(f"Sectors existing: {stats['sectors_existing']}")
-            if stats.get('walls_created', 0) > 0 or stats.get('walls_existing', 0) > 0:
+            if stats.get("walls_created", 0) > 0 or stats.get("walls_existing", 0) > 0:
                 self.stdout.write(f"Walls created: {stats.get('walls_created', 0)}")
                 self.stdout.write(f"Walls existing: {stats.get('walls_existing', 0)}")
             self.stdout.write(f"Problems created: {stats['problems_created']}")
@@ -1018,10 +1018,10 @@ class Command(BaseCommand):
             # Use sector name from scraped data, or default to area name if no sector
             sector_name = sector if sector and sector != "-" else area_name
             sector_name = self._validate_and_clean_string(sector_name, "sector_name")
-            
+
             if not sector_name:
                 sector_name = area_name  # Fallback to area name
-            
+
             # Validate coordinates
             if not default_lat or not default_lon:
                 self.stdout.write(

@@ -99,8 +99,12 @@ class Command(BaseCommand):
         for item in data:
             problem_name = item.get("name", "").strip()
             grade = item.get("grade", "").strip()
-            area_name = item.get("crag", "").strip() or item.get("area", "").strip()  # Support both old and new field names
-            sector_name = item.get("sector", "").strip() or item.get("wall", "").strip()  # Support both old and new field names
+            area_name = (
+                item.get("crag", "").strip() or item.get("area", "").strip()
+            )  # Support both old and new field names
+            sector_name = (
+                item.get("sector", "").strip() or item.get("wall", "").strip()
+            )  # Support both old and new field names
             wall_name = item.get("wall", "").strip()  # This is now sub-sector/wall
             city = item.get("city", "").strip()
             location = item.get("location", "").strip()
@@ -168,14 +172,18 @@ class Command(BaseCommand):
             if created:
                 stats["sectors_created"] += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f"Created sector: {area_name} - {sector_name_final}")
+                    self.style.SUCCESS(
+                        f"Created sector: {area_name} - {sector_name_final}"
+                    )
                 )
             else:
                 stats["sectors_existing"] += 1
 
             # Get or create wall (sub-sector) if specified
             wall = None
-            if wall_name and wall_name != sector_name_final:  # Only create if different from sector
+            if (
+                wall_name and wall_name != sector_name_final
+            ):  # Only create if different from sector
                 wall, created = Wall.objects.get_or_create(
                     sector=sector,
                     name=wall_name,
@@ -186,7 +194,9 @@ class Command(BaseCommand):
                 if created:
                     stats["walls_created"] += 1
                     self.stdout.write(
-                        self.style.SUCCESS(f"Created wall: {area_name} - {sector_name_final} - {wall_name}")
+                        self.style.SUCCESS(
+                            f"Created wall: {area_name} - {sector_name_final} - {wall_name}"
+                        )
                     )
                 else:
                     stats["walls_existing"] += 1

@@ -13,7 +13,14 @@ Usage:
 """
 
 from django.core.management.base import BaseCommand, CommandError
-from boulders.models import Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
+from boulders.models import (
+    Area,
+    Sector,
+    Wall,
+    BoulderProblem,
+    BoulderImage,
+    ProblemLine,
+)
 
 
 class Command(BaseCommand):

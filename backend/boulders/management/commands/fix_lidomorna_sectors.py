@@ -100,7 +100,9 @@ class Command(BaseCommand):
 
         area = list(areas)[0]
         self.stdout.write(
-            self.style.SUCCESS(f"Found {len(matching_sectors)} matching sector(s) in area: {area.name}")
+            self.style.SUCCESS(
+                f"Found {len(matching_sectors)} matching sector(s) in area: {area.name}"
+            )
         )
 
         # Identify which sector is which
@@ -137,9 +139,7 @@ class Command(BaseCommand):
         target_main_sector = main_sector
         if not target_main_sector:
             # Use the sector with most problems as the main one
-            target_main_sector = max(
-                matching_sectors, key=lambda s: s.problems.count()
-            )
+            target_main_sector = max(matching_sectors, key=lambda s: s.problems.count())
             self.stdout.write(
                 self.style.WARNING(
                     f"No exact '{base_sector_name}' sector found. Using '{target_main_sector.name}' as main."
@@ -164,11 +164,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("DRY RUN - No data will be modified"))
             self.stdout.write("=" * 60)
             self.stdout.write(f"\nWould perform the following actions:")
-            self.stdout.write(f"1. Use/rename sector '{target_main_sector.name}' to '{base_sector_name}'")
+            self.stdout.write(
+                f"1. Use/rename sector '{target_main_sector.name}' to '{base_sector_name}'"
+            )
             self.stdout.write(f"2. Create wall 'vlevo' in sector '{base_sector_name}'")
             self.stdout.write(f"3. Create wall 'vpravo' in sector '{base_sector_name}'")
             if main_wall_name:
-                self.stdout.write(f"4. Create wall '{main_wall_name}' in sector '{base_sector_name}'")
+                self.stdout.write(
+                    f"4. Create wall '{main_wall_name}' in sector '{base_sector_name}'"
+                )
             if vlevo_sector:
                 self.stdout.write(
                     f"5. Move {vlevo_sector.problems.count()} problems from '{vlevo_sector.name}' to '{base_sector_name}' wall 'vlevo'"
@@ -236,7 +240,9 @@ class Command(BaseCommand):
                 if created:
                     stats["walls_created"] += 1
                     self.stdout.write(
-                        self.style.SUCCESS(f"Created wall 'vlevo' in '{base_sector_name}'")
+                        self.style.SUCCESS(
+                            f"Created wall 'vlevo' in '{base_sector_name}'"
+                        )
                     )
 
             # Create vpravo wall
@@ -252,7 +258,9 @@ class Command(BaseCommand):
                 if created:
                     stats["walls_created"] += 1
                     self.stdout.write(
-                        self.style.SUCCESS(f"Created wall 'vpravo' in '{base_sector_name}'")
+                        self.style.SUCCESS(
+                            f"Created wall 'vpravo' in '{base_sector_name}'"
+                        )
                     )
 
             # Create main wall if requested
@@ -361,4 +369,3 @@ class Command(BaseCommand):
                 + (f", {main_wall_name}" if main_wall_name else "")
             )
         )
-

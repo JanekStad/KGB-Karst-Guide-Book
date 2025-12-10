@@ -17,12 +17,17 @@
 }
 
 .back-link {
-  display: inline-block;
+  display: block !important;
   margin-bottom: 1.5rem;
   color: var(--energy-orange);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
+  max-width: 60rem; /* Match crag-header width */
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .back-link:hover {

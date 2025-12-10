@@ -249,4 +249,3 @@ class Command(BaseCommand):
                     continue
 
         return coords
-
