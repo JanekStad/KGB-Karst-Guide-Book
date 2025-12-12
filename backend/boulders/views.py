@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Count, Avg
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
 from .serializers import (
     CitySerializer,
@@ -185,11 +186,25 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         # Filter out problems from secret areas
         queryset = queryset.filter(area__is_secret=False)
+
+        # Annotate aggregations to avoid N+1 queries
+        queryset = queryset.annotate(
+            tick_count_annotated=Count("ticks", distinct=True),
+            avg_rating_annotated=Avg("ticks__rating"),
+        )
+
         if self.action == "retrieve":
             # Prefetch image_lines and their images for detail view
             queryset = queryset.prefetch_related(
                 "image_lines__image__problem_lines__problem"
             )
+        elif self.action == "list":
+            # For list view, prefetch related objects to avoid N+1 queries
+            queryset = queryset.select_related(
+                "area", "sector", "wall", "author", "created_by"
+            )
+            queryset = queryset.prefetch_related("ticks")
+
         return queryset
 
     def get_serializer_class(self):

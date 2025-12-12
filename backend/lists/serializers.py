@@ -72,6 +72,9 @@ class UserListSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_at", "updated_at"]
 
     def get_problem_count(self, obj):
+        # Use annotated count if available (from queryset optimization), otherwise fallback
+        if hasattr(obj, "problem_count_annotated"):
+            return obj.problem_count_annotated
         return obj.problems.count()
 
 

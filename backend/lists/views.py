@@ -431,7 +431,12 @@ class UserListViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return UserList.objects.filter(user=self.request.user)
+        # Prefetch list entries to avoid N+1 queries in serializer
+        return (
+            UserList.objects.filter(user=self.request.user)
+            .prefetch_related("listentry_set__problem")
+            .annotate(problem_count_annotated=Count("listentry_set", distinct=True))
+        )
 
     def get_serializer_class(self):
         if self.action == "create":

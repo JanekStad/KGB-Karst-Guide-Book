@@ -3,6 +3,16 @@ from django.contrib.auth.models import User
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
 
 
+class BoulderProblemMixin:
+    """Mixin for shared methods between BoulderProblem serializers"""
+
+    def get_author_username(self, obj):
+        """Return author username if User exists, otherwise return author_name"""
+        if obj.author:
+            return obj.author.username
+        return obj.author_name if obj.author_name else None
+
+
 class CitySerializer(serializers.ModelSerializer):
     area_count = serializers.SerializerMethodField()
 
@@ -250,7 +260,7 @@ class AreaListSerializer(serializers.ModelSerializer):
         return obj.problem_count
 
 
-class BoulderProblemSerializer(serializers.ModelSerializer):
+class BoulderProblemSerializer(BoulderProblemMixin, serializers.ModelSerializer):
     area_detail = AreaListSerializer(source="area", read_only=True)
     sector_detail = SectorListSerializer(source="sector", read_only=True)
     wall_detail = WallSerializer(source="wall", read_only=True)
@@ -260,12 +270,6 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
     suggested_grade = serializers.SerializerMethodField()
     suggested_grade_votes = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
-
-    def get_author_username(self, obj):
-        """Return author username if User exists, otherwise return author_name"""
-        if obj.author:
-            return obj.author.username
-        return obj.author_name if obj.author_name else None
 
     def get_images(self, obj):
         """Get images associated with this problem through ProblemLine or sector"""
@@ -351,6 +355,9 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "created_by"]
 
     def get_tick_count(self, obj):
+        # Use annotated count if available (from queryset optimization), otherwise fallback
+        if hasattr(obj, "tick_count_annotated"):
+            return obj.tick_count_annotated
         return obj.ticks.count()
 
     def get_suggested_grade(self, obj):
@@ -384,6 +391,14 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
 
     def get_average_rating(self, obj):
         """Calculate average rating from all tick ratings"""
+        # Use annotated average if available (from queryset optimization), otherwise calculate
+        if (
+            hasattr(obj, "avg_rating_annotated")
+            and obj.avg_rating_annotated is not None
+        ):
+            return float(obj.avg_rating_annotated)
+
+        # Fallback: calculate from ticks if not annotated
         from django.db.models import Avg
         from lists.models import Tick
 
@@ -398,7 +413,7 @@ class BoulderProblemSerializer(serializers.ModelSerializer):
         return float(obj.rating) if obj.rating else None
 
 
-class BoulderProblemListSerializer(serializers.ModelSerializer):
+class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSerializer):
     """Lightweight serializer for problem list views"""
 
     area_name = serializers.CharField(source="area.name", read_only=True)
@@ -417,12 +432,6 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
     has_external_links = serializers.SerializerMethodField()
     description_preview = serializers.SerializerMethodField()
     author_username = serializers.SerializerMethodField()
-
-    def get_author_username(self, obj):
-        """Return author username if User exists, otherwise return author_name"""
-        if obj.author:
-            return obj.author.username
-        return obj.author_name if obj.author_name else None
 
     class Meta:
         model = BoulderProblem
@@ -452,10 +461,21 @@ class BoulderProblemListSerializer(serializers.ModelSerializer):
         ]
 
     def get_tick_count(self, obj):
+        # Use annotated count if available (from queryset optimization), otherwise fallback
+        if hasattr(obj, "tick_count_annotated"):
+            return obj.tick_count_annotated
         return obj.ticks.count()
 
     def get_average_rating(self, obj):
         """Calculate average rating from all tick ratings"""
+        # Use annotated average if available (from queryset optimization), otherwise calculate
+        if (
+            hasattr(obj, "avg_rating_annotated")
+            and obj.avg_rating_annotated is not None
+        ):
+            return float(obj.avg_rating_annotated)
+
+        # Fallback: calculate from ticks if not annotated
         from django.db.models import Avg
         from lists.models import Tick
 
