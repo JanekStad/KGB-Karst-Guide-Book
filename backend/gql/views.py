@@ -10,6 +10,7 @@ from rest_framework.authentication import TokenAuthentication
 @method_decorator(csrf_exempt, name="dispatch")
 class TokenGraphQLView(GraphQLAsyncView):
     async def post(self, request, *args, **kwargs):
+        # Authenticate user using DRF Token authentication
         auth = TokenAuthentication()
         try:
             user, token = await sync_to_async(auth.authenticate)(request)
@@ -17,12 +18,25 @@ class TokenGraphQLView(GraphQLAsyncView):
         except (TypeError, ValueError):
             request.user = None
 
+        # Get GraphQL kwargs (includes context_value)
+        kwargs_graphql = self.get_kwargs_graphql(request)
+        
+        # Update context_value to include authenticated user
+        if "context_value" in kwargs_graphql:
+            context = kwargs_graphql["context_value"]
+            if context is None:
+                context = {}
+            context["user"] = request.user
+            context["request"] = request
+            kwargs_graphql["context_value"] = context
+        else:
+            kwargs_graphql["context_value"] = {"request": request, "user": request.user}
+
         # Execute GraphQL query
         data = self.extract_data_from_request(request)
         success, result = await graphql(
             self.schema,
             data,
-            context_value={"request": request, "user": request.user},
-            **self.get_kwargs_graphql(request),
+            **kwargs_graphql,
         )
         return JsonResponse(result, status=200 if success else 400)
