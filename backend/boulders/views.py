@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Avg
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
+from .mixins import CreatedByMixin, ListDetailSerializerMixin
 from .serializers import (
     CitySerializer,
     CityListSerializer,
@@ -18,8 +19,10 @@ from .serializers import (
 )
 
 
-class CityViewSet(viewsets.ModelViewSet):
+class CityViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewSet):
     queryset = City.objects.all()
+    serializer_class = CitySerializer
+    list_serializer_class = CityListSerializer
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -28,14 +31,6 @@ class CityViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created_at"]
     ordering = ["name"]
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return CityListSerializer
-        return CitySerializer
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
     def areas(self, request, pk=None):
@@ -51,8 +46,10 @@ class CityViewSet(viewsets.ModelViewSet):
         return self.areas(request, pk)
 
 
-class AreaViewSet(viewsets.ModelViewSet):
+class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewSet):
     queryset = Area.objects.all()
+    serializer_class = AreaSerializer
+    list_serializer_class = AreaListSerializer
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -68,22 +65,23 @@ class AreaViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         # TODO: Add permission check here when user authentication is implemented
         # For now, always filter out secret areas
-        queryset = queryset.filter(is_secret=False)
+        queryset = queryset.filter(is_secret=False).select_related("city")
         return queryset
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return AreaListSerializer
-        return AreaSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
         """Get all problems for a specific area"""
         area = self.get_object()
-        problems = area.problems.all()
+        # Optimize queryset to avoid N+1 queries
+        problems = (
+            area.problems.filter(area__is_secret=False)
+            .select_related("area", "sector", "wall", "author", "created_by")
+            .prefetch_related("ticks")
+            .annotate(
+                tick_count_annotated=Count("ticks", distinct=True),
+                avg_rating_annotated=Avg("ticks__rating"),
+            )
+        )
         serializer = BoulderProblemListSerializer(problems, many=True)
         return Response(serializer.data)
 
@@ -96,8 +94,10 @@ class AreaViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class SectorViewSet(viewsets.ModelViewSet):
+class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewSet):
     queryset = Sector.objects.all()
+    serializer_class = SectorSerializer
+    list_serializer_class = SectorListSerializer
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
@@ -111,22 +111,25 @@ class SectorViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter out sectors from secret areas and secret sectors"""
         queryset = super().get_queryset()
-        queryset = queryset.filter(area__is_secret=False, is_secret=False)
+        queryset = queryset.filter(
+            area__is_secret=False, is_secret=False
+        ).select_related("area")
         return queryset
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return SectorListSerializer
-        return SectorSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
         """Get all problems for a specific sector"""
         sector = self.get_object()
-        problems = sector.problems.all()
+        # Optimize queryset to avoid N+1 queries
+        problems = (
+            sector.problems.filter(area__is_secret=False)
+            .select_related("area", "sector", "wall", "author", "created_by")
+            .prefetch_related("ticks")
+            .annotate(
+                tick_count_annotated=Count("ticks", distinct=True),
+                avg_rating_annotated=Avg("ticks__rating"),
+            )
+        )
         serializer = BoulderProblemListSerializer(problems, many=True)
         return Response(serializer.data)
 
@@ -139,7 +142,7 @@ class SectorViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class WallViewSet(viewsets.ModelViewSet):
+class WallViewSet(CreatedByMixin, viewsets.ModelViewSet):
     queryset = Wall.objects.all()
     serializer_class = WallSerializer
     filter_backends = [
@@ -155,22 +158,30 @@ class WallViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter out walls from secret areas"""
         queryset = super().get_queryset()
-        queryset = queryset.filter(sector__area__is_secret=False)
+        queryset = queryset.filter(sector__area__is_secret=False).select_related(
+            "sector"
+        )
         return queryset
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
         """Get all problems for a specific wall"""
         wall = self.get_object()
-        problems = wall.problems.all()
+        # Optimize queryset to avoid N+1 queries
+        problems = (
+            wall.problems.filter(area__is_secret=False)
+            .select_related("area", "sector", "wall", "author", "created_by")
+            .prefetch_related("ticks")
+            .annotate(
+                tick_count_annotated=Count("ticks", distinct=True),
+                avg_rating_annotated=Avg("ticks__rating"),
+            )
+        )
         serializer = BoulderProblemListSerializer(problems, many=True)
         return Response(serializer.data)
 
 
-class BoulderProblemViewSet(viewsets.ModelViewSet):
+class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
     queryset = BoulderProblem.objects.all()
     filter_backends = [
         DjangoFilterBackend,
@@ -211,9 +222,6 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return BoulderProblemListSerializer
         return BoulderProblemSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["get"])
     def statistics(self, request, pk=None):
@@ -270,7 +278,7 @@ class BoulderProblemViewSet(viewsets.ModelViewSet):
         )
 
 
-class BoulderImageViewSet(viewsets.ModelViewSet):
+class BoulderImageViewSet(CreatedByMixin, viewsets.ModelViewSet):
     queryset = BoulderImage.objects.all()
     serializer_class = BoulderImageSerializer
     filter_backends = [DjangoFilterBackend]

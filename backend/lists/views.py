@@ -26,7 +26,18 @@ class TickViewSet(viewsets.ModelViewSet):
     filter_backends = []
 
     def get_queryset(self):
-        return Tick.objects.filter(user=self.request.user)
+        # Optimize queryset to avoid N+1 queries
+        return (
+            Tick.objects.filter(user=self.request.user)
+            .select_related(
+                "user",
+                "user__profile",
+                "problem",
+                "problem__area",
+                "problem__area__city",
+            )
+            .prefetch_related("problem__sector", "problem__wall")
+        )
 
     def get_permissions(self):
         """
@@ -150,7 +161,7 @@ class TickViewSet(viewsets.ModelViewSet):
         thirty_days_ago = datetime.now() - timedelta(days=30)
         recent_ticks = Tick.objects.filter(created_at__gte=thirty_days_ago).count()
 
-        # Most ticked problem
+        # Most ticked problem - optimized to avoid N+1 query
         most_ticked = (
             Tick.objects.values("problem")
             .annotate(tick_count=Count("id"))
@@ -161,12 +172,18 @@ class TickViewSet(viewsets.ModelViewSet):
         most_ticked_problem = None
         if most_ticked:
             try:
-                problem = BoulderProblem.objects.get(id=most_ticked["problem"])
-                most_ticked_problem = {
-                    "name": problem.name,
-                    "grade": problem.grade,
-                    "tick_count": most_ticked["tick_count"],
-                }
+                # Use select_related to avoid separate query
+                problem = (
+                    BoulderProblem.objects.select_related("area")
+                    .filter(id=most_ticked["problem"])
+                    .first()
+                )
+                if problem:
+                    most_ticked_problem = {
+                        "name": problem.name,
+                        "grade": problem.grade,
+                        "tick_count": most_ticked["tick_count"],
+                    }
             except BoulderProblem.DoesNotExist:
                 pass
 

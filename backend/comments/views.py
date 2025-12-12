@@ -18,7 +18,9 @@ class CommentViewSet(viewsets.ModelViewSet):
         return CommentSerializer
 
     def get_queryset(self):
-        queryset = Comment.objects.all()
+        queryset = super().get_queryset()
+        # Optimize queryset to avoid N+1 queries
+        queryset = queryset.select_related("user", "problem")
         problem_id = self.request.query_params.get("problem", None)
         if problem_id:
             queryset = queryset.filter(problem_id=problem_id)
