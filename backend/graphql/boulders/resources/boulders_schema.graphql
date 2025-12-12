@@ -1,0 +1,14 @@
+    
+type Query {
+    problem(id: ID!): BoulderProblem
+    area(id: ID!): Area
+    sector(id: ID!): Sector
+    problems(areaId: ID, sectorId: ID, wallId: ID, search: String): [BoulderProblem!]!
+    areas(cityId: ID): [Area!]!
+    sectors(areaId: ID): [Sector!]!
+}
+
+schema {
+    query: Query
+}
+

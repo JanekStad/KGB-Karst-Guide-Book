@@ -6,6 +6,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from graphql.views import TokenGraphQLView
+from graphql.schema import schema
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -14,6 +16,12 @@ urlpatterns = [
     path("api/", include("users.urls")),
     path("api/", include("comments.urls")),
     path("api/", include("lists.urls")),
+    # GraphQL endpoint
+    path(
+        "graphql/",
+        TokenGraphQLView.as_view(schema=schema, introspection=True),
+        name="graphql",
+    ),
 ]
 
 if settings.DEBUG:

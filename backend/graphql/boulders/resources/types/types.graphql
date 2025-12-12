@@ -1,0 +1,58 @@
+
+type City {
+    id: ID!
+    name: String!
+    description: String
+}
+
+type Area {
+    id: ID!
+    name: String!
+    description: String
+    city: City
+    problemCount: Int
+}
+
+type Sector {
+    id: ID!
+    name: String!
+    description: String
+    area: Area
+    latitude: Float
+    longitude: Float
+    problemCount: Int
+}
+
+type Wall {
+    id: ID!
+    name: String!
+    description: String
+    sector: Sector
+    problemCount: Int
+}
+
+type BoulderProblem {
+    id: ID!
+    name: String!
+    grade: String
+    description: String
+    area: Area!
+    sector: Sector
+    wall: Wall
+    rating: Float
+    author: User
+    statistics: ProblemStatistics
+    comments: [Comment!]!
+    ticks: [Tick!]!
+    tickCount: Int
+    avgRating: Float
+}
+
+type ProblemStatistics {
+    totalTicks: Int!
+    heightDistribution: JSONString
+    gradeVoting: JSONString
+    heightDataCount: Int
+    gradeVotesCount: Int
+}
+
