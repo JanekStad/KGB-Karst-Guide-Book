@@ -1,8 +1,10 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { ApolloProvider } from '@apollo/client';
 import './App.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import { AuthProvider } from './contexts/AuthContext';
+import { apolloClient } from './services/graphql';
 import AddCrag from './pages/AddCrag';
 import AddProblem from './pages/AddProblem';
 import CragDetail from './pages/CragDetail';
@@ -23,8 +25,9 @@ function App() {
   
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Router>
+      <ApolloProvider client={apolloClient}>
+        <AuthProvider>
+          <Router>
           <div className="App">
             <Header />
             <main className="main-content">
@@ -62,6 +65,7 @@ function App() {
           </div>
         </Router>
       </AuthProvider>
+      </ApolloProvider>
     </ErrorBoundary>
   );
 }
