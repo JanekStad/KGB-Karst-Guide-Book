@@ -50,7 +50,9 @@ def inspect_html(url: str):
         for table in all_tables:
             table_classes = table.get("class")
             table_classes_list: list[str] = list(table_classes) if table_classes else []
-            if table_classes_list and any("list" in str(c).lower() for c in table_classes_list):
+            if table_classes_list and any(
+                "list" in str(c).lower() for c in table_classes_list
+            ):
                 print(f"  Found table with classes: {table_classes_list}")
 
     print("\n" + "=" * 80)
@@ -69,7 +71,9 @@ def inspect_html(url: str):
         print("Structure of first table:")
         print(f"  Tag: {first_table.name}")
         first_table_classes = first_table.get("class")
-        first_classes_list: list[str] = list(first_table_classes) if first_table_classes else []
+        first_classes_list: list[str] = (
+            list(first_table_classes) if first_table_classes else []
+        )
         print(f"  Classes: {first_classes_list}")
         print(f"  Number of rows: {len(first_table.find_all('tr'))}")
         print("\n  First row structure:")
