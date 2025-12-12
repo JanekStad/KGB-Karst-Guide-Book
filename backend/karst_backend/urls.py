@@ -6,8 +6,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from graphql.views import TokenGraphQLView
-from graphql.schema import schema
+from gql.views import TokenGraphQLView
+from gql.schema import schema
 
 urlpatterns = [
     path("admin/", admin.site.urls),

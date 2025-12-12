@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     "users",
     "comments",
     "lists",
-    "graphql",
+    "gql",
 ]
 
 MIDDLEWARE = [

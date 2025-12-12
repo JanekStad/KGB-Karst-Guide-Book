@@ -1,7 +1,7 @@
 from pathlib import Path
 from ariadne import make_executable_schema, load_schema_from_path
 
-from graphql.boulders.resolvers import (
+from gql.boulders.resolvers import (
     query,
     problem,
     area,
@@ -9,9 +9,9 @@ from graphql.boulders.resolvers import (
     wall,
     city,
 )
-from graphql.comments.resolvers import comment
-from graphql.lists.resolvers import tick
-from graphql.shared.resolvers import (
+from gql.comments.resolvers import comment
+from gql.lists.resolvers import tick
+from gql.shared.resolvers import (
     datetime_scalar,
     date_scalar,
     json_scalar,

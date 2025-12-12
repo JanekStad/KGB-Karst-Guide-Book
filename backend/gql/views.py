@@ -2,7 +2,7 @@ from ariadne_django.views import GraphQLAsyncView
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from graphql import graphql
+from ariadne import graphql
 from asgiref.sync import sync_to_async
 from rest_framework.authentication import TokenAuthentication
 
