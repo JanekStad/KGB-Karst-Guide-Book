@@ -6,6 +6,8 @@ This file can be used for comments-specific fixtures if needed in the future.
 
 # Boulder-related fixtures are now in tests/conftest.py
 # Keep this file for comments-specific fixtures if needed
+import pytest
+from boulders.models import BoulderProblem
 
 
 @pytest.fixture

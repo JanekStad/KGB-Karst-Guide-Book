@@ -97,7 +97,9 @@ class UserList(models.Model):
 class ListEntry(models.Model):
     """Join table for UserList and BoulderProblem with additional metadata"""
 
-    user_list = models.ForeignKey(UserList, on_delete=models.CASCADE)
+    user_list = models.ForeignKey(
+        UserList, on_delete=models.CASCADE, related_name="listentry_set"
+    )
     problem = models.ForeignKey(BoulderProblem, on_delete=models.CASCADE)
     added_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True, max_length=500)
