@@ -246,7 +246,7 @@ if __name__ == "__main__":
             width, height = get_svg_dimensions(svg_file)
             if width is None or height is None:
                 print(
-                    f"Warning: Could not determine SVG dimensions. Using absolute coordinates."
+                    "Warning: Could not determine SVG dimensions. Using absolute coordinates."
                 )
                 coord_type = "absolute"
             else:

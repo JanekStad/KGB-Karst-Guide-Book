@@ -21,9 +21,10 @@ def inspect_html(url: str):
     print(f"\nFound {len(tables)} table(s):\n")
 
     for i, table in enumerate(tables, 1):
-        classes = table.get("class", [])
+        table_classes = table.get("class")
+        classes_list: list[str] = list(table_classes) if table_classes else []
         print(f"Table {i}:")
-        print(f"  Classes: {classes}")
+        print(f"  Classes: {classes_list}")
         print(f"  ID: {table.get('id', 'None')}")
         print(f"  First 200 chars of content: {str(table)[:200]}...")
         print()
@@ -34,7 +35,7 @@ def inspect_html(url: str):
     list_table = soup.find("table", {"class": "list"})
     if list_table:
         print("✓ Found table with class 'list'")
-        print(f"\nFirst few rows:")
+        print("\nFirst few rows:")
         rows = list_table.find_all("tr")[:5]  # First 5 rows
         for i, row in enumerate(rows, 1):
             print(f"\nRow {i}:")
@@ -47,9 +48,10 @@ def inspect_html(url: str):
         # Try partial match
         all_tables = soup.find_all("table")
         for table in all_tables:
-            classes = table.get("class", [])
-            if classes and any("list" in str(c).lower() for c in classes):
-                print(f"  Found table with classes: {classes}")
+            table_classes = table.get("class")
+            table_classes_list: list[str] = list(table_classes) if table_classes else []
+            if table_classes_list and any("list" in str(c).lower() for c in table_classes_list):
+                print(f"  Found table with classes: {table_classes_list}")
 
     print("\n" + "=" * 80)
     print("METHOD 3: Save full HTML to file for inspection")
@@ -64,11 +66,13 @@ def inspect_html(url: str):
     print("=" * 80)
     if tables:
         first_table = tables[0]
-        print(f"Structure of first table:")
+        print("Structure of first table:")
         print(f"  Tag: {first_table.name}")
-        print(f"  Classes: {first_table.get('class', [])}")
+        first_table_classes = first_table.get("class")
+        first_classes_list: list[str] = list(first_table_classes) if first_table_classes else []
+        print(f"  Classes: {first_classes_list}")
         print(f"  Number of rows: {len(first_table.find_all('tr'))}")
-        print(f"\n  First row structure:")
+        print("\n  First row structure:")
         first_row = first_table.find("tr")
         if first_row:
             cells = first_row.find_all(["td", "th"])

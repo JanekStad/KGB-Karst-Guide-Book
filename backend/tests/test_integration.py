@@ -2,9 +2,6 @@ import pytest
 from datetime import date
 from rest_framework import status
 from django.contrib.auth.models import User
-from boulders.models import City, Area, Sector, Wall, BoulderProblem
-from comments.models import Comment
-from lists.models import Tick, UserList
 
 
 @pytest.mark.django_db

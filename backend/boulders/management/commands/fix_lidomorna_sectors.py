@@ -18,12 +18,11 @@ Usage:
     python manage.py fix_lidomorna_sectors --main-wall-name "Hlavní"
 """
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.db import transaction
-from boulders.models import Area, Sector, Wall, BoulderProblem, BoulderImage
+from boulders.models import Sector, Wall, BoulderImage
 from decimal import Decimal
-import re
 
 
 class Command(BaseCommand):
@@ -163,7 +162,7 @@ class Command(BaseCommand):
             self.stdout.write("\n" + "=" * 60)
             self.stdout.write(self.style.WARNING("DRY RUN - No data will be modified"))
             self.stdout.write("=" * 60)
-            self.stdout.write(f"\nWould perform the following actions:")
+            self.stdout.write("\nWould perform the following actions:")
             self.stdout.write(
                 f"1. Use/rename sector '{target_main_sector.name}' to '{base_sector_name}'"
             )
@@ -185,7 +184,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"7. Move {main_sector.problems.count()} problems from '{main_sector.name}' to '{base_sector_name}'"
                 )
-            self.stdout.write(f"\nRun without --dry-run to perform these changes.")
+            self.stdout.write("\nRun without --dry-run to perform these changes.")
             return
 
         # Get or create user

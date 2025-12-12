@@ -226,7 +226,6 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def statistics(self, request, pk=None):
         """Get statistics for a problem: height distribution and grade voting"""
-        from django.db.models import Count, Q
         from lists.models import Tick
         from users.models import UserProfile
 

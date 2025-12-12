@@ -12,7 +12,7 @@ Usage:
     python manage.py flush_boulders --confirm  # Skip confirmation prompt
 """
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from boulders.models import (
     Area,
     Sector,

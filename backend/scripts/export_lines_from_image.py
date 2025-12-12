@@ -532,10 +532,10 @@ Examples:
             print("Sampling colors from image to suggest HSV values...")
             lower, upper = sample_line_colors(img)
             if lower is not None and upper is not None:
-                print(f"\nSuggested HSV range:")
+                print("\nSuggested HSV range:")
                 print(f"  --lower-hsv {lower[0]} {lower[1]} {lower[2]}")
                 print(f"  --upper-hsv {upper[0]} {upper[1]} {upper[2]}")
-                print(f"\nTry running with:")
+                print("\nTry running with:")
                 print(
                     f"  python scripts/export_lines_from_image.py {args.image} --lower-hsv {lower[0]} {lower[1]} {lower[2]} --upper-hsv {upper[0]} {upper[1]} {upper[2]} --debug debug.jpg"
                 )

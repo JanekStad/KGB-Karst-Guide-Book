@@ -112,7 +112,7 @@ class TestUserListViewSet:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_list_my_lists(self, authenticated_client, user):
-        user_list = UserList.objects.create(user=user, name="My List")
+        UserList.objects.create(user=user, name="My List")
 
         response = authenticated_client.get("/api/lists/")
         assert response.status_code == status.HTTP_200_OK

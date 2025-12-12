@@ -12,7 +12,7 @@ class CityAdmin(admin.ModelAdmin):
     def area_count(self, obj):
         return obj.area_count
 
-    area_count.short_description = "Areas"
+    area_count.short_description = "Areas"  # type: ignore[attr-defined]
 
 
 @admin.register(Area)
@@ -113,7 +113,7 @@ class BoulderImageAdmin(admin.ModelAdmin):
         count = obj.problem_lines.count()
         return f"{count} problem{'s' if count != 1 else ''}"
 
-    problem_count.short_description = "Problems"
+    problem_count.short_description = "Problems"  # type: ignore[attr-defined]
 
 
 @admin.register(ProblemLine)

@@ -151,7 +151,7 @@ class Command(BaseCommand):
         # Process each problem
         for problem_name, coordinates in data.items():
             if not problem_name or not problem_name.strip():
-                self.stdout.write(self.style.WARNING(f"Skipping empty problem name"))
+                self.stdout.write(self.style.WARNING("Skipping empty problem name"))
                 continue
 
             problem_name = problem_name.strip()

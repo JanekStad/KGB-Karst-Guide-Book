@@ -21,9 +21,8 @@ Usage:
 import re
 import time
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from boulders.models import BoulderProblem
 import requests

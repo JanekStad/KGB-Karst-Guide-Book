@@ -12,10 +12,10 @@ Usage:
     python manage.py merge_secret_crags --dry-run
 """
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.db import transaction
-from boulders.models import Area, Sector, BoulderProblem, Wall
+from boulders.models import Area, Sector
 from decimal import Decimal
 
 

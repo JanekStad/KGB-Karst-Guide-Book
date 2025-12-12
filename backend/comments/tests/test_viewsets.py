@@ -9,7 +9,7 @@ from django.utils import timezone
 class TestCommentViewSet:
 
     def test_list_comments(self, api_client, user, boulder_problem):
-        comment = Comment.objects.create(
+        Comment.objects.create(
             problem=boulder_problem, user=user, content="Test comment"
         )
 
@@ -22,7 +22,7 @@ class TestCommentViewSet:
         comment1 = Comment.objects.create(
             problem=multiple_problems[0], user=user, content="Comment 1"
         )
-        comment2 = Comment.objects.create(
+        Comment.objects.create(
             problem=multiple_problems[1], user=user, content="Comment 2"
         )
 

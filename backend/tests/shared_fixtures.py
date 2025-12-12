@@ -7,7 +7,6 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework.authtoken.models import Token
-from users.models import UserProfile
 from boulders.models import City, Area, Sector, Wall, BoulderProblem
 
 

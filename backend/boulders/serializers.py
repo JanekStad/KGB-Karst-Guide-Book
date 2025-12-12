@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
 
 
@@ -105,7 +104,7 @@ class BoulderImageSerializer(serializers.ModelSerializer):
             if not image_url.startswith("/"):
                 image_url = "/" + image_url
             return f"{base_url}{image_url}"
-        except (ValueError, AttributeError) as e:
+        except (ValueError, AttributeError):
             # If image field is empty or invalid, return None
             return None
 

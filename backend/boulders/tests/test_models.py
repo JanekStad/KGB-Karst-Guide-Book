@@ -1,7 +1,7 @@
 import pytest
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
-from boulders.models import City, Area, Sector, Wall, BoulderProblem
+from boulders.models import Area, Sector, Wall, BoulderProblem
 
 
 @pytest.mark.django_db
@@ -51,7 +51,7 @@ class TestSector:
             longitude=16.654321,
         )
 
-        with pytest.raises(IntegrityError) as exc_info:
+        with pytest.raises(IntegrityError):
             Sector.objects.create(
                 area=area,
                 name="Duplicate Sector",

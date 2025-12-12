@@ -1,7 +1,6 @@
 import pytest
-from django.contrib.auth.models import User
 from rest_framework import status
-from boulders.models import City, Area, Sector, Wall, BoulderProblem
+from boulders.models import Sector, Wall, BoulderProblem
 
 
 @pytest.mark.django_db

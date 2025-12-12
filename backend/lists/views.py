@@ -1,9 +1,10 @@
+from typing import Any
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.db.models import Count, Avg, Min, Max, Q
-from django.db.models.functions import ExtractYear, ExtractMonth
+from django.db.models import Count, Min, Max
 from collections import Counter
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
@@ -23,7 +24,7 @@ from .services import import_lezec_diary
 class TickViewSet(viewsets.ModelViewSet):
     serializer_class = TickSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = []
+    filter_backends: list[Any] = []
 
     def get_queryset(self):
         # Optimize queryset to avoid N+1 queries

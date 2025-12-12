@@ -13,8 +13,6 @@ Usage:
     python manage.py import_lezec_diary --username Lucaa --user-id 1 --dry-run
 """
 
-import json
-import time
 from datetime import datetime
 from urllib.parse import urljoin, urlparse, parse_qs
 
@@ -58,7 +56,6 @@ class Command(BaseCommand):
         lezec_username = options["username"]
         user_id = options["user_id"]
         dry_run = options.get("dry_run", False)
-        delay = options.get("delay", 1.0)
 
         # Get Django user
         try:
@@ -186,13 +183,6 @@ class Command(BaseCommand):
                 # SQLite doesn't support contains lookup for JSONField
                 # So we'll iterate through boulders and check their external_links
                 # But we can filter by area first to make it faster
-                lezec_url = f"https://www.lezec.cz/cesta.php?key={boulder_id}"
-                url_variations = [
-                    lezec_url,
-                    f"http://www.lezec.cz/cesta.php?key={boulder_id}",
-                    f"cesta.php?key={boulder_id}",
-                ]
-
                 # Get Moravský Kras areas first to narrow down search
                 moravsky_kras_areas = Area.objects.filter(
                     name__icontains="Moravský"

@@ -2,8 +2,6 @@
 Base mixins for boulders app viewsets.
 """
 
-from rest_framework import mixins
-
 
 class CreatedByMixin:
     """Mixin that sets created_by to current user on create"""

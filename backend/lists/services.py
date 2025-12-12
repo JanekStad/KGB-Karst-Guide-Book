@@ -2,7 +2,6 @@
 Service functions for lists app.
 """
 
-import time
 from datetime import datetime
 from urllib.parse import urljoin, urlparse, parse_qs
 
@@ -254,13 +253,6 @@ def import_lezec_diary(user, lezec_username):
 
         # Strategy 1: Try by external link (lezec.cz ID) - fastest method
         if boulder_id:
-            lezec_url = f"https://www.lezec.cz/cesta.php?key={boulder_id}"
-            url_variations = [
-                lezec_url,
-                f"http://www.lezec.cz/cesta.php?key={boulder_id}",
-                f"cesta.php?key={boulder_id}",
-            ]
-
             # Get Moravský Kras areas first to narrow down search
             moravsky_kras_areas = Area.objects.filter(
                 name__icontains="Moravský"
@@ -344,7 +336,7 @@ def import_lezec_diary(user, lezec_username):
                 notes=notes,
             )
             stats["created"] += 1
-        except Exception as e:
+        except Exception:
             stats["errors"] += 1
 
     return {

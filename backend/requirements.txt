@@ -22,4 +22,12 @@ pytest>=7.4.0
 pytest-django>=4.7.0
 pytest-cov>=4.1.0
 factory-boy>=3.3.0
-
+# Linting + import cleanup + unused code checks
+ruff==0.6.8
+# Type checking
+mypy==1.11.2
+django-stubs==5.0.1
+# Security
+bandit==1.7.9
+# Dependency vulnerability scanning
+pip-audit==2.7.3

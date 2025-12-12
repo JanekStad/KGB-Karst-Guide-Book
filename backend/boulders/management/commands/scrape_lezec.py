@@ -35,7 +35,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from boulders.models import Area, Sector, Wall, BoulderProblem
+from boulders.models import Area, Sector, BoulderProblem
 import requests
 from bs4 import BeautifulSoup
 
@@ -70,14 +70,13 @@ class Command(BaseCommand):
                 return None
 
         # First, try to fix common encoding patterns (this might fix issues)
-        original_text = text
         text = self._try_fix_encoding(text)
 
         # Check if text can be properly encoded to UTF-8
         # This is the real test - if we can't encode it, it's corrupted
         try:
             text.encode("utf-8", errors="strict")
-        except UnicodeEncodeError as e:
+        except UnicodeEncodeError:
             self.stdout.write(
                 self.style.ERROR(
                     f"  ❌ {field_name}: Cannot encode to UTF-8, skipping: {repr(text[:50])}"
@@ -897,8 +896,6 @@ class Command(BaseCommand):
 
         Returns statistics about the import.
         """
-        from boulders.models import Area, Sector, Wall
-        from boulders.utils import normalize_problem_name
 
         stats = {
             "areas_created": 0,
@@ -1038,7 +1035,7 @@ class Command(BaseCommand):
                 defaults={
                     "latitude": default_lat,
                     "longitude": default_lon,
-                    "description": f"Imported from lezec.cz",
+                    "description": "Imported from lezec.cz",
                     "created_by": user,
                 },
             )
@@ -1100,7 +1097,7 @@ class Command(BaseCommand):
                         description = self._validate_and_clean_string(
                             description, "problem_description"
                         )
-                    problem = BoulderProblem.objects.create(
+                    BoulderProblem.objects.create(
                         area=area_obj,
                         sector=sector_obj,
                         wall=wall_obj,
