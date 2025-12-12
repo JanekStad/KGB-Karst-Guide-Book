@@ -1,7 +1,5 @@
 import pytest
 
-pytest_plugins = ["tests.shared_fixtures"]
-
 from boulders.models import City, Area, Sector, Wall, BoulderProblem
 
 

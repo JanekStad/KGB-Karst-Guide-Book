@@ -57,6 +57,7 @@ class TestTickCreationFlow:
             },
         )
         assert tick_response.status_code == status.HTTP_201_CREATED
+        print("RESPONSE DATA: ", tick_response.data)
         tick_id = tick_response.data["id"]
 
         # View own ticks
@@ -183,7 +184,7 @@ class TestListManagementFlow:
             {"problem": multiple_problems[0].id},
             format="json",
         )
-        assert remove_response.status_code == status.HTTP_200_OK
+        assert remove_response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify problem was removed
         view_response = authenticated_client.get(f"/api/lists/{list_id}/")

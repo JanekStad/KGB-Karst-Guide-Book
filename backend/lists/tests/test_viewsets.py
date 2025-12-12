@@ -32,7 +32,7 @@ class TestTickViewSet:
             },
         )
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["problem"] == boulder_problem.id
+        assert response.data["problem"]["id"] == boulder_problem.pk
         assert response.data["notes"] == "Great problem!"
         assert float(response.data["rating"]) == 4.5
 

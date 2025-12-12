@@ -41,6 +41,16 @@ class TickViewSet(viewsets.ModelViewSet):
             return TickCreateSerializer
         return TickSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        response_serializer = TickSerializer(serializer.instance)
+        return Response(
+            response_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
