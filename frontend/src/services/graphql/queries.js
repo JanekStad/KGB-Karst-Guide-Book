@@ -181,3 +181,87 @@ export const GET_SECTORS = gql`
   }
 `;
 
+/**
+ * Mutations
+ */
+
+/**
+ * Create a new tick
+ */
+export const CREATE_TICK = gql`
+  mutation CreateTick($input: CreateTickInput!) {
+    createTick(input: $input) {
+      id
+      date
+      notes
+      tickGrade
+      suggestedGrade
+      rating
+      user {
+        id
+        username
+      }
+      problem {
+        id
+        name
+      }
+    }
+  }
+`;
+
+/**
+ * Update an existing tick
+ */
+export const UPDATE_TICK = gql`
+  mutation UpdateTick($id: ID!, $input: UpdateTickInput!) {
+    updateTick(id: $id, input: $input) {
+      id
+      date
+      notes
+      tickGrade
+      suggestedGrade
+      rating
+      user {
+        id
+        username
+      }
+      problem {
+        id
+        name
+      }
+    }
+  }
+`;
+
+/**
+ * Delete a tick
+ */
+export const DELETE_TICK = gql`
+  mutation DeleteTick($id: ID!) {
+    deleteTick(id: $id)
+  }
+`;
+
+/**
+ * Create a new comment
+ */
+export const CREATE_COMMENT = gql`
+  mutation CreateComment($input: CreateCommentInput!) {
+    createComment(input: $input) {
+      id
+      content
+      created_at
+      updated_at
+      edited
+      user {
+        id
+        username
+      }
+      problem {
+        id
+        name
+      }
+    }
+  }
+`;
+

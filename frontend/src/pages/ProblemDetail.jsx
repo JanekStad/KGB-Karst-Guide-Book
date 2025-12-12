@@ -1,11 +1,17 @@
-import { useQuery } from '@apollo/client/react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
-import { commentsAPI, problemsAPI, ticksAPI } from '../services/api';
-import { GET_PROBLEM_DETAIL } from '../services/graphql/queries';
+import { problemsAPI, ticksAPI } from '../services/api';
+import {
+  CREATE_COMMENT,
+  CREATE_TICK,
+  DELETE_TICK,
+  GET_PROBLEM_DETAIL,
+  UPDATE_TICK
+} from '../services/graphql/queries';
 import './ProblemDetail.css';
 
 const ProblemDetail = () => {
@@ -39,6 +45,23 @@ const ProblemDetail = () => {
       skip: !id,
     }
   );
+
+  // GraphQL mutations
+  const [createTickMutation] = useMutation(CREATE_TICK, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [updateTickMutation] = useMutation(UPDATE_TICK, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [deleteTickMutation] = useMutation(DELETE_TICK, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [createCommentMutation] = useMutation(CREATE_COMMENT, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
 
   // Extract data from GraphQL response
   const problemData = data?.problem;
@@ -193,36 +216,44 @@ const ProblemDetail = () => {
 
     try {
       if (isTicked && currentTick) {
-        // Update existing tick - don't send problem field
-        const payload = {
-          date: tickFormData.date,
-          notes: tickFormData.notes,
-          tick_grade: tickFormData.tick_grade || null,
-          suggested_grade: tickFormData.suggested_grade || null,
-        };
-        if (tickFormData.rating) {
-          payload.rating = parseFloat(tickFormData.rating);
+        // Update existing tick using GraphQL mutation
+        const input = {};
+        if (tickFormData.date) input.date = tickFormData.date;
+        if (tickFormData.notes !== undefined) input.notes = tickFormData.notes || '';
+        if (tickFormData.tick_grade !== undefined) input.tickGrade = tickFormData.tick_grade || null;
+        if (tickFormData.suggested_grade !== undefined) input.suggestedGrade = tickFormData.suggested_grade || null;
+        if (tickFormData.rating !== undefined && tickFormData.rating !== null) {
+          input.rating = parseFloat(tickFormData.rating);
         }
-        await ticksAPI.patch(currentTick.id, payload);
-        console.log('✅ Tick updated');
+
+        await updateTickMutation({
+          variables: {
+            id: currentTick.id,
+            input,
+          },
+        });
+        console.log('✅ Tick updated via GraphQL');
       } else {
-        // Create new tick
-        const payload = {
-          problem: parseInt(id),
+        // Create new tick using GraphQL mutation
+        const input = {
+          problemId: id,
           date: tickFormData.date,
-          notes: tickFormData.notes,
+          notes: tickFormData.notes || '',
         };
         if (tickFormData.tick_grade) {
-          payload.tick_grade = tickFormData.tick_grade;
+          input.tickGrade = tickFormData.tick_grade;
         }
         if (tickFormData.suggested_grade) {
-          payload.suggested_grade = tickFormData.suggested_grade;
+          input.suggestedGrade = tickFormData.suggested_grade;
         }
         if (tickFormData.rating) {
-          payload.rating = parseFloat(tickFormData.rating);
+          input.rating = parseFloat(tickFormData.rating);
         }
-        await ticksAPI.create(payload);
-        console.log('✅ Tick created');
+
+        await createTickMutation({
+          variables: { input },
+        });
+        console.log('✅ Tick created via GraphQL');
       }
       
       setShowTickModal(false);
@@ -234,11 +265,11 @@ const ProblemDetail = () => {
         rating: null,
       });
       await checkTick();
-      // Refetch GraphQL query to get updated data
-      refetch();
+      // GraphQL mutation will automatically refetch via refetchQueries
     } catch (err) {
       console.error('❌ Failed to save tick:', err);
-      alert(`Failed to ${isTicked ? 'update' : 'create'} tick. Please try again.`);
+      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to save tick';
+      alert(`Failed to ${isTicked ? 'update' : 'create'} tick: ${errorMessage}`);
     }
   };
 
@@ -253,16 +284,21 @@ const ProblemDetail = () => {
 
     try {
       setSubmitting(true);
-      await commentsAPI.create({
-        problem: parseInt(id),
-        content: newComment,
+      await createCommentMutation({
+        variables: {
+          input: {
+            problemId: id,
+            content: newComment.trim(),
+          },
+        },
       });
       setNewComment('');
-      // Refetch GraphQL query to get updated comments
-      refetch();
+      console.log('✅ Comment created via GraphQL');
+      // GraphQL mutation will automatically refetch via refetchQueries
     } catch (err) {
       console.error('Failed to submit comment:', err);
-      alert('Failed to submit comment. Please try again.');
+      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to submit comment';
+      alert(`Failed to submit comment: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -767,14 +803,17 @@ const ProblemDetail = () => {
                     onClick={async () => {
                       if (window.confirm('Are you sure you want to delete this tick?')) {
                         try {
-                          await ticksAPI.delete(currentTick.id);
+                          await deleteTickMutation({
+                            variables: { id: currentTick.id },
+                          });
                           setShowTickModal(false);
                           await checkTick();
-                          // Refetch GraphQL query to get updated data
-                          refetch();
+                          console.log('✅ Tick deleted via GraphQL');
+                          // GraphQL mutation will automatically refetch via refetchQueries
                         } catch (err) {
                           console.error('❌ Failed to delete tick:', err);
-                          alert('Failed to delete tick. Please try again.');
+                          const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to delete tick';
+                          alert(`Failed to delete tick: ${errorMessage}`);
                         }
                       }
                     }}

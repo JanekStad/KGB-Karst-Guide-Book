@@ -1,0 +1,19 @@
+"""Input types for tick mutations"""
+
+input CreateTickInput {
+    problemId: ID!
+    date: Date!
+    notes: String
+    tickGrade: String
+    suggestedGrade: String
+    rating: Float
+}
+
+input UpdateTickInput {
+    date: Date
+    notes: String
+    tickGrade: String
+    suggestedGrade: String
+    rating: Float
+}
+

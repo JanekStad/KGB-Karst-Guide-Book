@@ -8,7 +8,15 @@ type Query {
     sectors(areaId: ID): [Sector!]!
 }
 
+type Mutation {
+    createTick(input: CreateTickInput!): Tick!
+    updateTick(id: ID!, input: UpdateTickInput!): Tick!
+    deleteTick(id: ID!): Boolean!
+    createComment(input: CreateCommentInput!): Comment!
+}
+
 schema {
     query: Query
+    mutation: Mutation
 }
 
