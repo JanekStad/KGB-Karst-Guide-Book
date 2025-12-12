@@ -1,3 +1,8 @@
+"""
+Top-level conftest.py for shared boulder-related fixtures.
+These fixtures are available to all tests across all apps.
+"""
+
 import pytest
 
 from boulders.models import City, Area, Sector, Wall, BoulderProblem
@@ -5,6 +10,7 @@ from boulders.models import City, Area, Sector, Wall, BoulderProblem
 
 @pytest.fixture
 def city(db):
+    """Create a test city"""
     return City.objects.create(
         name="Test City",
         description="A test city",
@@ -13,6 +19,7 @@ def city(db):
 
 @pytest.fixture
 def area(db, city):
+    """Create a test area"""
     return Area.objects.create(
         city=city,
         name="Test Area",
@@ -22,7 +29,19 @@ def area(db, city):
 
 
 @pytest.fixture
+def secret_area(db, city):
+    """Create a secret test area"""
+    return Area.objects.create(
+        city=city,
+        name="Secret Area",
+        description="A secret area",
+        is_secret=True,
+    )
+
+
+@pytest.fixture
 def sector(db, area):
+    """Create a test sector"""
     return Sector.objects.create(
         area=area,
         name="Test Sector",
@@ -35,6 +54,7 @@ def sector(db, area):
 
 @pytest.fixture
 def wall(db, sector):
+    """Create a test wall"""
     return Wall.objects.create(
         sector=sector,
         name="Test Wall",
@@ -44,6 +64,7 @@ def wall(db, sector):
 
 @pytest.fixture
 def boulder_problem(db, area, sector, wall, user):
+    """Create a test boulder problem"""
     return BoulderProblem.objects.create(
         area=area,
         sector=sector,
@@ -57,6 +78,7 @@ def boulder_problem(db, area, sector, wall, user):
 
 @pytest.fixture
 def multiple_problems(db, area, sector, wall, user):
+    """Create multiple test problems"""
     problems = []
     grades = ["6A", "6B", "7A", "7B", "8A"]
     for i, grade in enumerate(grades):
