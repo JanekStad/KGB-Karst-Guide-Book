@@ -1,6 +1,6 @@
+import { useQuery } from '@apollo/client/react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
 import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';

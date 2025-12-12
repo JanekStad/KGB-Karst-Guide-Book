@@ -1,10 +1,9 @@
+import { ApolloProvider } from '@apollo/client/react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import { ApolloProvider } from '@apollo/client';
 import './App.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import { AuthProvider } from './contexts/AuthContext';
-import { apolloClient } from './services/graphql';
 import AddCrag from './pages/AddCrag';
 import AddProblem from './pages/AddProblem';
 import CragDetail from './pages/CragDetail';
@@ -19,6 +18,7 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import SectorDetail from './pages/SectorDetail';
 import UserDiary from './pages/UserDiary';
+import { apolloClient } from './services/graphql';
 
 function App() {
   console.log('🎯 App component rendering');

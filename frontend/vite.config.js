@@ -14,5 +14,14 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ['@apollo/client', '@apollo/client/react'],
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  resolve: {
+    dedupe: ['@apollo/client'],
+  },
 })
 
