@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
@@ -54,12 +54,10 @@ const CragDetail = () => {
     return 'grade-badge-default';
   };
 
-  useEffect(() => {
-    fetchArea();
-    fetchProblems();
-  }, [id]);
-
-  const fetchArea = async () => {
+  // Memoize fetch functions to prevent unnecessary re-creations
+  const fetchArea = useCallback(async () => {
+    if (!id) return;
+    
     try {
       console.log('📡 Fetching area details for ID:', id);
       setLoading(true);
@@ -83,9 +81,11 @@ const CragDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchProblems = async () => {
+  const fetchProblems = useCallback(async () => {
+    if (!id) return;
+    
     try {
       console.log('📡 Fetching problems for area ID:', id);
       const response = await areasAPI.getProblems(id);
@@ -93,13 +93,29 @@ const CragDetail = () => {
       const fetchedProblems = response.data.results || response.data;
       setAllProblems(fetchedProblems);
       updateAvailableGrades(fetchedProblems);
-      filterProblems(fetchedProblems, selectedGrade, selectedSector);
+      // filterProblems will be called by the useEffect that watches selectedGrade/selectedSector
     } catch (err) {
       console.error('❌ Failed to fetch problems:', err);
     }
-  };
+  }, [id]);
 
-  const fetchTicks = async () => {
+  // Use ref to track if fetch is in progress to prevent duplicates
+  const fetchingRef = useRef(false);
+
+  useEffect(() => {
+    // Prevent duplicate fetches
+    if (fetchingRef.current) return;
+    
+    fetchingRef.current = true;
+    fetchArea();
+    fetchProblems();
+    
+    return () => {
+      fetchingRef.current = false;
+    };
+  }, [id, fetchArea, fetchProblems]);
+
+  const fetchTicks = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       const response = await ticksAPI.list();
@@ -116,7 +132,7 @@ const CragDetail = () => {
     } catch (err) {
       console.error('❌ Failed to fetch ticks:', err);
     }
-  };
+  }, [isAuthenticated]);
 
   const handleTickClick = (problem, e) => {
     e.preventDefault();
@@ -271,13 +287,21 @@ const CragDetail = () => {
     }
   }, [selectedGrade, selectedSector, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Use ref to prevent duplicate tick fetches
+  const fetchingTicksRef = useRef(false);
+
   useEffect(() => {
+    if (fetchingTicksRef.current) return;
+    
     if (isAuthenticated) {
-      fetchTicks();
+      fetchingTicksRef.current = true;
+      fetchTicks().finally(() => {
+        fetchingTicksRef.current = false;
+      });
     } else {
       setTicks({});
     }
-  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, fetchTicks]);
 
   // Close grade dropdown when clicking outside
   useEffect(() => {
