@@ -227,52 +227,28 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
     def statistics(self, request, pk=None):
         """Get statistics for a problem: height distribution and grade voting"""
         from lists.models import Tick
-        from users.models import UserProfile
+        from lists.services import calculate_problem_statistics
 
         problem = self.get_object()
         ticks = Tick.objects.filter(problem=problem).select_related("user__profile")
 
-        # Height distribution
-        height_stats = {}
-        for height_choice in UserProfile.HEIGHT_CHOICES:
-            height_value = height_choice[0]
-            count = ticks.filter(user__profile__height=height_value).count()
-            if count > 0:
-                height_stats[height_value] = {"label": height_choice[1], "count": count}
-
-        # Grade voting distribution
-        grade_stats = {}
-        for grade_choice in Tick.GRADE_CHOICES:
-            grade_value = grade_choice[0]
-            count = (
-                ticks.filter(suggested_grade=grade_value)
-                .exclude(suggested_grade__isnull=True)
-                .exclude(suggested_grade="")
-                .count()
-            )
-            if count > 0:
-                grade_stats[grade_value] = {"label": grade_choice[1], "count": count}
-
-        # Total ticks count
-        total_ticks = ticks.count()
-        ticks_with_height = (
-            ticks.filter(user__profile__height__isnull=False)
-            .exclude(user__profile__height="")
-            .count()
-        )
-        ticks_with_grade_vote = (
-            ticks.exclude(suggested_grade__isnull=True)
-            .exclude(suggested_grade="")
-            .count()
+        # Convert queryset to list of dictionaries for service function
+        ticks_data = ticks.values(
+            "user__profile__height",
+            "suggested_grade",
         )
 
+        # Calculate statistics using service function
+        stats = calculate_problem_statistics(list(ticks_data))
+
+        # Convert to REST API format (snake_case)
         return Response(
             {
-                "total_ticks": total_ticks,
-                "height_distribution": height_stats,
-                "height_data_count": ticks_with_height,
-                "grade_voting": grade_stats,
-                "grade_votes_count": ticks_with_grade_vote,
+                "total_ticks": stats["totalTicks"],
+                "height_distribution": stats["heightDistribution"],
+                "height_data_count": stats["heightDataCount"],
+                "grade_voting": stats["gradeVoting"],
+                "grade_votes_count": stats["gradeVotesCount"],
             }
         )
 

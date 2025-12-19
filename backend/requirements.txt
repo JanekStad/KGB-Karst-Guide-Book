@@ -36,3 +36,5 @@ django-stubs==5.0.1
 bandit==1.7.9
 # Dependency vulnerability scanning
 pip-audit==2.7.3
+# DataLoader for GraphQL
+aiodataloader>=0.4.3

@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from ariadne import graphql
 from asgiref.sync import sync_to_async
 from rest_framework.authentication import TokenAuthentication
+from .dataloaders import get_dataloaders
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -28,9 +29,14 @@ class TokenGraphQLView(GraphQLAsyncView):
                 context = {}
             context["user"] = request.user
             context["request"] = request
+            # Initialize DataLoaders for this request
+            get_dataloaders(context)
             kwargs_graphql["context_value"] = context
         else:
-            kwargs_graphql["context_value"] = {"request": request, "user": request.user}
+            context = {"request": request, "user": request.user}
+            # Initialize DataLoaders for this request
+            get_dataloaders(context)
+            kwargs_graphql["context_value"] = context
 
         # Execute GraphQL query
         data = self.extract_data_from_request(request)

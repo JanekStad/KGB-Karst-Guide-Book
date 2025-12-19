@@ -3,12 +3,14 @@ Service functions for lists app.
 """
 
 from datetime import datetime
+from typing import Dict, List, Any
 from urllib.parse import urljoin, urlparse, parse_qs
 
 import requests
 from bs4 import BeautifulSoup
 
 from boulders.models import BoulderProblem, Area
+from users.models import UserProfile
 from .models import Tick
 
 
@@ -437,3 +439,108 @@ def _extract_ticks_from_diary(soup, base_url):
         ticks.append(tick_data)
 
     return ticks
+
+
+def calculate_height_distribution(
+    ticks: List[Dict[str, Any]]
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Calculate height distribution statistics from a list of tick dictionaries.
+    
+    Args:
+        ticks: List of tick dictionaries with 'user__profile__height' key
+        
+    Returns:
+        Dictionary mapping height values to {label, count} dictionaries
+    """
+    height_stats = {}
+    for height_choice in UserProfile.HEIGHT_CHOICES:
+        height_value = height_choice[0]
+        count = sum(
+            1
+            for tick in ticks
+            if tick.get("user__profile__height") == height_value
+        )
+        if count > 0:
+            height_stats[height_value] = {
+                "label": height_choice[1],
+                "count": count,
+            }
+    return height_stats
+
+
+def calculate_grade_voting_distribution(
+    ticks: List[Dict[str, Any]]
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Calculate grade voting distribution statistics from a list of tick dictionaries.
+    
+    Args:
+        ticks: List of tick dictionaries with 'suggested_grade' key
+        
+    Returns:
+        Dictionary mapping grade values to {label, count} dictionaries
+    """
+    grade_stats = {}
+    for grade_choice in Tick.GRADE_CHOICES:
+        grade_value = grade_choice[0]
+        count = sum(
+            1
+            for tick in ticks
+            if tick.get("suggested_grade") == grade_value
+            and tick.get("suggested_grade") is not None
+            and tick.get("suggested_grade") != ""
+        )
+        if count > 0:
+            grade_stats[grade_value] = {
+                "label": grade_choice[1],
+                "count": count,
+            }
+    return grade_stats
+
+
+def calculate_problem_statistics(
+    ticks: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Calculate all statistics for a boulder problem from a list of tick dictionaries.
+    
+    Args:
+        ticks: List of tick dictionaries with keys:
+            - 'user__profile__height' (optional)
+            - 'suggested_grade' (optional)
+            
+    Returns:
+        Dictionary with statistics:
+            - totalTicks: Total number of ticks
+            - heightDistribution: Height distribution dict
+            - gradeVoting: Grade voting distribution dict
+            - heightDataCount: Number of ticks with height data
+            - gradeVotesCount: Number of ticks with grade votes
+    """
+    total_ticks = len(ticks)
+    
+    ticks_with_height = sum(
+        1
+        for tick in ticks
+        if tick.get("user__profile__height") is not None
+        and tick.get("user__profile__height") != ""
+    )
+    
+    ticks_with_grade_vote = sum(
+        1
+        for tick in ticks
+        if tick.get("suggested_grade") is not None
+        and tick.get("suggested_grade") != ""
+    )
+    
+    height_distribution = calculate_height_distribution(ticks)
+    grade_voting = calculate_grade_voting_distribution(ticks)
+    
+    return {
+        "totalTicks": total_ticks,
+        "heightDistribution": height_distribution,
+        "gradeVoting": grade_voting,
+        "heightDataCount": ticks_with_height,
+        "gradeVotesCount": ticks_with_grade_vote,
+    }

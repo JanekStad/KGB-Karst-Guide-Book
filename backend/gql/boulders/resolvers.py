@@ -5,6 +5,7 @@ from boulders.models import BoulderProblem, Area, Sector
 from comments.models import Comment
 from lists.models import Tick
 from users.models import UserProfile
+from ..dataloaders import get_dataloaders
 
 query = QueryType()
 problem = ObjectType("BoulderProblem")
@@ -121,94 +122,37 @@ async def resolve_sectors(_, info, areaId=None):
 # Object field resolvers
 @problem.field("statistics")
 async def resolve_statistics(problem_obj, info):
-    def get_statistics():
-        ticks = Tick.objects.filter(problem=problem_obj).select_related("user__profile")
-
-        # Height distribution
-        height_stats = {}
-        for height_choice in UserProfile.HEIGHT_CHOICES:
-            height_value = height_choice[0]
-            count = ticks.filter(user__profile__height=height_value).count()
-            if count > 0:
-                height_stats[height_value] = {"label": height_choice[1], "count": count}
-
-        # Grade voting distribution
-        grade_stats = {}
-        for grade_choice in Tick.GRADE_CHOICES:
-            grade_value = grade_choice[0]
-            count = (
-                ticks.filter(suggested_grade=grade_value)
-                .exclude(suggested_grade__isnull=True)
-                .exclude(suggested_grade="")
-                .count()
-            )
-            if count > 0:
-                grade_stats[grade_value] = {"label": grade_choice[1], "count": count}
-
-        total_ticks = ticks.count()
-        ticks_with_height = (
-            ticks.filter(user__profile__height__isnull=False)
-            .exclude(user__profile__height="")
-            .count()
-        )
-        ticks_with_grade_vote = (
-            ticks.exclude(suggested_grade__isnull=True)
-            .exclude(suggested_grade="")
-            .count()
-        )
-
-        return {
-            "totalTicks": total_ticks,
-            "heightDistribution": height_stats,
-            "gradeVoting": grade_stats,
-            "heightDataCount": ticks_with_height,
-            "gradeVotesCount": ticks_with_grade_vote,
-        }
-
-    return await sync_to_async(get_statistics)()
+    """Resolve statistics using DataLoader to batch queries."""
+    dataloaders = get_dataloaders(info.context)
+    return await dataloaders["statistics_by_problem"].load(str(problem_obj.id))
 
 
 @problem.field("comments")
 async def resolve_comments(problem_obj, info):
-    def get_comments():
-        return list(
-            Comment.objects.filter(problem=problem_obj)
-            .select_related("user")
-            .order_by("-created_at")
-        )
-
-    return await sync_to_async(get_comments)()
+    """Resolve comments using DataLoader to batch queries."""
+    dataloaders = get_dataloaders(info.context)
+    return await dataloaders["comments_by_problem"].load(str(problem_obj.id))
 
 
 @problem.field("ticks")
 async def resolve_ticks(problem_obj, info):
-    def get_ticks():
-        return list(
-            Tick.objects.filter(problem=problem_obj)
-            .select_related("user", "user__profile")
-            .order_by("-date", "-created_at")
-        )
-
-    return await sync_to_async(get_ticks)()
+    """Resolve ticks using DataLoader to batch queries."""
+    dataloaders = get_dataloaders(info.context)
+    return await dataloaders["ticks_by_problem"].load(str(problem_obj.id))
 
 
 @problem.field("tickCount")
 async def resolve_tick_count(problem_obj, info):
-    def get_count():
-        return problem_obj.ticks.count()
-
-    return await sync_to_async(get_count)()
+    """Resolve tick count using DataLoader to batch queries."""
+    dataloaders = get_dataloaders(info.context)
+    return await dataloaders["tick_count_by_problem"].load(str(problem_obj.id))
 
 
 @problem.field("avgRating")
 async def resolve_avg_rating(problem_obj, info):
-    def get_avg():
-        from django.db.models import Avg
-
-        avg = problem_obj.ticks.aggregate(Avg("rating"))["rating__avg"]
-        return round(float(avg), 2) if avg else None
-
-    return await sync_to_async(get_avg)()
+    """Resolve average rating using DataLoader to batch queries."""
+    dataloaders = get_dataloaders(info.context)
+    return await dataloaders["avg_rating_by_problem"].load(str(problem_obj.id))
 
 
 @area.field("problemCount")
