@@ -20,7 +20,7 @@ class TokenGraphQLView(GraphQLAsyncView):
 
         # Get GraphQL kwargs (includes context_value)
         kwargs_graphql = self.get_kwargs_graphql(request)
-        
+
         # Update context_value to include authenticated user
         if "context_value" in kwargs_graphql:
             context = kwargs_graphql["context_value"]

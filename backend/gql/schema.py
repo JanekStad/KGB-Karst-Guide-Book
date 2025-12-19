@@ -58,7 +58,6 @@ type_defs_list = [
 type_defs = "\n".join(type_defs_list)
 
 
-
 schema = make_executable_schema(
     type_defs,
     query,

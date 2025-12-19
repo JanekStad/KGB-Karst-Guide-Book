@@ -25,6 +25,7 @@ dj-database-url>=2.1.0
 pytest>=7.4.0
 pytest-django>=4.7.0
 pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
 factory-boy>=3.3.0
 # Linting + import cleanup + unused code checks
 ruff==0.6.8

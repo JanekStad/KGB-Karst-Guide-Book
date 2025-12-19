@@ -1,5 +1,3 @@
-"""GraphQL mutations for comments"""
-
 from ariadne import MutationType
 from graphql import GraphQLError
 from asgiref.sync import sync_to_async
@@ -18,13 +16,13 @@ async def resolve_create_comment(_, info, input):
 
     def create_comment():
         # Check authentication inside sync context
-        if not hasattr(user, 'is_authenticated') or not user.is_authenticated:
+        if not hasattr(user, "is_authenticated") or not user.is_authenticated:
             raise GraphQLError("Authentication required")
-        
+
         try:
             # Get problem
             problem = BoulderProblem.objects.get(id=input["problemId"])
-            
+
             # Validate content
             content = input.get("content", "").strip()
             if not content:
@@ -43,4 +41,3 @@ async def resolve_create_comment(_, info, input):
             raise GraphQLError(f"Error creating comment: {str(e)}")
 
     return await sync_to_async(create_comment)()
-
