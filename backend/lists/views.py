@@ -103,7 +103,6 @@ class TickViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            from django.contrib.auth.models import User
 
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
