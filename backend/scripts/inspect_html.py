@@ -58,9 +58,12 @@ def inspect_html(url: str):
     print("\n" + "=" * 80)
     print("METHOD 3: Save full HTML to file for inspection")
     print("=" * 80)
-    with open("page_source.html", "w", encoding="utf-8") as f:
+    import os
+    backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_path = os.path.join(backend_root, "page_source.html")
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(soup.prettify())
-    print("✓ Saved full HTML to 'page_source.html'")
+    print(f"✓ Saved full HTML to '{output_path}'")
     print("  You can open this file in a browser or text editor to inspect it.")
 
     print("\n" + "=" * 80)

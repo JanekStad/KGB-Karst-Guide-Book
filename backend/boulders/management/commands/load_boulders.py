@@ -6,8 +6,8 @@ from a JSON file created by dump_boulders command.
 
 Usage:
     python manage.py load_boulders
-    python manage.py load_boulders --input boulders_fixture.json
-    python manage.py load_boulders --input boulders_fixture.json --clear
+    python manage.py load_boulders --input fixtures/boulders_fixture.json
+    python manage.py load_boulders --input fixtures/boulders_fixture.json --clear
 """
 
 from django.core.management.base import BaseCommand, CommandError
@@ -23,8 +23,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--input",
             type=str,
-            default="boulders_fixture.json",
-            help="Input fixture file path (default: boulders_fixture.json)",
+            default="fixtures/boulders_fixture.json",
+            help="Input fixture file path (default: fixtures/boulders_fixture.json)",
         )
         parser.add_argument(
             "--clear",

@@ -13,8 +13,8 @@ else
 fi
 
 # Get the absolute path to the backend directory
-BACKEND_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ALIAS_LINE="alias shell='cd $BACKEND_DIR && ./shell.sh'"
+BACKEND_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
+ALIAS_LINE="alias shell='cd $BACKEND_DIR && ./scripts/bin/shell.sh'"
 
 # Check if alias already exists
 if grep -q "alias shell=" "$SHELL_CONFIG"; then

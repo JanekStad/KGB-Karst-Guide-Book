@@ -1,8 +1,42 @@
-boulders_fixture.json
-DB_REFACTORING_PLAN.md
-DEVELOPMENT_TIPS.md
-REFACTORING_SUMMARY.md
-START_SERVER.md
-SETUP_NOTES.md
-README.md
-RENDER_DEPLOYMENT.md
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+
+# Coverage reports
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.cover
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated/temporary files
+page_source.html
+debug.jpg
+*.tmp
+
+# Fixtures (large data files)
+fixtures/boulders_fixture.json
