@@ -21,8 +21,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--output",
             type=str,
-            default="boulders_fixture.json",
-            help="Output file path (default: boulders_fixture.json)",
+            default="fixtures/boulders_fixture.json",
+            help="Output file path (default: fixtures/boulders_fixture.json)",
         )
         parser.add_argument(
             "--indent",

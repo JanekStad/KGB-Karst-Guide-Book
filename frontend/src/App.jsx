@@ -1,3 +1,4 @@
+import { ApolloProvider } from '@apollo/client/react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -17,14 +18,16 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import SectorDetail from './pages/SectorDetail';
 import UserDiary from './pages/UserDiary';
+import { apolloClient } from './services/graphql';
 
 function App() {
   console.log('🎯 App component rendering');
   
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Router>
+      <ApolloProvider client={apolloClient}>
+        <AuthProvider>
+          <Router>
           <div className="App">
             <Header />
             <main className="main-content">
@@ -62,6 +65,7 @@ function App() {
           </div>
         </Router>
       </AuthProvider>
+      </ApolloProvider>
     </ErrorBoundary>
   );
 }

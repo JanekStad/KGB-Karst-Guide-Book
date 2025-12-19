@@ -1,0 +1,11 @@
+
+type Comment {
+    id: ID!
+    content: String!
+    created_at: DateTime!
+    updated_at: DateTime!
+    edited: Boolean!
+    user: User!
+    problem: BoulderProblem!
+}
+

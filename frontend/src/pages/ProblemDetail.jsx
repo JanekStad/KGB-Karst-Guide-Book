@@ -1,9 +1,17 @@
+import { useMutation, useQuery } from '@apollo/client/react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
-import { commentsAPI, problemsAPI, ticksAPI } from '../services/api';
+import { problemsAPI, ticksAPI } from '../services/api';
+import {
+  CREATE_COMMENT,
+  CREATE_TICK,
+  DELETE_TICK,
+  GET_PROBLEM_DETAIL,
+  UPDATE_TICK
+} from '../services/graphql/queries';
 import './ProblemDetail.css';
 
 const ProblemDetail = () => {
@@ -29,12 +37,34 @@ const ProblemDetail = () => {
     rating: null,
   });
 
-  useEffect(() => {
-    fetchProblem();
-    fetchComments();
-    fetchStatistics();
-    fetchProblemTicks();
-  }, [id]);
+  // Use GraphQL query to fetch problem with all related data in one request
+  const { data, loading: graphqlLoading, error: graphqlError, refetch } = useQuery(
+    GET_PROBLEM_DETAIL,
+    {
+      variables: { id },
+      skip: !id,
+    }
+  );
+
+  // GraphQL mutations
+  const [createTickMutation] = useMutation(CREATE_TICK, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [updateTickMutation] = useMutation(UPDATE_TICK, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [deleteTickMutation] = useMutation(DELETE_TICK, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [createCommentMutation] = useMutation(CREATE_COMMENT, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  // Extract data from GraphQL response
+  const problemData = data?.problem;
 
   const checkTick = useCallback(async () => {
     if (!isAuthenticated) {
@@ -81,73 +111,100 @@ const ProblemDetail = () => {
     }
   }, [id, isAuthenticated, checkTick]);
 
-  const fetchProblem = async () => {
-    try {
-      console.log('📡 Fetching problem details for ID:', id);
-      setLoading(true);
-      const response = await problemsAPI.get(id);
-      console.log('✅ Problem fetched successfully:', response.data);
-      setProblem(response.data);
-      setError(null);
-    } catch (err) {
-      console.error('❌ Failed to fetch problem:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response,
-        request: err.request,
-        status: err.response?.status,
+  // Update state when GraphQL data is available
+  useEffect(() => {
+    if (problemData) {
+      console.log('✅ GraphQL data received:', problemData);
+      
+      // Helper to safely parse JSON strings
+      const parseJson = (jsonString) => {
+        if (!jsonString) return {};
+        if (typeof jsonString === 'string') {
+          try {
+            return JSON.parse(jsonString);
+          } catch (e) {
+            console.warn('Failed to parse JSON:', e);
+            return {};
+          }
+        }
+        return jsonString;
+      };
+      
+      // Map GraphQL response to component state
+      setProblem({
+        ...problemData,
+        // Map nested fields to match REST API structure
+        area_detail: problemData.area,
+        area: problemData.area?.id,
+        sector_detail: problemData.sector,
+        sector: problemData.sector?.id,
+        wall_detail: problemData.wall,
+        wall: problemData.wall?.id,
+        author_username: problemData.author?.username,
+        average_rating: problemData.avgRating || problemData.rating,
+        // Images and video/external links not in GraphQL yet - will fetch separately if needed
       });
-      const errorMessage = err.response?.data?.detail || 
-                          err.response?.data?.message || 
-                          err.message || 
-                          'Failed to load problem details.';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    try {
-      console.log('📡 Fetching comments for problem ID:', id);
-      const response = await commentsAPI.list({ problem: id });
-      console.log('✅ Comments fetched successfully:', response.data);
-      setComments(response.data.results || response.data);
-    } catch (err) {
-      console.error('❌ Failed to fetch comments:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response,
-        status: err.response?.status,
-      });
-    }
-  };
-
-  const fetchStatistics = async () => {
-    try {
-      console.log('📡 Fetching statistics for problem ID:', id);
-      const response = await problemsAPI.getStatistics(id);
-      console.log('✅ Statistics fetched successfully:', response.data);
-      setStatistics(response.data);
-    } catch (err) {
-      console.error('❌ Failed to fetch statistics:', err);
-    }
-  };
-
-  const fetchProblemTicks = async () => {
-    try {
-      console.log('📡 Fetching ticks for problem ID:', id);
-      setLoadingTicks(true);
-      const response = await ticksAPI.getProblemTicks(id);
-      console.log('✅ Problem ticks fetched successfully:', response.data);
-      setProblemTicks(response.data || []);
-    } catch (err) {
-      console.error('❌ Failed to fetch problem ticks:', err);
-      setProblemTicks([]);
-    } finally {
+      
+      // Set comments from GraphQL
+      setComments(problemData.comments || []);
+      
+      // Set statistics from GraphQL (transform keys to match REST API format)
+      if (problemData.statistics) {
+        setStatistics({
+          total_ticks: problemData.statistics.totalTicks || 0,
+          height_distribution: parseJson(problemData.statistics.heightDistribution),
+          grade_voting: parseJson(problemData.statistics.gradeVoting),
+          height_data_count: problemData.statistics.heightDataCount || 0,
+          grade_votes_count: problemData.statistics.gradeVotesCount || 0,
+        });
+      }
+      
+      // Set ticks from GraphQL (map field names)
+      setProblemTicks(
+        (problemData.ticks || []).map(tick => ({
+          ...tick,
+          tick_grade: tick.tickGrade,
+          suggested_grade: tick.suggestedGrade,
+        }))
+      );
       setLoadingTicks(false);
+      setError(null);
+    }
+  }, [problemData]);
+
+  // Handle loading and error states
+  useEffect(() => {
+    setLoading(graphqlLoading);
+    if (graphqlError) {
+      console.error('❌ GraphQL error:', graphqlError);
+      setError(graphqlError.message || 'Failed to load problem details.');
+    }
+  }, [graphqlLoading, graphqlError]);
+
+  // Fallback: Fetch images separately if not in GraphQL (for now)
+  const fetchProblemImages = async () => {
+    try {
+      const response = await problemsAPI.get(id);
+      if (response.data?.images) {
+        setProblem(prev => ({ ...prev, images: response.data.images }));
+      }
+      // Also get video_links and external_links if not in GraphQL
+      if (response.data?.video_links) {
+        setProblem(prev => ({ ...prev, video_links: response.data.video_links }));
+      }
+      if (response.data?.external_links) {
+        setProblem(prev => ({ ...prev, external_links: response.data.external_links }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch additional problem data:', err);
     }
   };
+
+  useEffect(() => {
+    if (problemData && (!problemData.images || !problemData.video_links || !problemData.external_links)) {
+      fetchProblemImages();
+    }
+  }, [problemData, id]);
 
 
   const handleTickSubmit = async (e) => {
@@ -159,36 +216,44 @@ const ProblemDetail = () => {
 
     try {
       if (isTicked && currentTick) {
-        // Update existing tick - don't send problem field
-        const payload = {
-          date: tickFormData.date,
-          notes: tickFormData.notes,
-          tick_grade: tickFormData.tick_grade || null,
-          suggested_grade: tickFormData.suggested_grade || null,
-        };
-        if (tickFormData.rating) {
-          payload.rating = parseFloat(tickFormData.rating);
+        // Update existing tick using GraphQL mutation
+        const input = {};
+        if (tickFormData.date) input.date = tickFormData.date;
+        if (tickFormData.notes !== undefined) input.notes = tickFormData.notes || '';
+        if (tickFormData.tick_grade !== undefined) input.tickGrade = tickFormData.tick_grade || null;
+        if (tickFormData.suggested_grade !== undefined) input.suggestedGrade = tickFormData.suggested_grade || null;
+        if (tickFormData.rating !== undefined && tickFormData.rating !== null) {
+          input.rating = parseFloat(tickFormData.rating);
         }
-        await ticksAPI.patch(currentTick.id, payload);
-        console.log('✅ Tick updated');
+
+        await updateTickMutation({
+          variables: {
+            id: currentTick.id,
+            input,
+          },
+        });
+        console.log('✅ Tick updated via GraphQL');
       } else {
-        // Create new tick
-        const payload = {
-          problem: parseInt(id),
+        // Create new tick using GraphQL mutation
+        const input = {
+          problemId: id,
           date: tickFormData.date,
-          notes: tickFormData.notes,
+          notes: tickFormData.notes || '',
         };
         if (tickFormData.tick_grade) {
-          payload.tick_grade = tickFormData.tick_grade;
+          input.tickGrade = tickFormData.tick_grade;
         }
         if (tickFormData.suggested_grade) {
-          payload.suggested_grade = tickFormData.suggested_grade;
+          input.suggestedGrade = tickFormData.suggested_grade;
         }
         if (tickFormData.rating) {
-          payload.rating = parseFloat(tickFormData.rating);
+          input.rating = parseFloat(tickFormData.rating);
         }
-        await ticksAPI.create(payload);
-        console.log('✅ Tick created');
+
+        await createTickMutation({
+          variables: { input },
+        });
+        console.log('✅ Tick created via GraphQL');
       }
       
       setShowTickModal(false);
@@ -200,11 +265,11 @@ const ProblemDetail = () => {
         rating: null,
       });
       await checkTick();
-      fetchStatistics();
-      fetchProblemTicks();
+      // GraphQL mutation will automatically refetch via refetchQueries
     } catch (err) {
       console.error('❌ Failed to save tick:', err);
-      alert(`Failed to ${isTicked ? 'update' : 'create'} tick. Please try again.`);
+      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to save tick';
+      alert(`Failed to ${isTicked ? 'update' : 'create'} tick: ${errorMessage}`);
     }
   };
 
@@ -219,15 +284,21 @@ const ProblemDetail = () => {
 
     try {
       setSubmitting(true);
-      await commentsAPI.create({
-        problem: parseInt(id),
-        content: newComment,
+      await createCommentMutation({
+        variables: {
+          input: {
+            problemId: id,
+            content: newComment.trim(),
+          },
+        },
       });
       setNewComment('');
-      fetchComments();
+      console.log('✅ Comment created via GraphQL');
+      // GraphQL mutation will automatically refetch via refetchQueries
     } catch (err) {
       console.error('Failed to submit comment:', err);
-      alert('Failed to submit comment. Please try again.');
+      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to submit comment';
+      alert(`Failed to submit comment: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -732,14 +803,17 @@ const ProblemDetail = () => {
                     onClick={async () => {
                       if (window.confirm('Are you sure you want to delete this tick?')) {
                         try {
-                          await ticksAPI.delete(currentTick.id);
+                          await deleteTickMutation({
+                            variables: { id: currentTick.id },
+                          });
                           setShowTickModal(false);
                           await checkTick();
-                          fetchStatistics();
-                          fetchProblemTicks();
+                          console.log('✅ Tick deleted via GraphQL');
+                          // GraphQL mutation will automatically refetch via refetchQueries
                         } catch (err) {
                           console.error('❌ Failed to delete tick:', err);
-                          alert('Failed to delete tick. Please try again.');
+                          const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to delete tick';
+                          alert(`Failed to delete tick: ${errorMessage}`);
                         }
                       }
                     }}

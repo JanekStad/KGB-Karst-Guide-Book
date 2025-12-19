@@ -1,0 +1,13 @@
+
+type Tick {
+    id: ID!
+    date: Date!
+    notes: String
+    tickGrade: String
+    suggestedGrade: String
+    rating: Float
+    user: User!
+    problem: BoulderProblem!
+    created_at: DateTime!
+}
+

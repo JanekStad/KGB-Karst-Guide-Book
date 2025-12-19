@@ -1,0 +1,7 @@
+"""Input types for comment mutations"""
+
+input CreateCommentInput {
+    problemId: ID!
+    content: String!
+}
+

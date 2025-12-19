@@ -1,5 +1,16 @@
 from rest_framework import serializers
-from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
+from boulders.models import (
+    City,
+    Area,
+    Sector,
+    Wall,
+    BoulderProblem,
+    BoulderImage,
+    ProblemLine,
+)
+from django.conf import settings
+from django.db.models import Count, Avg
+from lists.models import Tick
 
 
 class BoulderProblemMixin:
@@ -97,7 +108,6 @@ class BoulderImageSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(image_url)
 
             # Fallback: construct URL manually if no request context
-            from django.conf import settings
 
             base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
             # Ensure image_url starts with /
@@ -272,7 +282,6 @@ class BoulderProblemSerializer(BoulderProblemMixin, serializers.ModelSerializer)
 
     def get_images(self, obj):
         """Get images associated with this problem through ProblemLine or sector"""
-        from .models import BoulderImage
 
         # Get images from two sources:
         # 1. Images that have ProblemLines for this problem (priority - these are explicitly linked)
@@ -361,8 +370,6 @@ class BoulderProblemSerializer(BoulderProblemMixin, serializers.ModelSerializer)
 
     def get_suggested_grade(self, obj):
         """Get the most common suggested grade from ticks (grade with most votes)"""
-        from django.db.models import Count
-        from lists.models import Tick
 
         grade_counts = (
             Tick.objects.filter(problem=obj)
@@ -398,8 +405,6 @@ class BoulderProblemSerializer(BoulderProblemMixin, serializers.ModelSerializer)
             return float(obj.avg_rating_annotated)
 
         # Fallback: calculate from ticks if not annotated
-        from django.db.models import Avg
-        from lists.models import Tick
 
         avg_rating = Tick.objects.filter(problem=obj, rating__isnull=False).aggregate(
             avg=Avg("rating")
@@ -475,8 +480,6 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
             return float(obj.avg_rating_annotated)
 
         # Fallback: calculate from ticks if not annotated
-        from django.db.models import Avg
-        from lists.models import Tick
 
         avg_rating = Tick.objects.filter(problem=obj, rating__isnull=False).aggregate(
             avg=Avg("rating")
@@ -490,7 +493,6 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
 
     def get_recommended_percentage(self, obj):
         """Calculate percentage of ticks that recommended this problem (rating >= 4.0)"""
-        from lists.models import Tick
 
         total_ticks = obj.ticks.count()
         if total_ticks == 0:
@@ -502,7 +504,6 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
 
     def get_media_count(self, obj):
         """Count total media items (images + videos)"""
-        from .models import BoulderImage
 
         # Count images associated with this problem through ProblemLines
         image_count = (
@@ -514,7 +515,6 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
 
     def get_primary_image(self, obj):
         """Get primary image for this problem through ProblemLine"""
-        from .models import BoulderImage
 
         request = self.context.get("request")
 
@@ -525,7 +525,6 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
                 if request:
                     return request.build_absolute_uri(primary.image.url)
                 # Fallback
-                from django.conf import settings
 
                 base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
                 return f"{base_url}{primary.image.url}"
@@ -536,7 +535,6 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
             if request:
                 return request.build_absolute_uri(image.image.url)
             # Fallback
-            from django.conf import settings
 
             base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
             return f"{base_url}{image.image.url}"

@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMutation } from '@apollo/client/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
 import { areasAPI, ticksAPI } from '../services/api';
+import { CREATE_TICK, DELETE_TICK, UPDATE_TICK } from '../services/graphql/queries';
 import './CragDetail.css';
 
 const CragDetail = () => {
@@ -35,6 +37,11 @@ const CragDetail = () => {
   });
   const gradeFilterRef = useRef(null);
 
+  // GraphQL mutations
+  const [createTickMutation] = useMutation(CREATE_TICK);
+  const [updateTickMutation] = useMutation(UPDATE_TICK);
+  const [deleteTickMutation] = useMutation(DELETE_TICK);
+
   const GRADE_CHOICES = [
     '3', '3+', '4', '4+', '5', '5+',
     '6A', '6A+', '6B', '6B+', '6C', '6C+',
@@ -54,12 +61,10 @@ const CragDetail = () => {
     return 'grade-badge-default';
   };
 
-  useEffect(() => {
-    fetchArea();
-    fetchProblems();
-  }, [id]);
-
-  const fetchArea = async () => {
+  // Memoize fetch functions to prevent unnecessary re-creations
+  const fetchArea = useCallback(async () => {
+    if (!id) return;
+    
     try {
       console.log('📡 Fetching area details for ID:', id);
       setLoading(true);
@@ -83,9 +88,11 @@ const CragDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchProblems = async () => {
+  const fetchProblems = useCallback(async () => {
+    if (!id) return;
+    
     try {
       console.log('📡 Fetching problems for area ID:', id);
       const response = await areasAPI.getProblems(id);
@@ -93,13 +100,29 @@ const CragDetail = () => {
       const fetchedProblems = response.data.results || response.data;
       setAllProblems(fetchedProblems);
       updateAvailableGrades(fetchedProblems);
-      filterProblems(fetchedProblems, selectedGrade, selectedSector);
+      // filterProblems will be called by the useEffect that watches selectedGrade/selectedSector
     } catch (err) {
       console.error('❌ Failed to fetch problems:', err);
     }
-  };
+  }, [id]);
 
-  const fetchTicks = async () => {
+  // Use ref to track if fetch is in progress to prevent duplicates
+  const fetchingRef = useRef(false);
+
+  useEffect(() => {
+    // Prevent duplicate fetches
+    if (fetchingRef.current) return;
+    
+    fetchingRef.current = true;
+    fetchArea();
+    fetchProblems();
+    
+    return () => {
+      fetchingRef.current = false;
+    };
+  }, [id, fetchArea, fetchProblems]);
+
+  const fetchTicks = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
       const response = await ticksAPI.list();
@@ -116,7 +139,7 @@ const CragDetail = () => {
     } catch (err) {
       console.error('❌ Failed to fetch ticks:', err);
     }
-  };
+  }, [isAuthenticated]);
 
   const handleTickClick = (problem, e) => {
     e.preventDefault();
@@ -164,44 +187,62 @@ const CragDetail = () => {
 
     try {
       if (tick) {
-        // Update existing tick
-        const payload = {
-          date: tickFormData.date,
-          notes: tickFormData.notes,
-          tick_grade: tickFormData.tick_grade || null,
-          suggested_grade: tickFormData.suggested_grade || null,
-        };
-        if (tickFormData.rating) {
-          payload.rating = parseFloat(tickFormData.rating);
+        // Update existing tick using GraphQL mutation
+        const input = {};
+        if (tickFormData.date) input.date = tickFormData.date;
+        if (tickFormData.notes !== undefined) input.notes = tickFormData.notes || '';
+        if (tickFormData.tick_grade !== undefined) input.tickGrade = tickFormData.tick_grade || null;
+        if (tickFormData.suggested_grade !== undefined) input.suggestedGrade = tickFormData.suggested_grade || null;
+        if (tickFormData.rating !== undefined && tickFormData.rating !== null) {
+          input.rating = parseFloat(tickFormData.rating);
         }
-        const response = await ticksAPI.patch(tick.id, payload);
+
+        const response = await updateTickMutation({
+          variables: {
+            id: tick.id,
+            input,
+          },
+        });
+        
         setTicks(prev => ({
           ...prev,
-          [problemId]: response.data,
+          [problemId]: {
+            ...response.data.updateTick,
+            tick_grade: response.data.updateTick.tickGrade,
+            suggested_grade: response.data.updateTick.suggestedGrade,
+          },
         }));
-        console.log('✅ Tick updated');
+        console.log('✅ Tick updated via GraphQL');
       } else {
-        // Create new tick
-        const payload = {
-          problem: problemId,
+        // Create new tick using GraphQL mutation
+        const input = {
+          problemId: problemId.toString(),
           date: tickFormData.date,
-          notes: tickFormData.notes,
+          notes: tickFormData.notes || '',
         };
         if (tickFormData.tick_grade) {
-          payload.tick_grade = tickFormData.tick_grade;
+          input.tickGrade = tickFormData.tick_grade;
         }
         if (tickFormData.suggested_grade) {
-          payload.suggested_grade = tickFormData.suggested_grade;
+          input.suggestedGrade = tickFormData.suggested_grade;
         }
         if (tickFormData.rating) {
-          payload.rating = parseFloat(tickFormData.rating);
+          input.rating = parseFloat(tickFormData.rating);
         }
-        const response = await ticksAPI.create(payload);
+
+        const response = await createTickMutation({
+          variables: { input },
+        });
+        
         setTicks(prev => ({
           ...prev,
-          [problemId]: response.data,
+          [problemId]: {
+            ...response.data.createTick,
+            tick_grade: response.data.createTick.tickGrade,
+            suggested_grade: response.data.createTick.suggestedGrade,
+          },
         }));
-        console.log('✅ Tick created');
+        console.log('✅ Tick created via GraphQL');
       }
       
       setShowTickModal(false);
@@ -215,7 +256,8 @@ const CragDetail = () => {
       });
     } catch (err) {
       console.error('❌ Failed to save tick:', err);
-      alert(`Failed to ${tick ? 'update' : 'create'} tick. Please try again.`);
+      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to save tick';
+      alert(`Failed to ${tick ? 'update' : 'create'} tick: ${errorMessage}`);
     }
   };
 
@@ -271,13 +313,21 @@ const CragDetail = () => {
     }
   }, [selectedGrade, selectedSector, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Use ref to prevent duplicate tick fetches
+  const fetchingTicksRef = useRef(false);
+
   useEffect(() => {
+    if (fetchingTicksRef.current) return;
+    
     if (isAuthenticated) {
-      fetchTicks();
+      fetchingTicksRef.current = true;
+      fetchTicks().finally(() => {
+        fetchingTicksRef.current = false;
+      });
     } else {
       setTicks({});
     }
-  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, fetchTicks]);
 
   // Close grade dropdown when clicking outside
   useEffect(() => {
@@ -832,7 +882,9 @@ const CragDetail = () => {
                     onClick={async () => {
                       if (window.confirm('Are you sure you want to delete this tick?')) {
                         try {
-                          await ticksAPI.delete(ticks[selectedProblemForTick.id].id);
+                          await deleteTickMutation({
+                            variables: { id: ticks[selectedProblemForTick.id].id },
+                          });
                           setTicks(prev => {
                             const newTicks = { ...prev };
                             delete newTicks[selectedProblemForTick.id];
@@ -840,9 +892,11 @@ const CragDetail = () => {
                           });
                           setShowTickModal(false);
                           setSelectedProblemForTick(null);
+                          console.log('✅ Tick deleted via GraphQL');
                         } catch (err) {
                           console.error('❌ Failed to delete tick:', err);
-                          alert('Failed to delete tick. Please try again.');
+                          const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to delete tick';
+                          alert(`Failed to delete tick: ${errorMessage}`);
                         }
                       }
                     }}

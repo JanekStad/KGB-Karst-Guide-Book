@@ -40,11 +40,13 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_filters",
     "django_extensions",
+    "ariadne_django",
     # Project apps
     "boulders",
     "users",
     "comments",
     "lists",
+    "gql",
 ]
 
 MIDDLEWARE = [
