@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from comments.models import Comment
 from lists.models import Tick
 from lists.services import calculate_problem_statistics
+from django.db.models import Avg, Count
 
 
 class UserLoader(DataLoader):
@@ -118,7 +119,6 @@ class TickCountByProblemLoader(DataLoader):
         """Load tick counts for multiple problems in a single query."""
 
         def get_counts():
-            from django.db.models import Count
 
             counts = (
                 Tick.objects.filter(problem_id__in=problem_ids)
@@ -139,7 +139,6 @@ class AvgRatingByProblemLoader(DataLoader):
         """Load average ratings for multiple problems in a single query."""
 
         def get_ratings():
-            from django.db.models import Avg
 
             ratings = (
                 Tick.objects.filter(problem_id__in=problem_ids)
