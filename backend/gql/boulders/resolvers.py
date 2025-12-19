@@ -2,9 +2,6 @@ from ariadne import QueryType, ObjectType
 from django.db.models import Q, Count, Avg
 from asgiref.sync import sync_to_async
 from boulders.models import BoulderProblem, Area, Sector
-from comments.models import Comment
-from lists.models import Tick
-from users.models import UserProfile
 from ..dataloaders import get_dataloaders
 
 query = QueryType()

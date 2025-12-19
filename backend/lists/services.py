@@ -442,14 +442,14 @@ def _extract_ticks_from_diary(soup, base_url):
 
 
 def calculate_height_distribution(
-    ticks: List[Dict[str, Any]]
+    ticks: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
     """
     Calculate height distribution statistics from a list of tick dictionaries.
-    
+
     Args:
         ticks: List of tick dictionaries with 'user__profile__height' key
-        
+
     Returns:
         Dictionary mapping height values to {label, count} dictionaries
     """
@@ -457,9 +457,7 @@ def calculate_height_distribution(
     for height_choice in UserProfile.HEIGHT_CHOICES:
         height_value = height_choice[0]
         count = sum(
-            1
-            for tick in ticks
-            if tick.get("user__profile__height") == height_value
+            1 for tick in ticks if tick.get("user__profile__height") == height_value
         )
         if count > 0:
             height_stats[height_value] = {
@@ -470,14 +468,14 @@ def calculate_height_distribution(
 
 
 def calculate_grade_voting_distribution(
-    ticks: List[Dict[str, Any]]
+    ticks: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
     """
     Calculate grade voting distribution statistics from a list of tick dictionaries.
-    
+
     Args:
         ticks: List of tick dictionaries with 'suggested_grade' key
-        
+
     Returns:
         Dictionary mapping grade values to {label, count} dictionaries
     """
@@ -499,17 +497,15 @@ def calculate_grade_voting_distribution(
     return grade_stats
 
 
-def calculate_problem_statistics(
-    ticks: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+def calculate_problem_statistics(ticks: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Calculate all statistics for a boulder problem from a list of tick dictionaries.
-    
+
     Args:
         ticks: List of tick dictionaries with keys:
             - 'user__profile__height' (optional)
             - 'suggested_grade' (optional)
-            
+
     Returns:
         Dictionary with statistics:
             - totalTicks: Total number of ticks
@@ -519,24 +515,23 @@ def calculate_problem_statistics(
             - gradeVotesCount: Number of ticks with grade votes
     """
     total_ticks = len(ticks)
-    
+
     ticks_with_height = sum(
         1
         for tick in ticks
         if tick.get("user__profile__height") is not None
         and tick.get("user__profile__height") != ""
     )
-    
+
     ticks_with_grade_vote = sum(
         1
         for tick in ticks
-        if tick.get("suggested_grade") is not None
-        and tick.get("suggested_grade") != ""
+        if tick.get("suggested_grade") is not None and tick.get("suggested_grade") != ""
     )
-    
+
     height_distribution = calculate_height_distribution(ticks)
     grade_voting = calculate_grade_voting_distribution(ticks)
-    
+
     return {
         "totalTicks": total_ticks,
         "heightDistribution": height_distribution,
