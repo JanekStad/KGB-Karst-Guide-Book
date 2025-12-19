@@ -64,3 +64,21 @@ The frontend communicates with the Django backend API at `http://localhost:8000/
 ## Authentication
 
 The app uses token-based authentication. Tokens are stored in localStorage and automatically included in API requests.
+
+## Documentation
+
+Additional documentation is organized in the `docs/` folder:
+
+- **`docs/reference/`** - Reference documentation
+  - `DEBUGGING.md` - Debugging guide and logging information
+  - `FRONTEND_DESIGN_PATTERN.md` - Design patterns and architecture guidelines
+
+- **`docs/analysis/`** - Analysis and recommendations
+  - `NAVIGATION_UX_ANALYSIS.md` - Navigation UX analysis
+  - `RESPONSIVE_DESIGN_IMPROVEMENTS.md` - Responsive design improvements
+  - `RESPONSIVE_DESIGN_VALIDATION.md` - Responsive design validation report
+  - `HERO_CONTENT_IDEAS.md` - Hero section content ideas
+
+- **`docs/implementation/`** - Implementation plans
+  - `LOGO_IMPLEMENTATION_PLAN.md` - Logo implementation plan
+  - `LOGO_SETUP.md` - Logo setup guide
