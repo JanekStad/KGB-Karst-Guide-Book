@@ -7,7 +7,7 @@ from boulders.models import City, Area, Sector, Wall, BoulderProblem
 @pytest.mark.django_db
 class TestCity:
     def test_city_area_count_property(self, city, area):
-        assert city.area_count == 999  # Intentionally broken for CI testing
+        assert city.area_count == 1
 
     def test_city_crag_count_property(self, city, area):
         assert city.crag_count == 1

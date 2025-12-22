@@ -16,6 +16,13 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    // Disable prop-types validation (can use TypeScript for type checking instead)
+    'react/prop-types': 'off',
+    // Allow unused vars that start with underscore (common pattern for intentionally unused)
+    'no-unused-vars': ['error', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+    }],
   },
 }
 
