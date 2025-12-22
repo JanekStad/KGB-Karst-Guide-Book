@@ -28,11 +28,11 @@ function App() {
       <ApolloProvider client={apolloClient}>
         <AuthProvider>
           <Router>
-          <div className="App">
-            <Header />
-            <main className="main-content">
-              <ErrorBoundary>
-                <Routes>
+            <div className="App">
+              <Header />
+              <main className="main-content">
+                <ErrorBoundary>
+                  <Routes>
                   <Route path="/" element={<Home />} />
                   {/* Explore route (primary) */}
                   <Route path="/explore" element={<Crags />} />
@@ -60,11 +60,11 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                 </Routes>
-              </ErrorBoundary>
-            </main>
-          </div>
-        </Router>
-      </AuthProvider>
+                </ErrorBoundary>
+              </main>
+            </div>
+          </Router>
+        </AuthProvider>
       </ApolloProvider>
     </ErrorBoundary>
   );

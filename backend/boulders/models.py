@@ -3,9 +3,10 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from .utils import normalize_problem_name
+from .mixins import NameNormalizedMixin
 
 
-class City(models.Model):
+class City(NameNormalizedMixin, models.Model):
     """Represents a city/area where climbing areas are located"""
 
     name = models.CharField(max_length=200, unique=True)
@@ -34,7 +35,7 @@ class City(models.Model):
         return self.area_count
 
 
-class Area(models.Model):
+class Area(NameNormalizedMixin, models.Model):
     """Represents a large geographic climbing area (e.g., Sloup, Holstejn, Rudice)"""
 
     city = models.ForeignKey(
@@ -75,7 +76,7 @@ class Area(models.Model):
         return self.sectors.count()
 
 
-class Sector(models.Model):
+class Sector(NameNormalizedMixin, models.Model):
     """Represents a sector within an area (e.g., Lidomorna, Vanousovy diry, Stara rasovna)"""
 
     area = models.ForeignKey(
@@ -130,7 +131,7 @@ class Sector(models.Model):
         return self.walls.count()
 
 
-class Wall(models.Model):
+class Wall(NameNormalizedMixin, models.Model):
     """Represents a sub-sector/wall within a sector (e.g., Vlevo, Vpravo, Central)"""
 
     sector = models.ForeignKey(
@@ -161,7 +162,7 @@ class Wall(models.Model):
         return self.problems.count()
 
 
-class BoulderProblem(models.Model):
+class BoulderProblem(NameNormalizedMixin, models.Model):
     """Represents a specific climbing problem on an area/sector/wall"""
 
     GRADE_CHOICES = [
@@ -216,11 +217,6 @@ class BoulderProblem(models.Model):
         help_text="Optional: Wall/sub-sector this problem belongs to. If specified, sector must match wall.sector.",
     )
     name = models.CharField(max_length=200)
-    name_normalized = models.CharField(
-        max_length=200,
-        db_index=True,
-        help_text="Normalized version of name (lowercase, no diacritics) for safe lookups",
-    )
     grade = models.CharField(max_length=10, choices=GRADE_CHOICES)
     description = models.TextField(blank=True)
     external_links = models.JSONField(
@@ -303,16 +299,17 @@ class BoulderProblem(models.Model):
         if self.wall and not self.sector:
             self.sector = self.wall.sector
 
-        # Auto-populate name_normalized BEFORE validation (always set it)
-        if not self.name_normalized and self.name:
+        # Set name_normalized before validation (using mixin's logic)
+        # This ensures name_normalized is available during validation
+        if hasattr(self, "name") and self.name:
             self.name_normalized = normalize_problem_name(self.name)
         elif not self.name_normalized:
-            # Fallback: set empty string if name is also empty (shouldn't happen, but be safe)
             self.name_normalized = ""
 
         # Validate relationships (after name_normalized is set)
         self.full_clean()
 
+        # Call super() which will ensure name_normalized is saved via NameNormalizedMixin.save()
         super().save(*args, **kwargs)
 
     @classmethod
@@ -328,8 +325,8 @@ class BoulderProblem(models.Model):
         Returns:
             QuerySet: QuerySet of matching problems
         """
-        normalized = normalize_problem_name(name)
-        queryset = cls.objects.filter(name_normalized=normalized)
+        # Use the mixin's method as base, then add additional filters
+        queryset = super().find_by_normalized_name(name)
         if area:
             queryset = queryset.filter(area=area)
         if sector:
