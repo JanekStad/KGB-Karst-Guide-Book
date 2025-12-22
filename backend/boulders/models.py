@@ -3,9 +3,10 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from .utils import normalize_problem_name
+from .mixins import NameNormalizedMixin
 
 
-class City(models.Model):
+class City(NameNormalizedMixin, models.Model):
     """Represents a city/area where climbing areas are located"""
 
     name = models.CharField(max_length=200, unique=True)
@@ -34,7 +35,7 @@ class City(models.Model):
         return self.area_count
 
 
-class Area(models.Model):
+class Area(NameNormalizedMixin, models.Model):
     """Represents a large geographic climbing area (e.g., Sloup, Holstejn, Rudice)"""
 
     city = models.ForeignKey(
@@ -75,7 +76,7 @@ class Area(models.Model):
         return self.sectors.count()
 
 
-class Sector(models.Model):
+class Sector(NameNormalizedMixin, models.Model):
     """Represents a sector within an area (e.g., Lidomorna, Vanousovy diry, Stara rasovna)"""
 
     area = models.ForeignKey(
@@ -130,7 +131,7 @@ class Sector(models.Model):
         return self.walls.count()
 
 
-class Wall(models.Model):
+class Wall(NameNormalizedMixin, models.Model):
     """Represents a sub-sector/wall within a sector (e.g., Vlevo, Vpravo, Central)"""
 
     sector = models.ForeignKey(
