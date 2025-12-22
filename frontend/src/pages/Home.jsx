@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { problemsAPI, ticksAPI } from '../services/api';
+import UsernameLink from '../components/UsernameLink';
 import './Home.css';
 
 const Home = () => {
@@ -173,7 +174,12 @@ const Home = () => {
                         </div>
                         <div className="activity-content">
                           <p>
-                            <strong>{activity.user?.username || 'Someone'}</strong> logged an ascent of{' '}
+                            <strong>
+                              <UsernameLink 
+                                username={activity.user?.username || 'Someone'} 
+                                userId={activity.user?.id}
+                              />
+                            </strong> logged an ascent of{' '}
                             <Link to={`/problems/${activity.problem?.id || activity.problem}`} className="activity-link">
                               {activity.problem?.name || 'Unknown Problem'}
                             </Link>
@@ -424,7 +430,12 @@ const Home = () => {
                       <div className="feed-avatar"></div>
                       <div className="feed-text">
                         <p>
-                          <strong>{activity.user?.username || 'Someone'}</strong> sent{' '}
+                          <strong>
+                            <UsernameLink 
+                              username={activity.user?.username || 'Someone'} 
+                              userId={activity.user?.id}
+                            />
+                          </strong> sent{' '}
                           <span className="text-primary">{activity.problem?.name || 'a problem'}</span>
                         </p>
                         <p className="feed-time">{formatTimeAgo(activity.date || activity.created_at)}</p>

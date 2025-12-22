@@ -1,7 +1,7 @@
 /* Explore Page - Split View Layout with Cyan Color Scheme */
 
 .explore-page {
-  min-height: 100vh;
+  height: calc(100vh - 4rem);
   width: 100%;
   overflow: hidden;
   background: var(--background-dark); /* #020617 - Very dark blue */
@@ -14,6 +14,7 @@
 .explore-split-view {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
@@ -28,6 +29,7 @@
   border-right: 1px solid var(--border-surface); /* #334155 - Slate-700 */
   background: var(--background-dark); /* #020617 - Very dark blue */
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   transition: transform 0.3s ease;
   z-index: 20;
@@ -218,6 +220,7 @@
 /* Sidebar List */
 .sidebar-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 0.5rem;
   scrollbar-width: thin;
@@ -331,6 +334,18 @@
   gap: 0.5rem;
 }
 
+.item-type-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--primary-cyan);
+  color: var(--background-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
 .crag-list-name {
   font-size: 1rem;
   font-weight: 700;
@@ -379,12 +394,21 @@
   flex-shrink: 0;
 }
 
-/* Map Area */
-.explore-map-area {
+/* Main Content Area */
+.explore-main-area {
   flex: 1;
   position: relative;
   background: var(--background-dark);
   overflow: hidden;
+}
+
+.explore-main-area.map-view {
+  /* Map view specific styles */
+}
+
+.explore-main-area.list-view {
+  /* List view specific styles */
+  overflow-y: auto;
 }
 
 .map-container {
@@ -791,11 +815,11 @@
 }
 
 /* View Toggle */
-.view-toggle {
+.view-toggle-group {
   display: flex;
   gap: 0.5rem;
-  margin-top: clamp(1rem, 3vw, 1.5rem);
-  border-radius: 8px;
+  margin-top: 0.5rem;
+  border-radius: 0.5rem;
   background: var(--surface-dark);
   border: 1px solid var(--border-surface);
   padding: 0.25rem;
@@ -803,20 +827,24 @@
 }
 
 .view-toggle-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
   border: none;
   background: transparent;
-  color: var(--text-muted);
-  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  color: var(--secondary-text);
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  min-width: 60px;
+  gap: 0.375rem;
+  min-width: auto;
+}
+
+.view-toggle-btn .material-symbols-outlined {
+  font-size: 1.125rem;
 }
 
 .view-toggle-btn:hover {

@@ -72,6 +72,8 @@ export const GET_PROBLEM_DETAIL = gql`
       }
       tickCount
       avgRating
+      videoLinks
+      externalLinks
     }
   }
 `;
@@ -261,6 +263,19 @@ export const CREATE_COMMENT = gql`
         id
         name
       }
+    }
+  }
+`;
+
+/**
+ * Update video links for a boulder problem
+ */
+export const UPDATE_PROBLEM_VIDEO_LINKS = gql`
+  mutation UpdateProblemVideoLinks($id: ID!, $input: UpdateProblemVideoLinksInput!) {
+    updateProblemVideoLinks(id: $id, input: $input) {
+      id
+      name
+      videoLinks
     }
   }
 `;

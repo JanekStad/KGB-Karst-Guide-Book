@@ -152,6 +152,18 @@ async def resolve_avg_rating(problem_obj, info):
     return await dataloaders["avg_rating_by_problem"].load(str(problem_obj.id))
 
 
+@problem.field("videoLinks")
+async def resolve_video_links(problem_obj, info):
+    """Resolve video links from the model."""
+    return problem_obj.video_links if problem_obj.video_links else []
+
+
+@problem.field("externalLinks")
+async def resolve_external_links(problem_obj, info):
+    """Resolve external links from the model."""
+    return problem_obj.external_links if problem_obj.external_links else []
+
+
 @area.field("problemCount")
 async def resolve_area_problem_count(area_obj, info):
     def get_count():

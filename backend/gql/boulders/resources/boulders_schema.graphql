@@ -13,6 +13,7 @@ type Mutation {
     updateTick(id: ID!, input: UpdateTickInput!): Tick!
     deleteTick(id: ID!): Boolean!
     createComment(input: CreateCommentInput!): Comment!
+    updateProblemVideoLinks(id: ID!, input: UpdateProblemVideoLinksInput!): BoulderProblem!
 }
 
 schema {

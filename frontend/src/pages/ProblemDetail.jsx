@@ -1,19 +1,21 @@
 import { useMutation, useQuery } from '@apollo/client/react';
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useCallback, useEffect, useState } from 'react';
+import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { Link, useParams } from 'react-router-dom';
 import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import StarRating from '../components/StarRating';
+import UsernameLink from '../components/UsernameLink';
 import { useAuth } from '../contexts/AuthContext';
 import { problemsAPI, ticksAPI } from '../services/api';
 import {
-  CREATE_COMMENT,
-  CREATE_TICK,
-  DELETE_TICK,
-  GET_PROBLEM_DETAIL,
-  UPDATE_TICK
+    CREATE_COMMENT,
+    CREATE_TICK,
+    DELETE_TICK,
+    GET_PROBLEM_DETAIL,
+    UPDATE_PROBLEM_VIDEO_LINKS,
+    UPDATE_TICK
 } from '../services/graphql/queries';
 import './ProblemDetail.css';
 
@@ -27,7 +29,7 @@ L.Icon.Default.mergeOptions({
 
 const ProblemDetail = () => {
   const { id } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [problem, setProblem] = useState(null);
   const [comments, setComments] = useState([]);
   const [isTicked, setIsTicked] = useState(false);
@@ -41,6 +43,11 @@ const ProblemDetail = () => {
   const [problemTicks, setProblemTicks] = useState([]);
   const [loadingTicks, setLoadingTicks] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoFormData, setVideoFormData] = useState({
+    url: '',
+    label: '',
+  });
   const [tickFormData, setTickFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -72,6 +79,10 @@ const ProblemDetail = () => {
   });
 
   const [createCommentMutation] = useMutation(CREATE_COMMENT, {
+    refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
+  });
+
+  const [updateVideoLinksMutation] = useMutation(UPDATE_PROBLEM_VIDEO_LINKS, {
     refetchQueries: [{ query: GET_PROBLEM_DETAIL, variables: { id } }],
   });
 
@@ -129,17 +140,33 @@ const ProblemDetail = () => {
       console.log('✅ GraphQL data received:', problemData);
       
       // Helper to safely parse JSON strings
-      const parseJson = (jsonString) => {
-        if (!jsonString) return {};
+      const parseJson = (jsonString, defaultValue = {}) => {
+        if (!jsonString) return defaultValue;
         if (typeof jsonString === 'string') {
           try {
             return JSON.parse(jsonString);
           } catch (e) {
             console.warn('Failed to parse JSON:', e);
-            return {};
+            return defaultValue;
           }
         }
         return jsonString;
+      };
+      
+      // Helper to parse JSON array strings
+      const parseJsonArray = (jsonString) => {
+        if (!jsonString) return [];
+        if (typeof jsonString === 'string') {
+          try {
+            const parsed = JSON.parse(jsonString);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (e) {
+            console.warn('Failed to parse JSON array:', e);
+            return [];
+          }
+        }
+        // If already an array, return it
+        return Array.isArray(jsonString) ? jsonString : [];
       };
       
       // Map GraphQL response to component state
@@ -154,7 +181,9 @@ const ProblemDetail = () => {
         wall: problemData.wall?.id,
         author_username: problemData.author?.username,
         average_rating: problemData.avgRating || problemData.rating,
-        // Images and video/external links not in GraphQL yet - will fetch separately if needed
+        // Parse GraphQL JSONString fields (externalLinks and videoLinks are JSONString types)
+        video_links: parseJsonArray(problemData.videoLinks),
+        external_links: parseJsonArray(problemData.externalLinks),
       });
       
       // Set comments from GraphQL
@@ -194,18 +223,12 @@ const ProblemDetail = () => {
   }, [graphqlLoading, graphqlError]);
 
   // Fallback: Fetch images separately if not in GraphQL (for now)
+  // Note: video_links and external_links are now handled by GraphQL
   const fetchProblemImages = async () => {
     try {
       const response = await problemsAPI.get(id);
       if (response.data?.images) {
         setProblem(prev => ({ ...prev, images: response.data.images }));
-      }
-      // Also get video_links and external_links if not in GraphQL
-      if (response.data?.video_links) {
-        setProblem(prev => ({ ...prev, video_links: response.data.video_links }));
-      }
-      if (response.data?.external_links) {
-        setProblem(prev => ({ ...prev, external_links: response.data.external_links }));
       }
     } catch (err) {
       console.error('Failed to fetch additional problem data:', err);
@@ -213,7 +236,9 @@ const ProblemDetail = () => {
   };
 
   useEffect(() => {
-    if (problemData && (!problemData.images || !problemData.video_links || !problemData.external_links)) {
+    // Only fetch images if not available in GraphQL response
+    // video_links and external_links are now in GraphQL, so we only need to fetch images
+    if (problemData && !problemData.images) {
       fetchProblemImages();
     }
   }, [problemData, id]);
@@ -316,6 +341,76 @@ const ProblemDetail = () => {
     }
   };
 
+  const handleVideoLinkSubmit = async (e) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      alert('Please login to add video links');
+      return;
+    }
+
+    if (!videoFormData.url.trim()) {
+      alert('Please enter a video URL');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      // Get current video links and normalize them to objects
+      const currentVideoLinks = problem?.video_links || [];
+      const normalizedVideoLinks = currentVideoLinks.map((video) => {
+        // If it's already an object with url and label, use it as is
+        if (typeof video === 'object' && video !== null && video.url) {
+          return {
+            url: video.url,
+            label: video.label || 'Beta Video',
+          };
+        }
+        // If it's a string, convert it to an object
+        if (typeof video === 'string') {
+          return {
+            url: video,
+            label: 'Beta Video',
+          };
+        }
+        // Fallback for any other format
+        return {
+          url: video?.url || video?.link || String(video),
+          label: video?.label || video?.title || 'Beta Video',
+        };
+      });
+      
+      // Add new video link
+      const newVideoLink = {
+        url: videoFormData.url.trim(),
+        label: videoFormData.label.trim() || 'Beta Video',
+      };
+      
+      const updatedVideoLinks = [...normalizedVideoLinks, newVideoLink];
+
+      await updateVideoLinksMutation({
+        variables: {
+          id: id,
+          input: {
+            videoLinks: updatedVideoLinks,
+          },
+        },
+      });
+      
+      // Reset form
+      setVideoFormData({ url: '', label: '' });
+      setShowVideoModal(false);
+      console.log('✅ Video link added via GraphQL');
+      // GraphQL mutation will automatically refetch via refetchQueries
+    } catch (err) {
+      console.error('Failed to add video link:', err);
+      const errorMessage = err.graphQLErrors?.[0]?.message || err.message || 'Failed to add video link';
+      alert(`Failed to add video link: ${errorMessage}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Helper function to extract video ID and create embed
   const getVideoEmbed = (url) => {
     if (!url) return null;
@@ -368,6 +463,72 @@ const ProblemDetail = () => {
     return `${Math.abs(latNum).toFixed(4)}° ${latDir}, ${Math.abs(lngNum).toFixed(4)}° ${lngDir}`;
   };
 
+  // Helper to get video thumbnail from URL
+  const getVideoThumbnail = (url) => {
+    if (!url) return null;
+    
+    // YouTube
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const youtubeMatch = url.match(youtubeRegex);
+    if (youtubeMatch) {
+      const videoId = youtubeMatch[1];
+      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+    }
+    
+    // Vimeo
+    const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+    const vimeoMatch = url.match(vimeoRegex);
+    if (vimeoMatch) {
+      const videoId = vimeoMatch[1];
+      // Vimeo requires API call for thumbnail, using placeholder for now
+      return null;
+    }
+    
+    return null;
+  };
+
+  // Helper to get external link icon based on label/URL
+  const getExternalLinkIcon = (label, url) => {
+    const lowerLabel = label?.toLowerCase() || '';
+    const lowerUrl = url?.toLowerCase() || '';
+    
+    if (lowerLabel.includes('mountain project') || lowerUrl.includes('mountainproject')) {
+      return 'landscape';
+    }
+    if (lowerLabel.includes('8a') || lowerUrl.includes('8a.nu')) {
+      return 'history_edu';
+    }
+    if (lowerUrl.includes('lezec')) {
+      return 'link';
+    }
+    return 'link';
+  };
+
+  // Helper to get external link color class
+  const getExternalLinkColor = (label, url) => {
+    const lowerLabel = label?.toLowerCase() || '';
+    const lowerUrl = url?.toLowerCase() || '';
+    
+    if (lowerLabel.includes('mountain project') || lowerUrl.includes('mountainproject')) {
+      return 'external-link-blue';
+    }
+    if (lowerLabel.includes('8a') || lowerUrl.includes('8a.nu')) {
+      return 'external-link-orange';
+    }
+    return 'external-link-default';
+  };
+
+  // Helper to get initials from username
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   // Get coordinates from sector
   const coordinates = problem?.sector_detail?.latitude && problem?.sector_detail?.longitude
     ? {
@@ -404,7 +565,7 @@ const ProblemDetail = () => {
 
   if (loading) {
     return (
-      <div className="problem-detail-page">
+      <div className="problem-detail-page" data-theme="dark">
         <div className="loading">Loading problem details...</div>
       </div>
     );
@@ -412,14 +573,14 @@ const ProblemDetail = () => {
 
   if (error || !problem) {
     return (
-      <div className="problem-detail-page">
+      <div className="problem-detail-page" data-theme="dark">
         <div className="error">{error || 'Problem not found'}</div>
       </div>
     );
   }
 
   return (
-    <div className="problem-detail-page">
+    <div className="problem-detail-page" data-theme="dark">
       {/* Breadcrumbs */}
       <div className="breadcrumbs">
         {breadcrumbs.map((crumb, index) => (
@@ -527,6 +688,85 @@ const ProblemDetail = () => {
               </div>
             </div>
           )}
+
+          {/* Beta Videos Section */}
+          {((problem?.video_links && Array.isArray(problem.video_links) && problem.video_links.length > 0) || isAuthenticated) && (
+            <div className="videos-section">
+              <div className="videos-header">
+                <h3 className="videos-title">
+                  <span className="material-symbols-outlined videos-icon">play_circle</span>
+                  Beta Videos
+                </h3>
+                {isAuthenticated && (
+                  <button 
+                    className="add-video-btn"
+                    onClick={() => setShowVideoModal(true)}
+                  >
+                    Add Video <span className="material-symbols-outlined">add_circle</span>
+                  </button>
+                )}
+              </div>
+              {problem?.video_links && Array.isArray(problem.video_links) && problem.video_links.length > 0 && (
+                <div className="videos-grid">
+                  {problem.video_links
+                    .map((video, index) => {
+                    // Handle both string URLs and object format {url, label}
+                    const videoUrl = typeof video === 'string' ? video : (video?.url || video?.link || '');
+                    const videoLabel = typeof video === 'string' ? 'Beta Video' : (video?.label || video?.title || 'Beta Video');
+                    
+                    if (!videoUrl) {
+                      console.warn('Video link missing URL:', video);
+                      return null;
+                    }
+                    
+                    const thumbnail = getVideoThumbnail(videoUrl);
+                    return (
+                      <div
+                        key={index}
+                        className="video-card"
+                        onClick={() => {
+                          // Open video in modal or new tab
+                          window.open(videoUrl, '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        <div className="video-thumbnail-container">
+                          {thumbnail ? (
+                            <div
+                              className="video-thumbnail"
+                              style={{ backgroundImage: `url(${thumbnail})` }}
+                            />
+                          ) : (
+                            <div className="video-thumbnail video-thumbnail-placeholder">
+                              <span className="material-symbols-outlined">play_circle</span>
+                            </div>
+                          )}
+                          <div className="video-play-overlay">
+                            <div className="video-play-button">
+                              <span className="material-symbols-outlined">play_arrow</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="video-info-overlay">
+                          <p className="video-title">{videoLabel}</p>
+                          <div className="video-meta">
+                            <span className="video-author">Beta Video</span>
+                            <span className="video-dot">•</span>
+                            <span className="video-duration">Beta</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                    })
+                    .filter(Boolean)}
+                </div>
+              )}
+              {(!problem?.video_links || !Array.isArray(problem.video_links) || problem.video_links.length === 0) && isAuthenticated && (
+                <div className="no-videos-message">
+                  <p>No videos yet. Be the first to add one!</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN (Data & Comments) */}
@@ -534,11 +774,10 @@ const ProblemDetail = () => {
           {/* Header Info */}
           <div className="problem-header-info">
             <div className="problem-title-row">
-              <h1 className="problem-title">{problem.name}</h1>
-              <div className="problem-grade-badge">
-                <span className="grade-main">{problem.grade}</span>
-                <span className="grade-alt">{problem.grade}</span>
-              </div>
+              <h1 className="problem-title">
+                {problem.name}
+                <span className="problem-grade-inline">{problem.grade}</span>
+              </h1>
             </div>
             
             {/* Tags - placeholder for future implementation */}
@@ -627,6 +866,68 @@ const ProblemDetail = () => {
             </div>
           )}
 
+          {/* External Resources Section */}
+          {problem?.external_links && Array.isArray(problem.external_links) && problem.external_links.length > 0 && (
+            <div className="external-resources-section">
+              <h3 className="external-resources-title">
+                <span className="material-symbols-outlined external-resources-icon">link</span>
+                External Resources
+              </h3>
+              <div className="external-links-list">
+                {problem.external_links.map((link, index) => {
+                  // Ensure link has required properties
+                  if (!link || !link.url) {
+                    console.warn('Invalid external link:', link);
+                    return null;
+                  }
+                  
+                  // Extract a better label from URL if label is missing or invalid
+                  const getLinkLabel = () => {
+                    if (link.label && link.label.trim() && !link.label.match(/^ROCK_/i)) {
+                      return link.label;
+                    }
+                    // Try to extract domain from URL
+                    try {
+                      const urlObj = new URL(link.url);
+                      const hostname = urlObj.hostname.replace('www.', '');
+                      return hostname.split('.')[0] || 'External Link';
+                    } catch (e) {
+                      return 'External Link';
+                    }
+                  };
+                  
+                  const linkLabel = getLinkLabel();
+                  const linkUrl = link.url;
+                  
+                  return (
+                    <a
+                      key={index}
+                      href={linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="external-link-item"
+                    >
+                      <div className="external-link-content">
+                        <div className={`external-link-icon ${getExternalLinkColor(linkLabel, linkUrl)}`}>
+                          <span className="material-symbols-outlined">
+                            {getExternalLinkIcon(linkLabel, linkUrl)}
+                          </span>
+                        </div>
+                        <div className="external-link-text">
+                          <p className="external-link-title">{linkLabel}</p>
+                          <p className="external-link-description">
+                            {link.description || 'View external resource'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined external-link-arrow">open_in_new</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Statistics Section - Integrated */}
           {statistics && statistics.total_ticks > 0 && (
             <div className="statistics-section-integrated">
@@ -708,7 +1009,9 @@ const ProblemDetail = () => {
             {/* Comment Input */}
             {isAuthenticated ? (
               <form onSubmit={handleCommentSubmit} className="comment-input-section">
-                <div className="comment-avatar-placeholder"></div>
+                <div className="comment-avatar-placeholder">
+                  {getInitials(user?.username || 'U')}
+                </div>
                 <div className="comment-input-wrapper">
                   <textarea
                     value={newComment}
@@ -741,10 +1044,16 @@ const ProblemDetail = () => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="comment-item">
-                    <div className="comment-avatar-placeholder"></div>
+                    <div className="comment-avatar-placeholder">
+                      {getInitials(comment.user?.username || 'A')}
+                    </div>
                     <div className="comment-content-wrapper">
                       <div className="comment-header-new">
-                        <span className="comment-author">{comment.user?.username || 'Anonymous'}</span>
+                        <UsernameLink 
+                          username={comment.user?.username} 
+                          userId={comment.user?.id}
+                          className="comment-author"
+                        />
                         <span className="comment-date-new">
                           {(() => {
                             const date = new Date(comment.created_at);
@@ -886,6 +1195,62 @@ const ProblemDetail = () => {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   {isTicked ? 'Update Tick' : 'Add Tick'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Video Link Modal */}
+      {showVideoModal && (
+        <div className="modal-overlay" onClick={() => setShowVideoModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Add Video Link</h2>
+              <button className="modal-close" onClick={() => setShowVideoModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleVideoLinkSubmit} className="tick-form">
+              <div className="form-group">
+                <label htmlFor="video-url">Video URL:</label>
+                <input
+                  type="url"
+                  id="video-url"
+                  value={videoFormData.url}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, url: e.target.value })}
+                  placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                  required
+                />
+                <small>Supports YouTube and Vimeo links</small>
+              </div>
+              <div className="form-group">
+                <label htmlFor="video-label">Label (Optional):</label>
+                <input
+                  type="text"
+                  id="video-label"
+                  value={videoFormData.label}
+                  onChange={(e) => setVideoFormData({ ...videoFormData, label: e.target.value })}
+                  placeholder="e.g., Send Video, Beta Video, etc."
+                />
+                <small>Optional label for the video (defaults to "Beta Video")</small>
+              </div>
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => {
+                    setShowVideoModal(false);
+                    setVideoFormData({ url: '', label: '' });
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={submitting || !videoFormData.url.trim()}
+                >
+                  {submitting ? 'Adding...' : 'Add Video'}
                 </button>
               </div>
             </form>

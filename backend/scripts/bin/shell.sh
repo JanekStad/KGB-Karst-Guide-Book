@@ -2,7 +2,9 @@
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+# Navigate to backend directory (two levels up from scripts/bin/)
+BACKEND_DIR="$( cd "$SCRIPT_DIR/../.." && pwd )"
+cd "$BACKEND_DIR"
 
 # Activate virtual environment
 if [ -f "venv/bin/activate" ]; then

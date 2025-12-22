@@ -726,10 +726,12 @@
 .grade-cell {
   font-weight: 700;
   color: var(--primary-cyan);
+  padding-right: 0.5rem !important;
 }
 
 .route-cell {
   white-space: nowrap;
+  padding-left: 0.2rem !important;
 }
 
 .route-cell-content {

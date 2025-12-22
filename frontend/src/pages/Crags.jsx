@@ -1,30 +1,56 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AlternativeListView from '../components/AlternativeListView';
 import CragMap from '../components/CragMap';
-import { sectorsAPI, areasAPI } from '../services/api';
-import { normalizeString } from '../utils/normalize';
+import { areasAPI, problemsAPI, sectorsAPI } from '../services/api';
 import './Crags.css';
 
 const Crags = () => {
   const navigate = useNavigate();
   const [sectors, setSectors] = useState([]);
+  const [problems, setProblems] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState('any');
   const [selectedSector, setSelectedSector] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [filterType, setFilterType] = useState('all'); // 'all', 'sector', or 'problem'
+  const [viewMode, setViewMode] = useState('map'); // 'map' or 'list'
   const sidebarRef = useRef(null);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     fetchAreas();
-    fetchSectors();
+    fetchSectors(true); // Pass true to indicate initial load
+    fetchProblems();
+    // Mark initial mount as complete after a short delay to allow initial load to start
+    const timer = setTimeout(() => {
+      isInitialMount.current = false;
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
+  // Debounce search to avoid too many API calls
   useEffect(() => {
-    fetchSectors();
-  }, [selectedArea]);
+    // Skip debounce on initial mount (handled by initial useEffect)
+    if (isInitialMount.current) {
+      return;
+    }
+
+    setIsSearching(true);
+    const timeoutId = setTimeout(() => {
+      fetchSectors(false); // Pass false to indicate this is a search, not initial load
+      fetchProblems();
+    }, 800); // 800ms debounce - allows user to finish typing
+
+    return () => {
+      clearTimeout(timeoutId);
+      setIsSearching(false);
+    };
+  }, [selectedArea, searchTerm]);
 
   const fetchAreas = async () => {
     try {
@@ -38,31 +64,56 @@ const Crags = () => {
     }
   };
 
-  const fetchSectors = async () => {
+  const fetchSectors = async (isInitialLoad = false) => {
     try {
       console.log('📡 Fetching sectors for explore...');
-      setLoading(true);
+      if (isInitialLoad) {
+        setLoading(true);
+      }
       const params = {
-        // Note: We don't send search to backend since it may not handle diacritics
-        // Client-side normalization handles both case and diacritics
         ...(selectedArea !== 'any' ? { area: selectedArea } : {}),
+        ...(searchTerm ? { search: searchTerm } : {}),
       };
+      
       const response = await sectorsAPI.list(params);
       console.log('✅ Sectors fetched successfully:', response.data);
       const fetchedSectors = response.data.results || response.data;
-      setSectors(fetchedSectors);
+      setSectors(fetchedSectors || []);
+      
       setError(null);
     } catch (err) {
       console.error('❌ Failed to fetch sectors:', err);
       setError('Failed to load sectors. Please try again.');
     } finally {
       setLoading(false);
+      setIsSearching(false);
+    }
+  };
+
+  const fetchProblems = async () => {
+    try {
+      console.log('📡 Fetching problems for explore...');
+      const params = {
+        ...(selectedArea !== 'any' ? { area: selectedArea } : {}),
+        ...(searchTerm ? { search: searchTerm } : {}),
+      };
+      
+      const response = await problemsAPI.list(params);
+      console.log('✅ Problems fetched successfully:', response.data);
+      const fetchedProblems = response.data.results || response.data;
+      setProblems(fetchedProblems || []);
+      
+      setError(null);
+    } catch (err) {
+      console.error('❌ Failed to fetch problems:', err);
+      // Don't set error for problems, just log it
     }
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
     fetchSectors();
+    fetchProblems();
   };
 
   const handleSectorSelect = (sector) => {
@@ -77,39 +128,47 @@ const Crags = () => {
     navigate(`/sectors/${sector.id}`);
   };
 
-  // Filter sectors with client-side normalization for diacritics-insensitive search
-  // This complements the server-side search which may not handle diacritics
-  const filteredSectors = useMemo(() => {
-    if (!searchTerm) {
-      return sectors;
+  const handleProblemClick = (problem) => {
+    navigate(`/problems/${problem.id}`);
+  };
+
+  // Combine sectors and problems for display
+  // Backend now handles diacritic-insensitive search, so no client-side filtering needed
+  const allItems = useMemo(() => {
+    const sectorItems = sectors.map(sector => ({
+      ...sector,
+      type: 'sector',
+      displayName: sector.name,
+      location: sector.area_name || 'Unknown Location',
+      problemCount: sector.problem_count || 0,
+    }));
+    
+    const problemItems = problems.map(problem => ({
+      ...problem,
+      type: 'problem',
+      displayName: problem.name,
+      location: problem.area_name || 'Unknown Location',
+      grade: problem.grade,
+    }));
+    
+    // Filter based on selected filter type
+    if (filterType === 'sector') {
+      return sectorItems;
+    } else if (filterType === 'problem') {
+      return problemItems;
+    } else {
+      // 'all' - return both sectors and problems
+      return [...sectorItems, ...problemItems];
     }
-    
-    const normalizedSearch = normalizeString(searchTerm);
-    
-    return sectors.filter(sector => {
-      const normalizedSectorName = normalizeString(sector.name);
-      const normalizedAreaName = normalizeString(sector.area_name || '');
-      
-      return (
-        normalizedSectorName.includes(normalizedSearch) ||
-        normalizedAreaName.includes(normalizedSearch)
-      );
-    });
-  }, [sectors, searchTerm]);
+  }, [sectors, problems, filterType]);
 
   // Get sectors with coordinates for map
   const sectorsWithCoords = useMemo(() => {
-    return filteredSectors.filter(sector => 
+    return sectors.filter(sector => 
       sector.latitude && sector.longitude
     );
-  }, [filteredSectors]);
+  }, [sectors]);
 
-  const getSectorLocation = (sector) => {
-    if (sector.area_name) {
-      return sector.area_name;
-    }
-    return 'Unknown Location';
-  };
 
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
@@ -128,7 +187,7 @@ const Crags = () => {
   if (loading) {
     return (
       <div className="explore-page">
-        <div className="loading">Loading sectors...</div>
+        <div className="loading">Loading...</div>
       </div>
     );
   }
@@ -137,9 +196,9 @@ const Crags = () => {
     return (
       <div className="explore-page">
         <div className="error">
-          <h3>Error loading sectors</h3>
+          <h3>Error loading data</h3>
           <p>{error}</p>
-          <button onClick={fetchSectors} className="btn btn-primary">
+          <button onClick={() => { fetchSectors(); fetchProblems(); }} className="btn btn-primary">
             Retry
           </button>
         </div>
@@ -202,82 +261,162 @@ const Crags = () => {
 
             {/* Filter Chips */}
             <div className="filter-chips">
-              <button className="filter-chip active">Nearby</button>
-              <button className="filter-chip">All</button>
+              <button 
+                className={`filter-chip ${filterType === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterType('all')}
+              >
+                All
+              </button>
+              <button 
+                className={`filter-chip ${filterType === 'sector' ? 'active' : ''}`}
+                onClick={() => setFilterType('sector')}
+              >
+                Sector
+              </button>
+              <button 
+                className={`filter-chip ${filterType === 'problem' ? 'active' : ''}`}
+                onClick={() => setFilterType('problem')}
+              >
+                Problem
+              </button>
+            </div>
+
+            {/* View Toggle */}
+            <div className="view-toggle-group">
+              <button
+                className={`view-toggle-btn ${viewMode === 'map' ? 'active' : ''}`}
+                onClick={() => setViewMode('map')}
+                title="Map View"
+              >
+                <span className="material-symbols-outlined">map</span>
+                <span className="hidden-mobile">Map</span>
+              </button>
+              <button
+                className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title="List View"
+              >
+                <span className="material-symbols-outlined">view_list</span>
+                <span className="hidden-mobile">List</span>
+              </button>
             </div>
           </div>
 
           {/* List View */}
           <div className="sidebar-list">
             <p className="sidebar-list-header">
-              Visible Sectors ({filteredSectors.length})
+              Results ({allItems.length})
             </p>
             <div className="crag-list">
-              {filteredSectors.length === 0 ? (
+              {allItems.length === 0 ? (
                 <div className="empty-state">
-                  <p>No sectors found.</p>
+                  <p>No results found.</p>
                 </div>
               ) : (
-                filteredSectors.map((sector) => {
-                  return (
-                    <div
-                      key={sector.id}
-                      className={`crag-list-item ${selectedSector?.id === sector.id ? 'active' : ''}`}
-                      onClick={() => {
-                        handleSectorSelect(sector);
-                        handleSectorClick(sector);
-                      }}
-                    >
-                      <div className="crag-list-image">
-                        <div className="crag-list-image-placeholder"></div>
-                        <div className="grade-badge-small">
-                          {sector.problem_count || 0}
-                        </div>
-                      </div>
-                      <div className="crag-list-content">
-                        <div className="crag-list-header">
-                          <p className="crag-list-name">{sector.name}</p>
-                        </div>
-                        <p className="crag-list-location">{getSectorLocation(sector)}</p>
-                        {sector.problem_count !== undefined && (
-                          <div className="crag-list-rating">
-                            <span className="rating-count">{sector.problem_count} problem{sector.problem_count !== 1 ? 's' : ''}</span>
+                allItems.map((item) => {
+                  if (item.type === 'sector') {
+                    return (
+                      <div
+                        key={`sector-${item.id}`}
+                        className={`crag-list-item ${selectedSector?.id === item.id ? 'active' : ''}`}
+                        onClick={() => {
+                          handleSectorSelect(item);
+                          handleSectorClick(item);
+                        }}
+                      >
+                        <div className="crag-list-image">
+                          <div className="crag-list-image-placeholder"></div>
+                          <div className="grade-badge-small">
+                            {item.problemCount}
                           </div>
-                        )}
+                        </div>
+                        <div className="crag-list-content">
+                          <div className="crag-list-header">
+                            <p className="crag-list-name">{item.displayName}</p>
+                            <span className="item-type-badge">Sector</span>
+                          </div>
+                          <p className="crag-list-location">{item.location}</p>
+                          {item.problemCount !== undefined && (
+                            <div className="crag-list-rating">
+                              <span className="rating-count">{item.problemCount} problem{item.problemCount !== 1 ? 's' : ''}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
+                    );
+                  } else {
+                    return (
+                      <div
+                        key={`problem-${item.id}`}
+                        className="crag-list-item"
+                        onClick={() => handleProblemClick(item)}
+                      >
+                        <div className="crag-list-image">
+                          <div className="crag-list-image-placeholder"></div>
+                          <div className="grade-badge-small">
+                            {item.grade}
+                          </div>
+                        </div>
+                        <div className="crag-list-content">
+                          <div className="crag-list-header">
+                            <p className="crag-list-name">{item.displayName}</p>
+                            <span className="item-type-badge">Problem</span>
+                          </div>
+                          <p className="crag-list-location">{item.location}</p>
+                          {item.grade && (
+                            <div className="crag-list-rating">
+                              <span className="rating-count">Grade: {item.grade}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
                 })
               )}
             </div>
           </div>
         </aside>
 
-        {/* Map Area */}
-        <main className="explore-map-area">
-          {/* Map */}
-          <div className="map-container">
-            <CragMap 
-              sectors={sectorsWithCoords}
-              selectedSector={selectedSector}
-              onSectorSelect={handleSectorSelect}
-            />
-          </div>
+        {/* Main Content Area */}
+        <main className={`explore-main-area ${viewMode === 'list' ? 'list-view' : 'map-view'}`}>
+          {viewMode === 'map' ? (
+            <>
+              {/* Map */}
+              <div className="map-container">
+                <CragMap 
+                  sectors={sectorsWithCoords}
+                  selectedSector={selectedSector}
+                  onSectorSelect={handleSectorSelect}
+                />
+              </div>
 
-          {/* Map Controls */}
-          <div className="map-controls">
-            <button className="map-control-btn" title="Locate me">
-              <span className="material-symbols-outlined">my_location</span>
-            </button>
-            <div className="map-zoom-controls">
-              <button className="map-control-btn" title="Zoom in">
-                <span className="material-symbols-outlined">add</span>
-              </button>
-              <button className="map-control-btn" title="Zoom out">
-                <span className="material-symbols-outlined">remove</span>
-              </button>
-            </div>
-          </div>
+              {/* Map Controls */}
+              <div className="map-controls">
+                <button className="map-control-btn" title="Locate me">
+                  <span className="material-symbols-outlined">my_location</span>
+                </button>
+                <div className="map-zoom-controls">
+                  <button className="map-control-btn" title="Zoom in">
+                    <span className="material-symbols-outlined">add</span>
+                  </button>
+                  <button className="map-control-btn" title="Zoom out">
+                    <span className="material-symbols-outlined">remove</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <AlternativeListView
+              sectors={sectors}
+              problems={problems}
+              areas={areas}
+              selectedArea={selectedArea}
+              searchTerm={searchTerm}
+              onAreaChange={setSelectedArea}
+              onSwitchToMapView={() => setViewMode('map')}
+            />
+          )}
 
           {/* Mobile Menu Toggle */}
           <button 

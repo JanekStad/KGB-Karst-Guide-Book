@@ -1,0 +1,11 @@
+"""Input types for boulder problem mutations"""
+
+input UpdateProblemVideoLinksInput {
+    videoLinks: [VideoLinkInput!]!
+}
+
+input VideoLinkInput {
+    label: String
+    url: String!
+}
+

@@ -11,6 +11,8 @@ from .serializers import (
     UserRegistrationSerializer,
     UserProfileSerializer,
 )
+from lists.serializers import TickSerializer
+from lists.models import Tick
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -28,6 +30,37 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(
             {"detail": "Profile not found"}, status=status.HTTP_404_NOT_FOUND
         )
+
+    @action(detail=True, methods=["get"], permission_classes=[AllowAny])
+    def ticks(self, request, pk=None):
+        """
+        Get user's ticks (read-only, public access).
+        Similar to my_ticks but for any user by ID.
+        """
+        user = self.get_object()
+        
+        # Get user's ticks with optimized queries
+        ticks = (
+            Tick.objects.filter(user=user)
+            .select_related(
+                "user",
+                "user__profile",
+                "problem",
+                "problem__area",
+                "problem__area__city",
+            )
+            .prefetch_related("problem__sector", "problem__wall")
+            .order_by("-date", "-created_at")
+        )
+        
+        # Serialize user info and ticks
+        user_serializer = UserSerializer(user)
+        ticks_serializer = TickSerializer(ticks, many=True)
+        
+        return Response({
+            "user": user_serializer.data,
+            "ticks": ticks_serializer.data,
+        })
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def register(self, request):

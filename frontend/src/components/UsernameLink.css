@@ -1,0 +1,16 @@
+.username-link {
+  color: var(--primary-color, #4a90e2);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.username-link:hover {
+  color: var(--primary-hover-color, #357abd);
+  text-decoration: underline;
+}
+
+.username-text {
+  color: inherit;
+}
+

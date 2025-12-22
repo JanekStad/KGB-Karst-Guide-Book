@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ticksAPI } from '../services/api';
+import UsernameLink from './UsernameLink';
 import './DashboardCard.css';
 import './RecentActivityFeed.css';
 
@@ -77,7 +78,12 @@ const RecentActivityFeed = ({ limit = 5 }) => {
               
               return (
                 <tr key={tick.id} className="activity-row">
-                  <td className="activity-username">{username}</td>
+                  <td className="activity-username">
+                    <UsernameLink 
+                      username={username} 
+                      userId={tick.user?.id}
+                    />
+                  </td>
                   <td>
                     <Link to={`/problems/${problemId}`} className="activity-problem">
                       {problemName}

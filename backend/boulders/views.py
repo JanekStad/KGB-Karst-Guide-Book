@@ -2,9 +2,10 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Count, Avg
+from django.db.models import Count, Avg, Q
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
 from .mixins import CreatedByMixin, ListDetailSerializerMixin
+from .filters import NormalizedSearchFilter
 from .serializers import (
     CitySerializer,
     CityListSerializer,
@@ -25,7 +26,7 @@ class CityViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
     list_serializer_class = CityListSerializer
     filter_backends = [
         DjangoFilterBackend,
-        filters.SearchFilter,
+        NormalizedSearchFilter,
         filters.OrderingFilter,
     ]
     search_fields = ["name", "description"]
@@ -52,7 +53,7 @@ class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
     list_serializer_class = AreaListSerializer
     filter_backends = [
         DjangoFilterBackend,
-        filters.SearchFilter,
+        NormalizedSearchFilter,
         filters.OrderingFilter,
     ]
     filterset_fields = ["city"]
@@ -70,11 +71,13 @@ class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
-        """Get all problems for a specific area"""
+        """Get all problems for a specific area (excluding secret sectors)"""
         area = self.get_object()
         # Optimize queryset to avoid N+1 queries
+        # Filter out problems from secret sectors
         problems = (
             area.problems.filter(area__is_secret=False)
+            .filter(Q(sector__isnull=True) | Q(sector__is_secret=False))
             .select_related("area", "sector", "wall", "author", "created_by")
             .prefetch_related("ticks")
             .annotate(
@@ -100,7 +103,7 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
     list_serializer_class = SectorListSerializer
     filter_backends = [
         DjangoFilterBackend,
-        filters.SearchFilter,
+        NormalizedSearchFilter,
         filters.OrderingFilter,
     ]
     filterset_fields = ["area"]
@@ -118,11 +121,13 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
-        """Get all problems for a specific sector"""
+        """Get all problems for a specific sector (excluding secret sectors)"""
         sector = self.get_object()
         # Optimize queryset to avoid N+1 queries
+        # Filter out problems from secret sectors
         problems = (
             sector.problems.filter(area__is_secret=False)
+            .filter(Q(sector__isnull=True) | Q(sector__is_secret=False))
             .select_related("area", "sector", "wall", "author", "created_by")
             .prefetch_related("ticks")
             .annotate(
@@ -147,7 +152,7 @@ class WallViewSet(CreatedByMixin, viewsets.ModelViewSet):
     serializer_class = WallSerializer
     filter_backends = [
         DjangoFilterBackend,
-        filters.SearchFilter,
+        NormalizedSearchFilter,
         filters.OrderingFilter,
     ]
     filterset_fields = ["sector"]
@@ -165,11 +170,13 @@ class WallViewSet(CreatedByMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def problems(self, request, pk=None):
-        """Get all problems for a specific wall"""
+        """Get all problems for a specific wall (excluding secret sectors)"""
         wall = self.get_object()
         # Optimize queryset to avoid N+1 queries
+        # Filter out problems from secret sectors
         problems = (
             wall.problems.filter(area__is_secret=False)
+            .filter(Q(sector__isnull=True) | Q(sector__is_secret=False))
             .select_related("area", "sector", "wall", "author", "created_by")
             .prefetch_related("ticks")
             .annotate(
@@ -185,7 +192,7 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
     queryset = BoulderProblem.objects.all()
     filter_backends = [
         DjangoFilterBackend,
-        filters.SearchFilter,
+        NormalizedSearchFilter,
         filters.OrderingFilter,
     ]
     filterset_fields = ["area", "sector", "wall", "grade"]
@@ -195,8 +202,13 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        # Filter out problems from secret areas
-        queryset = queryset.filter(area__is_secret=False)
+        # Filter out problems from secret areas and secret sectors
+        # Include problems with no sector (sector__isnull=True) or non-secret sectors
+        queryset = queryset.filter(
+            area__is_secret=False
+        ).filter(
+            Q(sector__isnull=True) | Q(sector__is_secret=False)
+        )
 
         # Annotate aggregations to avoid N+1 queries
         queryset = queryset.annotate(

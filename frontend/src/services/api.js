@@ -198,6 +198,7 @@ export const usersAPI = {
   getProfile: () => api.get('/users/me/'),
   getMyProfile: () => api.get('/profiles/me/'),
   updateProfile: (data) => api.patch('/profiles/me/', data),
+  getUserTicks: (id) => api.get(`/users/${id}/ticks/`),
 };
 
 export default api;
