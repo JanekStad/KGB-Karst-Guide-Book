@@ -2,29 +2,67 @@
 # Code Quality / Formatting Targets
 # ─────────────────────────────────────────────
 
-.PHONY: fmt lint typecheck security audit all
+# Get the directory where this Makefile is located
+ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-# Format using Black + Ruff (auto-fix)
+# Virtual environment paths
+VENV_BIN := $(ROOT_DIR)/backend/venv/bin
+PYTHON := $(VENV_BIN)/python
+BLACK := $(VENV_BIN)/black
+RUFF := $(VENV_BIN)/ruff
+MYPY := $(VENV_BIN)/mypy
+BANDIT := $(VENV_BIN)/bandit
+PIP_AUDIT := $(VENV_BIN)/pip-audit
+
+# Directory paths
+BACKEND_DIR := $(ROOT_DIR)/backend
+FRONTEND_DIR := $(ROOT_DIR)/frontend
+
+.PHONY: fmt lint typecheck security audit all frontend-fmt frontend-lint
+
+# Format: Backend (Black + Ruff) + Frontend (ESLint auto-fix)
 fmt:
-	black backend/
-	ruff check backend/ --fix
+	@echo "=== Running Frontend Formatting (ESLint auto-fix) ==="
+	@cd $(FRONTEND_DIR) && npm run lint:fix || echo "Frontend formatting completed with errors"
+	@echo ""
+	@echo "=== Running Backend Formatting ==="
+	@echo "Running Black..."
+	@$(BLACK) $(BACKEND_DIR)
+	@echo "Running Ruff (auto-fix)..."
+	@$(RUFF) check $(BACKEND_DIR) --fix
+	@echo ""
+	@echo "Formatting completed!"
 
-# Lint using Ruff (no auto-fix)
+# Backend: Lint using Ruff (no auto-fix)
 lint:
-	ruff check backend/
+	@echo "Running Ruff linter..."
+	@$(RUFF) check $(BACKEND_DIR)
 
-# Type checking
+# Backend: Type checking
 typecheck:
-	mypy backend/
+	@echo "Running MyPy type checker..."
+	@$(MYPY) $(BACKEND_DIR)
 
-# Security analysis
+# Backend: Security analysis
 security:
-	bandit -r backend/
+	@echo "Running Bandit security scanner..."
+	@$(BANDIT) -r $(BACKEND_DIR)
 
-# Dependency vulnerability audit
+# Backend: Dependency vulnerability audit
 audit:
-	pip-audit -r backend/requirements.txt
+	@echo "Running pip-audit..."
+	@$(PIP_AUDIT) -r $(BACKEND_DIR)/requirements.txt
+
+# Frontend: Format/Lint fix (auto-fix ESLint errors)
+frontend-fmt:
+	@echo "Running ESLint (auto-fix)..."
+	@cd $(FRONTEND_DIR) && npm run lint:fix
+
+# Frontend: Lint check (no auto-fix)
+frontend-lint:
+	@echo "Running ESLint..."
+	@cd $(FRONTEND_DIR) && npm run lint
 
 # Run everything
-all: fmt lint typecheck security audit
-
+all: fmt lint typecheck security audit frontend-fmt frontend-lint
+	@echo "All checks completed!"
