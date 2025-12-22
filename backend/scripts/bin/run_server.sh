@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Change to the backend directory (where manage.py and venv are located)
+# Script is in backend/scripts/bin/, so go up two levels
+cd "$(dirname "$0")/../.." || exit 1
+
 # Activate virtual environment
 source venv/bin/activate
 

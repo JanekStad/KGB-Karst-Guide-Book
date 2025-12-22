@@ -149,7 +149,7 @@ function SectorLabel({ position, name }) {
   return null;
 }
 
-const CragMap = ({ crags }) => {
+const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect }) => {
   const navigate = useNavigate();
   const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,10 +163,19 @@ const CragMap = ({ crags }) => {
   // Show polygons when zoomed in (zoom level >= 13)
   const showPolygons = zoomLevel >= 13;
 
-  // Fetch sectors when component mounts
+  // Use sectors from props if provided, otherwise fetch
   useEffect(() => {
-    fetchSectors();
-  }, []);
+    if (sectorsProp && sectorsProp.length > 0) {
+      setSectors(sectorsProp);
+      setLoading(false);
+      setShouldFitInitialBounds(true);
+    } else if (!problems || problems.length === 0) {
+      fetchSectors();
+    } else {
+      setLoading(false);
+      setShouldFitInitialBounds(true);
+    }
+  }, [sectorsProp, problems]);
 
   const fetchSectors = async () => {
     try {
@@ -184,19 +193,69 @@ const CragMap = ({ crags }) => {
     }
   };
 
+  // Get coordinates from problem (from sector)
+  const getProblemCoordinates = (problem) => {
+    const sector = problem.sector_detail || problem.sector;
+    if (sector?.latitude && sector?.longitude) {
+      return [parseFloat(sector.latitude), parseFloat(sector.longitude)];
+    }
+    return null;
+  };
+
+  // Filter problems that have coordinates
+  const problemsWithCoords = useMemo(() => {
+    if (!problems || problems.length === 0) return [];
+    return problems.filter(problem => getProblemCoordinates(problem) !== null);
+  }, [problems]);
+
   // Filter sectors that have coordinates (memoized to prevent unnecessary recalculations)
   const sectorsWithCoords = useMemo(
     () => sectors.filter((sector) => sector.latitude && sector.longitude),
     [sectors]
   );
 
+  // Get bounds for problems
+  const problemsBounds = useMemo(() => {
+    if (problemsWithCoords.length === 0) return null;
+    const coords = problemsWithCoords
+      .map(problem => getProblemCoordinates(problem))
+      .filter(coord => coord !== null);
+    if (coords.length === 0) return null;
+    return L.latLngBounds(coords);
+  }, [problemsWithCoords]);
+
   const handleMarkerClick = (sectorId) => {
+    if (onSectorSelect) {
+      const sector = sectorsWithCoords.find(s => s.id === sectorId);
+      if (sector) {
+        onSectorSelect(sector);
+      }
+    }
     navigate(`/sectors/${sectorId}`);
   };
 
   const handlePolygonClick = (sectorId) => {
+    if (onSectorSelect) {
+      const sector = sectorsWithCoords.find(s => s.id === sectorId);
+      if (sector) {
+        onSectorSelect(sector);
+      }
+    }
     navigate(`/sectors/${sectorId}`);
   };
+
+  const handleProblemMarkerClick = (problem) => {
+    if (onProblemSelect) {
+      onProblemSelect(problem);
+    } else {
+      navigate(`/problems/${problem.id}`);
+    }
+  };
+
+  // Determine what to display
+  const hasProblems = problems && problems.length > 0;
+  const hasSectors = sectorsWithCoords.length > 0;
+  const hasData = hasProblems ? problemsWithCoords.length > 0 : hasSectors;
 
   if (loading) {
     return (
@@ -210,10 +269,10 @@ const CragMap = ({ crags }) => {
 
   return (
     <div className="crag-map-container">
-      {sectorsWithCoords.length === 0 ? (
+      {!hasData ? (
         <div className="map-empty-state">
-          <p>No sectors with coordinates available.</p>
-          <p className="map-empty-hint">Add coordinates to sectors to see them on the map.</p>
+          <p>{hasProblems ? 'No problems with coordinates available.' : 'No sectors with coordinates available.'}</p>
+          <p className="map-empty-hint">Add coordinates to see them on the map.</p>
         </div>
       ) : (
         <MapContainer
@@ -226,11 +285,72 @@ const CragMap = ({ crags }) => {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapBounds 
-            sectorsWithCoords={sectorsWithCoords} 
-            shouldFitBounds={shouldFitInitialBounds && !loading}
-          />
+          {hasProblems && problemsWithCoords.length > 0 ? (
+            <MapBounds 
+              sectorsWithCoords={problemsWithCoords
+                .map(p => {
+                  const coords = getProblemCoordinates(p);
+                  return coords ? { latitude: coords[0], longitude: coords[1] } : null;
+                })
+                .filter(c => c !== null)} 
+              shouldFitBounds={shouldFitInitialBounds && !loading}
+            />
+          ) : hasSectors ? (
+            <MapBounds 
+              sectorsWithCoords={sectorsWithCoords} 
+              shouldFitBounds={shouldFitInitialBounds && !loading}
+            />
+          ) : null}
           <ZoomHandler onZoomChange={setZoomLevel} />
+          
+          {/* Render problem markers if using problems */}
+          {hasProblems && problemsWithCoords.map((problem) => {
+            const coords = getProblemCoordinates(problem);
+            if (!coords) return null;
+            const isSelected = selectedProblem?.id === problem.id;
+            
+            // Create custom icon for selected problem with pulse
+            const icon = L.divIcon({
+              className: `problem-marker ${isSelected ? 'marker-pulse' : ''}`,
+              html: `
+                <div class="marker-container">
+                  ${isSelected ? '<div class="marker-pulse-ring"></div>' : ''}
+                  <div class="marker-dot ${isSelected ? 'marker-dot-selected' : ''}"></div>
+                </div>
+              `,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+            });
+            
+            return (
+              <Marker
+                key={problem.id}
+                position={coords}
+                icon={icon}
+                eventHandlers={{
+                  click: () => handleProblemMarkerClick(problem),
+                }}
+              >
+                <Popup>
+                  <div className="map-popup">
+                    <h3>{problem.name}</h3>
+                    <p className="map-popup-area">
+                      {(problem.sector_detail || problem.sector)?.name || problem.area_name || 'Unknown Location'}
+                    </p>
+                    <p className="map-popup-stats">
+                      Grade: {problem.grade || 'N/A'}
+                    </p>
+                    <button
+                      onClick={() => handleProblemMarkerClick(problem)}
+                      className="map-popup-button"
+                    >
+                      View Problem
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
           
           {/* Render polygons when zoomed in */}
           {showPolygons &&
@@ -313,31 +433,49 @@ const CragMap = ({ crags }) => {
           
           {/* Render markers when not zoomed in or as fallback */}
           {!showPolygons &&
-            sectorsWithCoords.map((sector) => (
-              <Marker
-                key={sector.id}
-                position={[parseFloat(sector.latitude), parseFloat(sector.longitude)]}
-                eventHandlers={{
-                  click: () => handleMarkerClick(sector.id),
-                }}
-              >
-                <Popup>
-                  <div className="map-popup">
-                    <h3>{sector.name}</h3>
-                    <p className="map-popup-area">{sector.area_name || 'Unknown Area'}</p>
-                    <p className="map-popup-stats">
-                      {sector.problem_count || 0} problem{(sector.problem_count || 0) !== 1 ? 's' : ''}
-                    </p>
-                    <button
-                      onClick={() => handleMarkerClick(sector.id)}
-                      className="map-popup-button"
-                    >
-                      View Sector
-                    </button>
+            sectorsWithCoords.map((sector) => {
+              const isSelected = selectedSector?.id === sector.id;
+              
+              // Create custom icon for selected sector with pulse
+              const icon = L.divIcon({
+                className: `problem-marker ${isSelected ? 'marker-pulse' : ''}`,
+                html: `
+                  <div class="marker-container">
+                    ${isSelected ? '<div class="marker-pulse-ring"></div>' : ''}
+                    <div class="marker-dot ${isSelected ? 'marker-dot-selected' : ''}"></div>
                   </div>
-                </Popup>
-              </Marker>
-            ))}
+                `,
+                iconSize: [16, 16],
+                iconAnchor: [8, 8],
+              });
+              
+              return (
+                <Marker
+                  key={sector.id}
+                  position={[parseFloat(sector.latitude), parseFloat(sector.longitude)]}
+                  icon={icon}
+                  eventHandlers={{
+                    click: () => handleMarkerClick(sector.id),
+                  }}
+                >
+                  <Popup>
+                    <div className="map-popup">
+                      <h3>{sector.name}</h3>
+                      <p className="map-popup-area">{sector.area_name || 'Unknown Area'}</p>
+                      <p className="map-popup-stats">
+                        {sector.problem_count || 0} problem{(sector.problem_count || 0) !== 1 ? 's' : ''}
+                      </p>
+                      <button
+                        onClick={() => handleMarkerClick(sector.id)}
+                        className="map-popup-button"
+                      >
+                        View Sector
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
         </MapContainer>
       )}
     </div>

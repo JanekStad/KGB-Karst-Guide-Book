@@ -1,6 +1,9 @@
 import { useMutation, useQuery } from '@apollo/client/react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import InteractiveBoulderImage from '../components/InteractiveBoulderImage';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +16,14 @@ import {
   UPDATE_TICK
 } from '../services/graphql/queries';
 import './ProblemDetail.css';
+
+// Fix for default marker icons in react-leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 const ProblemDetail = () => {
   const { id } = useParams();
@@ -29,6 +40,7 @@ const ProblemDetail = () => {
   const [showTickModal, setShowTickModal] = useState(false);
   const [problemTicks, setProblemTicks] = useState([]);
   const [loadingTicks, setLoadingTicks] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [tickFormData, setTickFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -346,6 +358,50 @@ const ProblemDetail = () => {
     return null;
   };
 
+  // Helper to format coordinates
+  const formatCoordinates = (lat, lng) => {
+    if (!lat || !lng) return null;
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    const latDir = latNum >= 0 ? 'N' : 'S';
+    const lngDir = lngNum >= 0 ? 'E' : 'W';
+    return `${Math.abs(latNum).toFixed(4)}° ${latDir}, ${Math.abs(lngNum).toFixed(4)}° ${lngDir}`;
+  };
+
+  // Get coordinates from sector
+  const coordinates = problem?.sector_detail?.latitude && problem?.sector_detail?.longitude
+    ? {
+        lat: parseFloat(problem.sector_detail.latitude),
+        lng: parseFloat(problem.sector_detail.longitude),
+      }
+    : null;
+
+  // Get first ascent info
+  const firstAscent = problem?.author_username || problem?.author_name || null;
+
+  // Get selected image
+  const selectedImage = problem?.images?.[selectedImageIndex] || null;
+  const allImages = problem?.images || [];
+
+  // Build breadcrumbs
+  const breadcrumbs = [];
+  breadcrumbs.push({ label: 'Home', path: '/' });
+  if (problem?.area_detail || problem?.area) {
+    const area = problem.area_detail || problem.area;
+    breadcrumbs.push({ 
+      label: area?.name || `Area #${area?.id || problem.area}`, 
+      path: `/areas/${area?.id || problem.area}` 
+    });
+  }
+  if (problem?.sector_detail || problem?.sector) {
+    const sector = problem.sector_detail || problem.sector;
+    breadcrumbs.push({ 
+      label: sector?.name || `Sector #${sector?.id || problem.sector}`, 
+      path: `/sectors/${sector?.id || problem.sector}` 
+    });
+  }
+  breadcrumbs.push({ label: problem?.name, path: null });
+
   if (loading) {
     return (
       <div className="problem-detail-page">
@@ -364,57 +420,153 @@ const ProblemDetail = () => {
 
   return (
     <div className="problem-detail-page">
-      {(problem.area_detail || problem.area || problem.crag_detail || problem.crag) && (
-        <Link
-          to={`/areas/${(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.id || problem.area || problem.crag}`}
-          className="back-link"
-        >
-          ← Back to Area
-        </Link>
-      )}
-
-      <div className="problem-header">
-        <div className="problem-title-section">
-          <div className="problem-grade-large">{problem.grade}</div>
-          <div>
-            <h1>{problem.name}</h1>
-            {(problem.area_detail || problem.area || problem.crag_detail || problem.crag) && (
-              <p className="crag-link">
-                At{' '}
-                <Link to={`/areas/${(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.id || problem.area || problem.crag}`}>
-                  {(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.name || `Area #${(problem.area_detail || problem.area || problem.crag_detail || problem.crag)?.id || problem.area || problem.crag}`}
-                </Link>
-                {(problem.wall_detail || problem.wall) && (
-                  <span> - {(problem.wall_detail || problem.wall)?.name}</span>
-                )}
-              </p>
+      {/* Breadcrumbs */}
+      <div className="breadcrumbs">
+        {breadcrumbs.map((crumb, index) => (
+          <span key={index} className="breadcrumb-item">
+            {crumb.path ? (
+              <Link to={crumb.path} className="breadcrumb-link">
+                {index === 0 && <span className="material-symbols-outlined breadcrumb-icon">home</span>}
+                {crumb.label}
+              </Link>
+            ) : (
+              <span className="breadcrumb-current">{crumb.label}</span>
             )}
-            <div className="problem-meta">
-              {(problem.average_rating || problem.rating) && (
-                <div className="problem-rating">
-                  <StarRating 
-                    rating={parseFloat(problem.average_rating || problem.rating)} 
-                    size="small" 
+            {index < breadcrumbs.length - 1 && <span className="breadcrumb-separator">/</span>}
+          </span>
+        ))}
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="problem-detail-grid">
+        {/* LEFT COLUMN (Visuals & Map) */}
+        <div className="problem-detail-left">
+          {/* Hero Image / Gallery */}
+          {allImages.length > 0 ? (
+            <div className="image-gallery-section">
+              <div className="hero-image-container">
+                {selectedImage && (
+                  <InteractiveBoulderImage
+                    imageUrl={selectedImage.image}
+                    problemLines={selectedImage.problem_lines || []}
+                    caption={selectedImage.caption}
+                    currentProblemId={parseInt(id)}
                   />
-                </div>
-              )}
-              {problem.author_username && (
-                <div className="problem-author">
-                  <span className="meta-label">Author:</span>
-                  <span className="meta-value">{problem.author_username}</span>
+                )}
+                {allImages.length > 1 && (
+                  <div className="image-counter">
+                    <span className="material-symbols-outlined">photo_camera</span>
+                    {selectedImageIndex + 1}/{allImages.length}
+                  </div>
+                )}
+              </div>
+              {/* Thumbnails */}
+              {allImages.length > 1 && (
+                <div className="image-thumbnails">
+                  {allImages.map((image, index) => (
+                    <div
+                      key={image.id}
+                      className={`thumbnail ${index === selectedImageIndex ? 'active' : ''}`}
+                      onClick={() => setSelectedImageIndex(index)}
+                      style={{ backgroundImage: `url(${image.image})` }}
+                    />
+                  ))}
+                  {/* Add image placeholder */}
+                  {isAuthenticated && (
+                    <div className="thumbnail add-thumbnail">
+                      <span className="material-symbols-outlined">add</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          </div>
+          ) : (
+            <div className="image-gallery-section">
+              <div className="hero-image-container no-image">
+                <div className="no-image-placeholder">
+                  <span className="material-symbols-outlined">image</span>
+                  <p>No images available</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Map Section */}
+          {coordinates && (
+            <div className="map-section">
+              <div className="map-header">
+                <h3 className="map-title">
+                  <span className="material-symbols-outlined map-icon">location_on</span>
+                  Location
+                </h3>
+                <a
+                  href={`https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="directions-link"
+                >
+                  Get Directions <span className="material-symbols-outlined">open_in_new</span>
+                </a>
+              </div>
+              <div className="map-container">
+                <MapContainer
+                  center={[coordinates.lat, coordinates.lng]}
+                  zoom={15}
+                  style={{ height: '100%', width: '100%' }}
+                  scrollWheelZoom={true}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[coordinates.lat, coordinates.lng]} />
+                </MapContainer>
+                <div className="coordinates-display">
+                  {formatCoordinates(coordinates.lat, coordinates.lng)}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        {isAuthenticated && (
-          <div className="problem-actions">
-            {isTicked ? (
-              <>
-                <span className="tick-status">✓ Ticked</span>
+
+        {/* RIGHT COLUMN (Data & Comments) */}
+        <div className="problem-detail-right">
+          {/* Header Info */}
+          <div className="problem-header-info">
+            <div className="problem-title-row">
+              <h1 className="problem-title">{problem.name}</h1>
+              <div className="problem-grade-badge">
+                <span className="grade-main">{problem.grade}</span>
+                <span className="grade-alt">{problem.grade}</span>
+              </div>
+            </div>
+            
+            {/* Tags - placeholder for future implementation */}
+            {/* <div className="problem-tags">
+              <span className="tag">#Overhang</span>
+              <span className="tag">#Crimps</span>
+              <span className="tag">#PowerEndurance</span>
+            </div> */}
+
+            {/* Rating */}
+            {(problem.average_rating || problem.rating) && (
+              <div className="problem-rating-display">
+                <StarRating 
+                  rating={parseFloat(problem.average_rating || problem.rating)} 
+                  size="medium" 
+                />
+                <span className="rating-value">
+                  ({parseFloat(problem.average_rating || problem.rating).toFixed(1)})
+                </span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="problem-actions-row">
+              {isAuthenticated ? (
                 <button
                   onClick={() => {
-                    if (currentTick) {
+                    if (isTicked && currentTick) {
                       setTickFormData({
                         date: currentTick.date || new Date().toISOString().split('T')[0],
                         notes: currentTick.notes || '',
@@ -423,302 +575,210 @@ const ProblemDetail = () => {
                         rating: currentTick.rating ? parseFloat(currentTick.rating) : null,
                       });
                       setShowTickModal(true);
+                    } else {
+                      setTickFormData({
+                        date: new Date().toISOString().split('T')[0],
+                        notes: '',
+                        tick_grade: '',
+                        suggested_grade: '',
+                        rating: null,
+                      });
+                      setShowTickModal(true);
                     }
                   }}
-                  className="btn-edit"
+                  className="btn-log-ascent"
                 >
-                  Edit
+                  {isTicked ? 'Edit Tick' : 'Log Ascent'}
                 </button>
-              </>
-            ) : (
-              <button
-                onClick={() => {
-                  setTickFormData({
-                    date: new Date().toISOString().split('T')[0],
-                    notes: '',
-                    tick_grade: '',
-                    suggested_grade: '',
-                    rating: null,
-                  });
-                  setShowTickModal(true);
-                }}
-                className="btn-tick"
-              >
-                + Tick
+              ) : (
+                <Link to="/login" className="btn-log-ascent">
+                  Log Ascent
+                </Link>
+              )}
+              <button className="btn-icon" title="Add to Project">
+                <span className="material-symbols-outlined">bookmark_add</span>
               </button>
+              <button className="btn-icon" title="Share">
+                <span className="material-symbols-outlined">ios_share</span>
+              </button>
+            </div>
+          </div>
+
+          {/* First Ascent & Stats Cards */}
+          <div className="problem-info-cards">
+            {firstAscent && (
+              <div className="info-card">
+                <p className="info-card-label">First Ascent</p>
+                <p className="info-card-value">{firstAscent}</p>
+              </div>
+            )}
+            {statistics && statistics.total_ticks > 0 && (
+              <div className="info-card">
+                <p className="info-card-label">Ticks</p>
+                <p className="info-card-value">{statistics.total_ticks}</p>
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      {problem.images && problem.images.length > 0 && (
-        <div className="images-section">
-          <h2>Images</h2>
-          <div className="images-container">
-            {problem.images.map((image) => (
-              <InteractiveBoulderImage
-                key={image.id}
-                imageUrl={image.image}
-                problemLines={image.problem_lines || []}
-                caption={image.caption}
-                currentProblemId={parseInt(id)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+          {/* Description */}
+          {problem.description && (
+            <div className="problem-description-section">
+              <p className="description-text">{problem.description}</p>
+            </div>
+          )}
 
-      {problem.description && (
-        <div className="problem-description">
-          <h2>Description</h2>
-          <p>{problem.description}</p>
-        </div>
-      )}
-
-      {problem.video_links && problem.video_links.length > 0 && (
-        <div className="videos-section">
-          <h2>Videos</h2>
-          <div className="videos-list">
-            {problem.video_links.map((video, index) => (
-              <div key={index} className="video-item">
-                {getVideoEmbed(video.url) ? (
-                  <div className="video-embed">
-                    {getVideoEmbed(video.url)}
+          {/* Statistics Section - Integrated */}
+          {statistics && statistics.total_ticks > 0 && (
+            <div className="statistics-section-integrated">
+              {statistics.height_data_count > 0 && (
+                <div className="stat-group-compact">
+                  <h4 className="stat-title">Height Distribution</h4>
+                  <p className="stat-description-compact">
+                    {statistics.height_data_count} of {statistics.total_ticks} climbers provided height data
+                  </p>
+                  <div className="height-chart-compact">
+                    {Object.entries(statistics.height_distribution)
+                      .sort((a, b) => {
+                        const order = ['<150', '150-155', '155-160', '160-165', '165-170', '170-175', '175-180', '180-185', '185-190', '190-195', '>195'];
+                        return order.indexOf(a[0]) - order.indexOf(b[0]);
+                      })
+                      .slice(0, 5) // Show top 5
+                      .map(([height, data]) => {
+                        const percentage = (data.count / statistics.height_data_count) * 100;
+                        return (
+                          <div key={height} className="height-bar-item-compact">
+                            <div className="height-label-compact">{data.label}</div>
+                            <div className="height-bar-container-compact">
+                              <div 
+                                className="height-bar-compact" 
+                                style={{ width: `${percentage}%` }}
+                              >
+                                <span className="height-count-compact">{data.count}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
-                ) : (
-                  <a 
-                    href={video.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="video-link"
-                  >
-                    <div className="video-link-content">
-                      <span className="video-icon">▶️</span>
-                      <div>
-                        <strong>{video.label || 'Watch Video'}</strong>
-                        <span className="video-url">{video.url}</span>
+                </div>
+              )}
+
+              {statistics.grade_votes_count > 0 && (
+                <div className="stat-group-compact">
+                  <h4 className="stat-title">Grade Voting</h4>
+                  <p className="stat-description-compact">
+                    {statistics.grade_votes_count} of {statistics.total_ticks} climbers voted on the grade
+                  </p>
+                  <div className="grade-voting-chart-compact">
+                    {Object.entries(statistics.grade_voting)
+                      .sort((a, b) => {
+                        const gradeOrder = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
+                        return gradeOrder.indexOf(a[0]) - gradeOrder.indexOf(b[0]);
+                      })
+                      .slice(0, 5) // Show top 5
+                      .map(([grade, data]) => {
+                        const percentage = (data.count / statistics.grade_votes_count) * 100;
+                        return (
+                          <div key={grade} className="grade-vote-item-compact">
+                            <div className="grade-vote-label-compact">{data.label}</div>
+                            <div className="grade-vote-bar-container-compact">
+                              <div 
+                                className="grade-vote-bar-compact" 
+                                style={{ width: `${percentage}%` }}
+                              >
+                                <span className="grade-vote-count-compact">{data.count}</span>
+                              </div>
+                            </div>
+                            <div className="grade-vote-percentage-compact">{percentage.toFixed(1)}%</div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Comments Section */}
+          <div className="comments-section-new">
+            <h3 className="comments-title">
+              Beta & Comments <span className="comments-count">{comments.length}</span>
+            </h3>
+            
+            {/* Comment Input */}
+            {isAuthenticated ? (
+              <form onSubmit={handleCommentSubmit} className="comment-input-section">
+                <div className="comment-avatar-placeholder"></div>
+                <div className="comment-input-wrapper">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Share your beta or thoughts..."
+                    rows="3"
+                    className="comment-textarea"
+                  />
+                  <div className="comment-submit-wrapper">
+                    <button
+                      type="submit"
+                      disabled={submitting || !newComment.trim()}
+                      className="btn-comment-submit"
+                    >
+                      {submitting ? 'Posting...' : 'Post'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <p className="login-prompt">
+                <Link to="/login">Login</Link> to add comments
+              </p>
+            )}
+
+            {/* Comments List */}
+            <div className="comments-list-new">
+              {comments.length === 0 ? (
+                <p className="no-comments">No comments yet. Be the first to comment!</p>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="comment-item">
+                    <div className="comment-avatar-placeholder"></div>
+                    <div className="comment-content-wrapper">
+                      <div className="comment-header-new">
+                        <span className="comment-author">{comment.user?.username || 'Anonymous'}</span>
+                        <span className="comment-date-new">
+                          {(() => {
+                            const date = new Date(comment.created_at);
+                            const now = new Date();
+                            const diffTime = Math.abs(now - date);
+                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                            if (diffDays === 0) return 'Today';
+                            if (diffDays === 1) return '1 day ago';
+                            if (diffDays < 7) return `${diffDays} days ago`;
+                            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+                            return date.toLocaleDateString();
+                          })()}
+                        </span>
+                      </div>
+                      <p className="comment-text">{comment.content}</p>
+                      <div className="comment-actions">
+                        <button className="comment-action-btn">
+                          <span className="material-symbols-outlined">thumb_up</span> 0
+                        </button>
+                        <button className="comment-action-btn">Reply</button>
                       </div>
                     </div>
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {problem.external_links && problem.external_links.length > 0 && (
-        <div className="external-links-section">
-          <h2>External Links</h2>
-          <div className="external-links-list">
-            {problem.external_links.map((link, index) => (
-              <a
-                key={index}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="external-link-item"
-              >
-                <span className="link-icon">🔗</span>
-                <div className="link-content">
-                  <strong>{link.label || 'External Link'}</strong>
-                  <span className="link-url">
-                    {(() => {
-                      try {
-                        return new URL(link.url).hostname;
-                      } catch {
-                        return link.url;
-                      }
-                    })()}
-                  </span>
-                </div>
-                <span className="link-arrow">→</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {problemTicks.length > 0 && (
-        <div className="ticks-section">
-          <h2>Who Ticked This Problem ({problemTicks.length})</h2>
-          <div className="ticks-table-container">
-            <table className="ticks-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Date</th>
-                  <th>Grade</th>
-                  <th>Rating</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {problemTicks.map((tick) => (
-                  <tr key={tick.id}>
-                    <td>
-                      <Link 
-                        to={`/users/${tick.user?.id}/diary`}
-                        className="user-link"
-                      >
-                        {tick.user?.username || 'Anonymous'}
-                      </Link>
-                    </td>
-                    <td>{new Date(tick.date).toLocaleDateString()}</td>
-                    <td>
-                      {tick.tick_grade || tick.problem?.grade || '-'}
-                    </td>
-                    <td>
-                      {tick.rating ? (
-                        <StarRating 
-                          rating={parseFloat(tick.rating)} 
-                          size="small" 
-                        />
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td className="tick-notes">
-                      {tick.notes ? (
-                        <span title={tick.notes}>
-                          {tick.notes.length > 50 
-                            ? `${tick.notes.substring(0, 50)}...` 
-                            : tick.notes}
-                        </span>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {statistics && (
-        <div className="statistics-section">
-          <h2>Statistics</h2>
-          
-          {statistics.height_data_count > 0 && (
-            <div className="stat-group">
-              <h3>Height Distribution</h3>
-              <p className="stat-description">
-                {statistics.height_data_count} of {statistics.total_ticks} climbers provided height data
-              </p>
-              <div className="height-chart">
-                {Object.entries(statistics.height_distribution)
-                  .sort((a, b) => {
-                    // Sort by height category
-                    const order = ['<150', '150-155', '155-160', '160-165', '165-170', '170-175', '175-180', '180-185', '185-190', '190-195', '>195'];
-                    return order.indexOf(a[0]) - order.indexOf(b[0]);
-                  })
-                  .map(([height, data]) => {
-                    const percentage = (data.count / statistics.height_data_count) * 100;
-                    return (
-                      <div key={height} className="height-bar-item">
-                        <div className="height-label">{data.label}</div>
-                        <div className="height-bar-container">
-                          <div 
-                            className="height-bar" 
-                            style={{ width: `${percentage}%` }}
-                            title={`${data.count} climber${data.count !== 1 ? 's' : ''}`}
-                          >
-                            <span className="height-count">{data.count}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
+                  </div>
+                ))
+              )}
             </div>
-          )}
-
-          {statistics.grade_votes_count > 0 && (
-            <div className="stat-group">
-              <h3>Grade Voting</h3>
-              <p className="stat-description">
-                {statistics.grade_votes_count} of {statistics.total_ticks} climbers voted on the grade
-              </p>
-              <div className="grade-voting-chart">
-                {Object.entries(statistics.grade_voting)
-                  .sort((a, b) => {
-                    // Sort by grade difficulty
-                    const gradeOrder = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
-                    return gradeOrder.indexOf(a[0]) - gradeOrder.indexOf(b[0]);
-                  })
-                  .map(([grade, data]) => {
-                    const percentage = (data.count / statistics.grade_votes_count) * 100;
-                    return (
-                      <div key={grade} className="grade-vote-item">
-                        <div className="grade-vote-label">{data.label}</div>
-                        <div className="grade-vote-bar-container">
-                          <div 
-                            className="grade-vote-bar" 
-                            style={{ width: `${percentage}%` }}
-                            title={`${data.count} vote${data.count !== 1 ? 's' : ''}`}
-                          >
-                            <span className="grade-vote-count">{data.count}</span>
-                          </div>
-                        </div>
-                        <div className="grade-vote-percentage">{percentage.toFixed(1)}%</div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          {statistics.total_ticks === 0 && (
-            <p className="no-statistics">No statistics available yet. Be the first to tick this problem!</p>
-          )}
-        </div>
-      )}
-
-      <div className="comments-section">
-        <h2>Comments ({comments.length})</h2>
-        {isAuthenticated ? (
-          <form onSubmit={handleCommentSubmit} className="comment-form">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
-              rows="3"
-              className="comment-input"
-            />
-            <button
-              type="submit"
-              disabled={submitting || !newComment.trim()}
-              className="btn btn-primary"
-            >
-              {submitting ? 'Posting...' : 'Post Comment'}
-            </button>
-          </form>
-        ) : (
-          <p className="login-prompt">
-            <Link to="/login">Login</Link> to add comments
-          </p>
-        )}
-
-        <div className="comments-list">
-          {comments.length === 0 ? (
-            <p className="no-comments">No comments yet. Be the first to comment!</p>
-          ) : (
-            comments.map((comment) => (
-              <div key={comment.id} className="comment">
-                <div className="comment-header">
-                  <strong>{comment.user?.username || 'Anonymous'}</strong>
-                  <span className="comment-date">
-                    {new Date(comment.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="comment-content">{comment.content}</p>
-              </div>
-            ))
-          )}
+            
+            {comments.length > 5 && (
+              <button className="load-more-comments">Load more comments</button>
+            )}
+          </div>
         </div>
       </div>
+
 
       {/* Tick Modal */}
       {showTickModal && (
