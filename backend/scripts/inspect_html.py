@@ -59,6 +59,7 @@ def inspect_html(url: str):
     print("METHOD 3: Save full HTML to file for inspection")
     print("=" * 80)
     import os
+
     backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     output_path = os.path.join(backend_root, "page_source.html")
     with open(output_path, "w", encoding="utf-8") as f:

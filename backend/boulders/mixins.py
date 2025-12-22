@@ -1,7 +1,3 @@
-"""
-Base mixins for boulders app viewsets and models.
-"""
-
 from django.db import models
 from boulders.utils import normalize_problem_name
 
@@ -25,7 +21,7 @@ class ListDetailSerializerMixin:
 class NameNormalizedMixin(models.Model):
     """
     Abstract model mixin that adds name_normalized field and auto-normalizes name on save.
-    
+
     Models inheriting from this mixin must have a 'name' field (CharField).
     The name_normalized field will be automatically populated from the 'name' field
     when save() is called.
