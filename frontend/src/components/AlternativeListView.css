@@ -430,6 +430,7 @@
   .problems-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
 }
 
 @media (min-width: 1280px) {
@@ -606,4 +607,5 @@
   font-size: 1rem;
   margin: 0;
 }
+
 

@@ -17,8 +17,8 @@ const Crags = () => {
   const [selectedArea, setSelectedArea] = useState('any');
   const [selectedSector, setSelectedSector] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [filterType, setFilterType] = useState('all'); // 'all', 'sector', or 'problem'
-  const [viewMode, setViewMode] = useState('map'); // 'map' or 'list'
+  const [filterType, setFilterType] = useState('area'); // 'area', 'all', 'sector', or 'problem' - start with 'area' for initial load
+  const [viewMode, setViewMode] = useState('list'); // 'map' or 'list' - start with list view
   const sidebarRef = useRef(null);
   const isInitialMount = useRef(true);
 
@@ -44,18 +44,25 @@ const Crags = () => {
     const timeoutId = setTimeout(() => {
       fetchSectors(false); // Pass false to indicate this is a search, not initial load
       fetchProblems();
+      // Also fetch areas when searching so they stay in sync
+      if (filterType === 'area' || searchTerm) {
+        fetchAreas();
+      }
     }, 800); // 800ms debounce - allows user to finish typing
 
     return () => {
       clearTimeout(timeoutId);
       setIsSearching(false);
     };
-  }, [selectedArea, searchTerm]);
+  }, [selectedArea, searchTerm, filterType]);
 
   const fetchAreas = async () => {
     try {
       console.log('📡 Fetching areas for filter...');
-      const response = await areasAPI.list();
+      const params = {
+        ...(searchTerm ? { search: searchTerm } : {}),
+      };
+      const response = await areasAPI.list(params);
       console.log('✅ Areas fetched successfully:', response.data);
       const fetchedAreas = response.data.results || response.data;
       setAreas(fetchedAreas || []);
@@ -132,9 +139,38 @@ const Crags = () => {
     navigate(`/problems/${problem.id}`);
   };
 
-  // Combine sectors and problems for display
+  const handleAreaClick = (area) => {
+    setSelectedArea(area.id);
+    setFilterType('sector'); // Switch to showing sectors when area is selected
+  };
+
+  // Combine areas, sectors and problems for display
   // Backend now handles diacritic-insensitive search, so no client-side filtering needed
   const allItems = useMemo(() => {
+    // When an area is selected, show sectors from that area (not areas)
+    // When no area is selected, show areas/sectors/problems based on filterType
+    const hasAreaSelected = selectedArea !== 'any';
+    
+    const areaItems = areas.map(area => {
+      // Build location string: prefer city name, fallback to GPS coordinates if available
+      let location = 'Unknown Location';
+      if (area.city_name) {
+        location = area.city_name;
+      } else if (area.avg_latitude && area.avg_longitude) {
+        // Format coordinates to 4 decimal places (~11m precision)
+        location = `${parseFloat(area.avg_latitude).toFixed(4)}, ${parseFloat(area.avg_longitude).toFixed(4)}`;
+      }
+      
+      return {
+        ...area,
+        type: 'area',
+        displayName: area.name,
+        location: location,
+        problemCount: area.problem_count || 0,
+        sectorCount: area.sector_count || 0,
+      };
+    });
+
     const sectorItems = sectors.map(sector => ({
       ...sector,
       type: 'sector',
@@ -151,16 +187,31 @@ const Crags = () => {
       grade: problem.grade,
     }));
     
-    // Filter based on selected filter type
-    if (filterType === 'sector') {
+    // Sorting is now done in the backend - no client-side sorting needed
+    // If an area is selected, show sectors (and optionally problems) from that area
+    if (hasAreaSelected) {
+      if (filterType === 'problem') {
+        return problemItems;
+      } else if (filterType === 'sector') {
+        return sectorItems;
+      } else {
+        // 'all' - return sectors and problems from selected area
+        return [...sectorItems, ...problemItems];
+      }
+    }
+    
+    // No area selected - show based on filterType
+    if (filterType === 'area') {
+      return areaItems;
+    } else if (filterType === 'sector') {
       return sectorItems;
     } else if (filterType === 'problem') {
       return problemItems;
     } else {
-      // 'all' - return both sectors and problems
+      // 'all' - return sectors and problems (not areas)
       return [...sectorItems, ...problemItems];
     }
-  }, [sectors, problems, filterType]);
+  }, [areas, sectors, problems, filterType, selectedArea]);
 
   // Get sectors with coordinates for map
   const sectorsWithCoords = useMemo(() => {
@@ -241,7 +292,15 @@ const Crags = () => {
                   className="filter-select"
                   value={selectedArea}
                   onChange={(e) => {
-                    setSelectedArea(e.target.value);
+                    const newArea = e.target.value;
+                    setSelectedArea(newArea);
+                    // When an area is selected, show sectors from that area
+                    if (newArea !== 'any') {
+                      setFilterType('sector');
+                    } else {
+                      // When "Any Area" is selected, show areas by default
+                      setFilterType('area');
+                    }
                   }}
                 >
                   <option value="any">Any Area</option>
@@ -267,6 +326,15 @@ const Crags = () => {
               >
                 All
               </button>
+              {/* Only show Area filter chip when no area is selected */}
+              {selectedArea === 'any' && (
+                <button 
+                  className={`filter-chip ${filterType === 'area' ? 'active' : ''}`}
+                  onClick={() => setFilterType('area')}
+                >
+                  Area
+                </button>
+              )}
               <button 
                 className={`filter-chip ${filterType === 'sector' ? 'active' : ''}`}
                 onClick={() => setFilterType('sector')}
@@ -314,7 +382,39 @@ const Crags = () => {
                 </div>
               ) : (
                 allItems.map((item) => {
-                  if (item.type === 'sector') {
+                  if (item.type === 'area') {
+                    return (
+                      <div
+                        key={`area-${item.id}`}
+                        className={`crag-list-item ${selectedArea === item.id ? 'active' : ''}`}
+                        onClick={() => handleAreaClick(item)}
+                      >
+                        <div className="crag-list-image">
+                          <div className="crag-list-image-placeholder"></div>
+                          <div className="grade-badge-small">
+                            {item.problemCount || 0}
+                          </div>
+                        </div>
+                        <div className="crag-list-content">
+                          <div className="crag-list-header">
+                            <p className="crag-list-name">{item.displayName}</p>
+                            <span className="item-type-badge">Area</span>
+                          </div>
+                          <p className="crag-list-location">{item.location}</p>
+                          {item.problemCount !== undefined && (
+                            <div className="crag-list-rating">
+                              <span className="rating-count">{item.problemCount} problem{item.problemCount !== 1 ? 's' : ''}</span>
+                              {item.sectorCount !== undefined && (
+                                <>
+                                  <span className="rating-count"> • {item.sectorCount} sector{item.sectorCount !== 1 ? 's' : ''}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  } else if (item.type === 'sector') {
                     return (
                       <div
                         key={`sector-${item.id}`}

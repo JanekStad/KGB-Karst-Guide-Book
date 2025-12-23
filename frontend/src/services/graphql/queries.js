@@ -125,8 +125,8 @@ export const GET_AREA = gql`
  * Get list of areas
  */
 export const GET_AREAS = gql`
-  query GetAreas($cityId: ID) {
-    areas(cityId: $cityId) {
+  query GetAreas($cityId: ID, $search: String) {
+    areas(cityId: $cityId, search: $search) {
       id
       name
       description

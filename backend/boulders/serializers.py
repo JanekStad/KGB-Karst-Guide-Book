@@ -201,6 +201,9 @@ class SectorListSerializer(serializers.ModelSerializer):
         ]
 
     def get_problem_count(self, obj):
+        # Use annotated value if available (for sorting), otherwise fall back to property
+        if hasattr(obj, 'problem_count_annotated'):
+            return obj.problem_count_annotated
         return obj.problem_count
 
 
@@ -250,9 +253,13 @@ class AreaListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for area list views"""
 
     problem_count = serializers.SerializerMethodField()
+    sector_count = serializers.SerializerMethodField()
     city_name = serializers.CharField(
         source="city.name", read_only=True, allow_null=True
     )
+    # Calculate average coordinates from sectors for location display
+    avg_latitude = serializers.SerializerMethodField()
+    avg_longitude = serializers.SerializerMethodField()
 
     class Meta:
         model = Area
@@ -263,10 +270,35 @@ class AreaListSerializer(serializers.ModelSerializer):
             "name",
             "is_secret",
             "problem_count",
+            "sector_count",
+            "avg_latitude",
+            "avg_longitude",
         ]
 
     def get_problem_count(self, obj):
+        # Use annotated value if available (for sorting), otherwise fall back to property
+        if hasattr(obj, 'problem_count_annotated'):
+            return obj.problem_count_annotated
         return obj.problem_count
+
+    def get_sector_count(self, obj):
+        """Count of sectors in this area (excluding secret sectors)"""
+        # Use annotated value if available, otherwise fall back to property
+        if hasattr(obj, 'sector_count_annotated'):
+            return obj.sector_count_annotated
+        return obj.sectors.filter(is_secret=False).count()
+
+    def get_avg_latitude(self, obj):
+        """Get average latitude from annotation or calculate from sectors"""
+        if hasattr(obj, 'avg_latitude') and obj.avg_latitude is not None:
+            return float(obj.avg_latitude)
+        return None
+
+    def get_avg_longitude(self, obj):
+        """Get average longitude from annotation or calculate from sectors"""
+        if hasattr(obj, 'avg_longitude') and obj.avg_longitude is not None:
+            return float(obj.avg_longitude)
+        return None
 
 
 class BoulderProblemSerializer(BoulderProblemMixin, serializers.ModelSerializer):

@@ -2,7 +2,7 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Count, Avg, Q
+from django.db.models import Count, Avg, Q, F
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
 from .mixins import CreatedByMixin, ListDetailSerializerMixin
 from .filters import NormalizedSearchFilter
@@ -58,8 +58,8 @@ class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
     ]
     filterset_fields = ["city"]
     search_fields = ["name", "description", "city__name"]
-    ordering_fields = ["name", "created_at", "city"]
-    ordering = ["city", "name"]
+    ordering_fields = ["name", "created_at", "city", "problem_count_annotated"]
+    ordering = ["-problem_count_annotated", "city", "name"]  # Sort by problem_count descending by default
 
     def get_queryset(self):
         """Filter out secret areas by default unless user has permission"""
@@ -67,6 +67,31 @@ class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
         # TODO: Add permission check here when user authentication is implemented
         # For now, always filter out secret areas
         queryset = queryset.filter(is_secret=False).select_related("city")
+        # Annotate problem_count_annotated for sorting (excluding problems from secret sectors)
+        # Since we already filtered is_secret=False, we just need to check sectors
+        # Use different name to avoid conflict with model's @property problem_count
+        queryset = queryset.annotate(
+            problem_count_annotated=Count(
+                "problems",
+                filter=Q(problems__sector__isnull=True) | Q(problems__sector__is_secret=False),
+                distinct=True
+            ),
+            # Annotate sector_count (excluding secret sectors)
+            sector_count_annotated=Count(
+                "sectors",
+                filter=Q(sectors__is_secret=False),
+                distinct=True
+            ),
+            # Calculate average coordinates from non-secret sectors for location display
+            avg_latitude=Avg(
+                "sectors__latitude",
+                filter=Q(sectors__is_secret=False) & Q(sectors__latitude__isnull=False)
+            ),
+            avg_longitude=Avg(
+                "sectors__longitude",
+                filter=Q(sectors__is_secret=False) & Q(sectors__longitude__isnull=False)
+            )
+        )
         return queryset
 
     @action(detail=True, methods=["get"])
@@ -108,8 +133,8 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
     ]
     filterset_fields = ["area"]
     search_fields = ["name", "description", "area__name"]
-    ordering_fields = ["name", "created_at", "area"]
-    ordering = ["area", "name"]
+    ordering_fields = ["name", "created_at", "area", "problem_count_annotated"]
+    ordering = ["-problem_count_annotated", "area", "name"]  # Sort by problem_count descending by default
 
     def get_queryset(self):
         """Filter out sectors from secret areas and secret sectors"""
@@ -117,6 +142,12 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
         queryset = queryset.filter(
             area__is_secret=False, is_secret=False
         ).select_related("area")
+        # Annotate problem_count_annotated for sorting
+        # Since we already filtered secret areas and sectors, we can just count all problems
+        # Use different name to avoid conflict with model's @property problem_count
+        queryset = queryset.annotate(
+            problem_count_annotated=Count("problems", distinct=True)
+        )
         return queryset
 
     @action(detail=True, methods=["get"])
