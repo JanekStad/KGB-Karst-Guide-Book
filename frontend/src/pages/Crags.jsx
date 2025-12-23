@@ -54,7 +54,7 @@ const Crags = () => {
       clearTimeout(timeoutId);
       setIsSearching(false);
     };
-  }, [selectedArea, searchTerm, filterType]);
+  }, [selectedArea, selectedSector, searchTerm, filterType]);
 
   const fetchAreas = async () => {
     try {
@@ -102,6 +102,7 @@ const Crags = () => {
       console.log('📡 Fetching problems for explore...');
       const params = {
         ...(selectedArea !== 'any' ? { area: selectedArea } : {}),
+        ...(selectedSector ? { sector: selectedSector.id } : {}),
         ...(searchTerm ? { search: searchTerm } : {}),
       };
       
@@ -128,6 +129,10 @@ const Crags = () => {
     // Close sidebar on mobile when sector is selected
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
+    }
+    // Fetch problems for the selected sector
+    if (sector) {
+      fetchProblems();
     }
   };
 
@@ -421,7 +426,7 @@ const Crags = () => {
                         className={`crag-list-item ${selectedSector?.id === item.id ? 'active' : ''}`}
                         onClick={() => {
                           handleSectorSelect(item);
-                          handleSectorClick(item);
+                          // Don't navigate, just select the sector to show table view
                         }}
                       >
                         <div className="crag-list-image">
@@ -512,8 +517,10 @@ const Crags = () => {
               problems={problems}
               areas={areas}
               selectedArea={selectedArea}
+              selectedSector={selectedSector}
               searchTerm={searchTerm}
               onAreaChange={setSelectedArea}
+              onSectorSelect={handleSectorSelect}
               onSwitchToMapView={() => setViewMode('map')}
             />
           )}

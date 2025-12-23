@@ -7,29 +7,16 @@ const AlternativeListView = ({
   sectors, 
   problems, 
   areas, 
-  selectedArea, 
+  selectedArea,
+  selectedSector,
   searchTerm,
   onAreaChange,
+  onSectorSelect,
   onSwitchToMapView
 }) => {
   const navigate = useNavigate();
-  const [minGrade, setMinGrade] = useState('3');
-  const [maxGrade, setMaxGrade] = useState('9A+');
-  const [sortBy, setSortBy] = useState('popularity');
-  const [activeFilters, setActiveFilters] = useState({
-    sent: false,
-    highRating: false,
-    classic: false,
-    highball: false,
-  });
-
-  const GRADE_CHOICES = [
-    '3', '3+', '4', '4+', '5', '5+',
-    '6A', '6A+', '6B', '6B+', '6C', '6C+',
-    '7A', '7A+', '7B', '7B+', '7C', '7C+',
-    '8A', '8A+', '8B', '8B+', '8C', '8C+',
-    '9A', '9A+',
-  ];
+  const [sortField, setSortField] = useState('grade');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // Get selected area details
   const selectedAreaData = useMemo(() => {
@@ -37,138 +24,172 @@ const AlternativeListView = ({
     return areas.find(a => a.id === selectedArea) || null;
   }, [selectedArea, areas]);
 
-  // Group problems by sector
-  const problemsBySector = useMemo(() => {
+  // Group sectors by area
+  const sectorsByArea = useMemo(() => {
     const grouped = {};
     
-    problems.forEach(problem => {
-      const sectorId = problem.sector?.id || problem.sector || 'no-sector';
-      const sectorName = problem.sector_name || problem.sector?.name || 'Unnamed Sector';
-      
-      if (!grouped[sectorId]) {
-        grouped[sectorId] = {
-          id: sectorId,
-          name: sectorName,
-          area: problem.area_name || problem.area?.name,
-          description: problem.sector?.description,
-          problems: []
-        };
-      }
-      
-      grouped[sectorId].problems.push(problem);
-    });
-
-    // Also add sectors that don't have problems yet
+    // Group sectors by their area
     sectors.forEach(sector => {
-      if (!grouped[sector.id]) {
-        grouped[sector.id] = {
-          id: sector.id,
-          name: sector.name,
-          area: sector.area_name,
-          description: sector.description,
-          problems: []
+      const areaId = sector.area?.id || sector.area || 'no-area';
+      const areaName = sector.area_name || sector.area?.name || 'Unknown Area';
+      
+      if (!grouped[areaId]) {
+        // Find the area data from areas array
+        const areaData = areas.find(a => a.id === areaId);
+        grouped[areaId] = {
+          id: areaId,
+          name: areaName,
+          city_name: areaData?.city_name || null,
+          sectors: []
         };
       }
+      
+      grouped[areaId].sectors.push({
+        id: sector.id,
+        name: sector.name,
+        description: sector.description,
+        problem_count: sector.problem_count || 0,
+        latitude: sector.latitude,
+        longitude: sector.longitude,
+      });
     });
 
-    // Sort sectors by name
-    return Object.values(grouped).sort((a, b) => 
-      (a.name || '').localeCompare(b.name || '')
-    );
-  }, [problems, sectors]);
+    // Sort sectors within each area by problem count (descending)
+    Object.values(grouped).forEach(area => {
+      area.sectors.sort((a, b) => (b.problem_count || 0) - (a.problem_count || 0));
+    });
 
-  // Filter and sort problems
-  const filteredProblemsBySector = useMemo(() => {
-    return problemsBySector.map(sector => {
-      let filtered = [...sector.problems];
+    // Sort areas by total problem count (descending)
+    return Object.values(grouped).sort((a, b) => {
+      const aTotal = a.sectors.reduce((sum, s) => sum + (s.problem_count || 0), 0);
+      const bTotal = b.sectors.reduce((sum, s) => sum + (s.problem_count || 0), 0);
+      return bTotal - aTotal;
+    });
+  }, [sectors, areas]);
 
-      // Filter by grade range
-      filtered = filtered.filter(problem => {
-        if (!problem.grade) return true; // Include problems without grades
-        const gradeIndex = GRADE_CHOICES.indexOf(problem.grade);
-        const minIndex = GRADE_CHOICES.indexOf(minGrade);
-        const maxIndex = GRADE_CHOICES.indexOf(maxGrade);
-        // If grade not found in choices, include it
-        if (gradeIndex === -1) return true;
-        return gradeIndex >= minIndex && gradeIndex <= maxIndex;
-      });
-
-      // Filter by active filters
-      if (activeFilters.sent) {
-        // This would need tick data - for now, skip
+  const handleSectorClick = (sector) => {
+    if (onSectorSelect) {
+      // Find the full sector object from sectors array
+      const fullSector = sectors.find(s => s.id === sector.id);
+      if (fullSector) {
+        onSectorSelect(fullSector);
       }
-      if (activeFilters.highRating) {
-        filtered = filtered.filter(p => (p.average_rating || p.rating) >= 4);
-      }
-
-      // Sort problems
-      filtered.sort((a, b) => {
-        switch (sortBy) {
-          case 'popularity':
-            return (b.tick_count || 0) - (a.tick_count || 0);
-          case 'difficulty-asc':
-            const aGrade = GRADE_CHOICES.indexOf(a.grade || '3');
-            const bGrade = GRADE_CHOICES.indexOf(b.grade || '3');
-            // Put problems without grades at the end
-            if (aGrade === -1 && bGrade === -1) return 0;
-            if (aGrade === -1) return 1;
-            if (bGrade === -1) return -1;
-            return aGrade - bGrade;
-          case 'difficulty-desc':
-            const aGradeDesc = GRADE_CHOICES.indexOf(a.grade || '3');
-            const bGradeDesc = GRADE_CHOICES.indexOf(b.grade || '3');
-            // Put problems without grades at the end
-            if (aGradeDesc === -1 && bGradeDesc === -1) return 0;
-            if (aGradeDesc === -1) return 1;
-            if (bGradeDesc === -1) return -1;
-            return bGradeDesc - aGradeDesc;
-          case 'alphabetical':
-            return (a.name || '').localeCompare(b.name || '');
-          default:
-            return 0;
-        }
-      });
-
-      return { ...sector, problems: filtered };
-    }).filter(sector => sector.problems.length > 0 || sector.id !== 'no-sector');
-  }, [problemsBySector, minGrade, maxGrade, activeFilters, sortBy]);
+    }
+  };
 
   const handleProblemClick = (problem) => {
     navigate(`/problems/${problem.id}`);
   };
 
-  const handleSectorClick = (sector) => {
-    if (sector.id !== 'no-sector') {
-      navigate(`/sectors/${sector.id}`);
+  // Filter problems by selected sector
+  const sectorProblems = useMemo(() => {
+    if (!selectedSector) return [];
+    return problems.filter(problem => {
+      const problemSectorId = problem.sector?.id || problem.sector;
+      return problemSectorId === selectedSector.id;
+    });
+  }, [problems, selectedSector]);
+
+  // Sort problems
+  const sortedProblems = useMemo(() => {
+    const sorted = [...sectorProblems];
+    sorted.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortField) {
+        case 'grade':
+          const GRADE_ORDER = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
+          aVal = GRADE_ORDER.indexOf(a.grade || '3');
+          bVal = GRADE_ORDER.indexOf(b.grade || '3');
+          if (aVal === -1) aVal = 999;
+          if (bVal === -1) bVal = 999;
+          break;
+        case 'name':
+          aVal = (a.name || '').toLowerCase();
+          bVal = (b.name || '').toLowerCase();
+          break;
+        case 'rating':
+          aVal = parseFloat(a.average_rating || a.rating || 0);
+          bVal = parseFloat(b.average_rating || b.rating || 0);
+          break;
+        case 'repeats':
+          aVal = a.tick_count || 0;
+          bVal = b.tick_count || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortField === 'name') {
+        return sortOrder === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+      
+      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+    return sorted;
+  }, [sectorProblems, sortField, sortOrder]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder(field === 'name' ? 'asc' : 'desc');
     }
-  };
-
-  const toggleFilter = (filterName) => {
-    setActiveFilters(prev => ({
-      ...prev,
-      [filterName]: !prev[filterName]
-    }));
-  };
-
-  // Get first image from problem
-  const getProblemImage = (problem) => {
-    if (problem.primary_image) return problem.primary_image;
-    if (problem.images && problem.images.length > 0) {
-      return problem.images[0].image;
-    }
-    return null;
-  };
-
-  // Check if problem is ticked (would need tick data)
-  const isTicked = (problem) => {
-    // This would need to be passed as prop or fetched
-    return false;
   };
 
   return (
     <div className="alternative-list-view">
       {/* Hero Section */}
-      {selectedAreaData ? (
+      {selectedSector ? (
+        <div 
+          className="list-hero-section"
+          style={{
+            backgroundImage: 'linear-gradient(135deg, var(--background-dark) 0%, var(--surface-dark) 100%)'
+          }}
+        >
+          <div className="hero-overlay"></div>
+          <div className="hero-content">
+            <div className="hero-text">
+              {selectedSector.area_name && (
+                <div className="hero-breadcrumb">
+                  <span>{selectedSector.area_name}</span>
+                  <span className="material-symbols-outlined">chevron_right</span>
+                  <span>{selectedSector.name}</span>
+                </div>
+              )}
+              <h1>{selectedSector.name}</h1>
+              {selectedSector.description && (
+                <p className="hero-description">{selectedSector.description}</p>
+              )}
+            </div>
+            <div className="hero-actions">
+              <button 
+                className="hero-btn-secondary"
+                onClick={() => onSectorSelect && onSectorSelect(null)}
+              >
+                <span className="material-symbols-outlined">arrow_back</span>
+                <span className="hidden-mobile">Back</span>
+              </button>
+              <button className="hero-btn-secondary">
+                <span className="material-symbols-outlined">share</span>
+                <span className="hidden-mobile">Share</span>
+              </button>
+              {onSwitchToMapView && (
+                <button 
+                  className="hero-btn-primary"
+                  onClick={onSwitchToMapView}
+                >
+                  <span className="material-symbols-outlined">map</span>
+                  Map View
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : selectedAreaData ? (
         <div 
           className="list-hero-section"
           style={{
@@ -221,177 +242,166 @@ const AlternativeListView = ({
         </div>
       )}
 
-      {/* Filter Bar */}
-      <div className="list-filter-bar">
-        <div className="filter-bar-content">
-          <div className="filter-group">
-            <span className="filter-label">Grade</span>
-            <div className="grade-range">
-              <select 
-                value={minGrade} 
-                onChange={(e) => setMinGrade(e.target.value)}
-                className="grade-select"
-              >
-                {GRADE_CHOICES.map(grade => (
-                  <option key={grade} value={grade}>{grade}</option>
-                ))}
-              </select>
-              <span className="grade-separator">-</span>
-              <select 
-                value={maxGrade} 
-                onChange={(e) => setMaxGrade(e.target.value)}
-                className="grade-select"
-              >
-                {GRADE_CHOICES.map(grade => (
-                  <option key={grade} value={grade}>{grade}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="filter-chips-group">
-            <button
-              className={`filter-chip ${activeFilters.sent ? 'active' : ''}`}
-              onClick={() => toggleFilter('sent')}
-            >
-              <span className="material-symbols-outlined">check</span>
-              Sent
-            </button>
-            <button
-              className={`filter-chip ${activeFilters.highRating ? 'active' : ''}`}
-              onClick={() => toggleFilter('highRating')}
-            >
-              <span className="material-symbols-outlined">star</span>
-              4 Stars+
-            </button>
-            <button
-              className={`filter-chip ${activeFilters.classic ? 'active' : ''}`}
-              onClick={() => toggleFilter('classic')}
-            >
-              Classic
-            </button>
-            <button
-              className={`filter-chip ${activeFilters.highball ? 'active' : ''}`}
-              onClick={() => toggleFilter('highball')}
-            >
-              Highball
-            </button>
-          </div>
-
-          <div className="filter-spacer"></div>
-
-          <div className="filter-group sort-group">
-            <span className="filter-label">Sort</span>
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value)}
-              className="sort-select"
-            >
-              <option value="popularity">Popularity</option>
-              <option value="difficulty-asc">Difficulty (Low to High)</option>
-              <option value="difficulty-desc">Difficulty (High to Low)</option>
-              <option value="alphabetical">Alphabetical</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
       {/* Content Area */}
       <div className="list-content-area">
-        {filteredProblemsBySector.length === 0 ? (
-          <div className="empty-state">
-            <p>No problems found matching your filters.</p>
-          </div>
-        ) : (
-          filteredProblemsBySector.map((sector) => (
-            <section key={sector.id} className="sector-section">
-              <div className="sector-section-header">
-                <div>
-                  <h2 className="sector-title">
-                    {sector.name}
-                    <span className="problem-count-badge">
-                      {sector.problems.length} Problem{sector.problems.length !== 1 ? 's' : ''}
-                    </span>
-                  </h2>
-                  {sector.description && (
-                    <p className="sector-description">{sector.description}</p>
-                  )}
-                </div>
-                <button 
-                  className="sector-view-details"
-                  onClick={() => handleSectorClick(sector)}
-                >
-                  View Sector Details
-                  <span className="material-symbols-outlined">arrow_forward</span>
-                </button>
-              </div>
+        {selectedSector ? (
+          /* Table view when sector is selected */
+          <div className="problems-table-section">
+            <div className="problems-table-header">
+              <h2>{selectedSector.name}</h2>
+              <p className="problems-count">
+                {sortedProblems.length} Problem{sortedProblems.length !== 1 ? 's' : ''}
+              </p>
+            </div>
 
-              <div className="problems-grid">
-                {sector.problems.map((problem) => {
-                  const imageUrl = getProblemImage(problem);
-                  const ticked = isTicked(problem);
-                  
-                  return (
-                    <div
-                      key={problem.id}
-                      className="problem-card"
-                      onClick={() => handleProblemClick(problem)}
+            <div className="problems-table-wrapper">
+              <table className="problems-table">
+                <thead>
+                  <tr>
+                    <th>TICK</th>
+                    <th 
+                      className={`sortable ${sortField === 'name' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('name')}
                     >
-                      {imageUrl ? (
-                        <div 
-                          className="problem-card-image"
-                          style={{ backgroundImage: `url(${imageUrl})` }}
-                        >
-                          <div className="problem-grade-overlay">
+                      PROBLEM
+                    </th>
+                    <th 
+                      className={`sortable ${sortField === 'grade' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('grade')}
+                    >
+                      GRADE
+                    </th>
+                    <th 
+                      className={`sortable ${sortField === 'rating' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('rating')}
+                    >
+                      RATING
+                    </th>
+                    <th 
+                      className={`sortable ${sortField === 'repeats' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('repeats')}
+                    >
+                      REPEATS
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedProblems.length > 0 ? (
+                    sortedProblems.map((problem) => (
+                      <tr 
+                        key={problem.id} 
+                        className="problem-row"
+                        onClick={() => handleProblemClick(problem)}
+                      >
+                        <td className="problem-tick-cell">
+                          <span className="tick-icon">○</span>
+                        </td>
+                        <td className="problem-name-cell">
+                          <div className="problem-name-main">{problem.name}</div>
+                          {problem.description && (
+                            <div className="problem-description">
+                              {problem.description.length > 60 
+                                ? `${problem.description.substring(0, 60)}...` 
+                                : problem.description}
+                            </div>
+                          )}
+                        </td>
+                        <td className="problem-grade-cell">
+                          <div className="problem-grade-badge">
                             {problem.grade || '?'}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="problem-card-image problem-card-image-placeholder">
-                          <span className="material-symbols-outlined">image</span>
-                          <div className="problem-grade-overlay">
-                            {problem.grade || '?'}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="problem-card-content">
-                        <div className="problem-card-header">
-                          <h3 className="problem-card-name">{problem.name}</h3>
-                          {ticked && (
-                            <span className="material-symbols-outlined ticked-icon">check_circle</span>
-                          )}
-                          {!ticked && problem.is_project && (
-                            <span className="project-badge">PROJECT</span>
-                          )}
-                        </div>
-                        
-                        {(problem.average_rating || problem.rating) && (
-                          <div className="problem-card-rating">
+                        </td>
+                        <td className="problem-rating-cell">
+                          {(problem.average_rating || problem.rating) ? (
                             <StarRating 
                               rating={parseFloat(problem.average_rating || problem.rating)} 
                               size="small" 
                             />
-                            <span className="rating-count">
-                              ({problem.tick_count || 0})
-                            </span>
-                          </div>
-                        )}
+                          ) : (
+                            <span className="no-rating">-</span>
+                          )}
+                        </td>
+                        <td className="problem-repeats-cell">
+                          {problem.tick_count ? (
+                            problem.tick_count >= 1000 
+                              ? `${(problem.tick_count / 1000).toFixed(1)}k`
+                              : problem.tick_count.toLocaleString()
+                          ) : '0'}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="no-problems">No problems found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* Area/Sector view when no sector is selected */
+          sectorsByArea.length === 0 ? (
+            <div className="empty-state">
+              <p>No areas found.</p>
+            </div>
+          ) : (
+            sectorsByArea.map((area) => (
+              <section key={area.id} className="area-section">
+                <div className="area-section-header">
+                  <div>
+                    <h2 className="area-title">
+                      {area.name}
+                      {area.city_name && (
+                        <span className="area-location"> • {area.city_name}</span>
+                      )}
+                    </h2>
+                    <p className="area-sectors-count">
+                      {area.sectors.length} Sector{area.sectors.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
 
-                        {problem.tags && problem.tags.length > 0 && (
-                          <div className="problem-card-tags">
-                            {problem.tags.slice(0, 3).map((tag, idx) => (
-                              <span key={idx} className="problem-tag">{tag}</span>
-                            ))}
-                          </div>
+                {/* Horizontally scrollable sector cards */}
+                <div className="sectors-scroll-container">
+                  <div className="sectors-scroll">
+                    {area.sectors.map((sector) => (
+                      <div
+                        key={sector.id}
+                        className="sector-card"
+                        onClick={() => handleSectorClick(sector)}
+                      >
+                        <div className="sector-card-header">
+                          <h3 className="sector-card-name">{sector.name}</h3>
+                          <span className="sector-card-badge">
+                            {sector.problem_count || 0}
+                          </span>
+                        </div>
+                        {sector.description && (
+                          <p className="sector-card-description">
+                            {sector.description.length > 100 
+                              ? `${sector.description.substring(0, 100)}...` 
+                              : sector.description}
+                          </p>
                         )}
+                        <div className="sector-card-footer">
+                          <span className="sector-card-problems">
+                            {sector.problem_count || 0} problem{(sector.problem_count || 0) !== 1 ? 's' : ''}
+                          </span>
+                          {sector.latitude && sector.longitude && (
+                            <span className="sector-card-coords">
+                              <span className="material-symbols-outlined">location_on</span>
+                              {parseFloat(sector.latitude).toFixed(4)}, {parseFloat(sector.longitude).toFixed(4)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))
+                    ))}
+                  </div>
+                </div>
+              </section>
+            ))
+          )
         )}
       </div>
     </div>
@@ -399,4 +409,3 @@ const AlternativeListView = ({
 };
 
 export default AlternativeListView;
-
