@@ -41,14 +41,22 @@ const Crags = () => {
     }
 
     setIsSearching(true);
+    // When selecting a sector, fetch immediately without debounce
+    // For search/area changes, use debounce
+    const shouldDebounce = !selectedSector && (searchTerm || selectedArea !== 'any');
+    const debounceTime = shouldDebounce ? 800 : 0;
+    
     const timeoutId = setTimeout(() => {
-      fetchSectors(false); // Pass false to indicate this is a search, not initial load
+      // Only fetch sectors if not viewing a specific sector
+      if (!selectedSector) {
+        fetchSectors(false); // Pass false to indicate this is a search, not initial load
+      }
       fetchProblems();
       // Also fetch areas when searching so they stay in sync
       if (filterType === 'area' || searchTerm) {
         fetchAreas();
       }
-    }, 800); // 800ms debounce - allows user to finish typing
+    }, debounceTime);
 
     return () => {
       clearTimeout(timeoutId);
@@ -100,13 +108,21 @@ const Crags = () => {
   const fetchProblems = async () => {
     try {
       console.log('📡 Fetching problems for explore...');
-      const params = {
-        ...(selectedArea !== 'any' ? { area: selectedArea } : {}),
-        ...(selectedSector ? { sector: selectedSector.id } : {}),
-        ...(searchTerm ? { search: searchTerm } : {}),
-      };
+      let response;
       
-      const response = await problemsAPI.list(params);
+      // Use optimized sector-specific endpoint if sector is selected
+      if (selectedSector) {
+        console.log('📡 Using optimized sector endpoint for sector:', selectedSector.id);
+        response = await sectorsAPI.getProblems(selectedSector.id);
+      } else {
+        // Use general endpoint for area or all problems
+        const params = {
+          ...(selectedArea !== 'any' ? { area: selectedArea } : {}),
+          ...(searchTerm ? { search: searchTerm } : {}),
+        };
+        response = await problemsAPI.list(params);
+      }
+      
       console.log('✅ Problems fetched successfully:', response.data);
       const fetchedProblems = response.data.results || response.data;
       setProblems(fetchedProblems || []);
@@ -130,10 +146,8 @@ const Crags = () => {
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
     }
-    // Fetch problems for the selected sector
-    if (sector) {
-      fetchProblems();
-    }
+    // Note: fetchProblems() will be called automatically by the useEffect
+    // when selectedSector changes, so we don't need to call it here
   };
 
   const handleSectorClick = (sector) => {

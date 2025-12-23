@@ -525,51 +525,81 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
 
     def get_recommended_percentage(self, obj):
         """Calculate percentage of ticks that recommended this problem (rating >= 4.0)"""
-
+        # Use prefetched ticks if available to avoid N+1 queries
+        if hasattr(obj, 'ticks'):
+            # Ticks are prefetched, use them directly
+            ticks_list = list(obj.ticks.all())
+            total_ticks = len(ticks_list)
+            if total_ticks == 0:
+                return 0
+            recommended_ticks = sum(1 for tick in ticks_list if tick.rating and tick.rating >= 4.0)
+            return round((recommended_ticks / total_ticks) * 100)
+        
+        # Fallback to database query if not prefetched
         total_ticks = obj.ticks.count()
         if total_ticks == 0:
             return 0
-
         recommended_ticks = Tick.objects.filter(problem=obj, rating__gte=4.0).count()
-
         return round((recommended_ticks / total_ticks) * 100)
 
     def get_media_count(self, obj):
         """Count total media items (images + videos)"""
-
-        # Count images associated with this problem through ProblemLines
-        image_count = (
-            BoulderImage.objects.filter(problem_lines__problem=obj).distinct().count()
-        )
+        # Use prefetched image_lines if available to avoid N+1 queries
+        if hasattr(obj, 'image_lines'):
+            # Image lines are prefetched, use them directly
+            image_ids = set()
+            for image_line in obj.image_lines.all():
+                if image_line.image_id:
+                    image_ids.add(image_line.image_id)
+            image_count = len(image_ids)
+        else:
+            # Fallback to database query if not prefetched
+            image_count = (
+                BoulderImage.objects.filter(problem_lines__problem=obj).distinct().count()
+            )
         # Count videos
         video_count = len(obj.video_links) if obj.video_links else 0
         return image_count + video_count
 
     def get_primary_image(self, obj):
         """Get primary image for this problem through ProblemLine"""
-
         request = self.context.get("request")
 
         # Try to get a primary image from the sector first
         if obj.sector:
-            primary = obj.sector.images.filter(is_primary=True).first()
+            # Use prefetched sector images if available
+            if hasattr(obj.sector, 'images'):
+                # Images are prefetched
+                primary = next((img for img in obj.sector.images.all() if img.is_primary), None)
+            else:
+                # Fallback to database query
+                primary = obj.sector.images.filter(is_primary=True).first()
+            
             if primary and primary.image:
                 if request:
                     return request.build_absolute_uri(primary.image.url)
-                # Fallback
-
                 base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
                 return f"{base_url}{primary.image.url}"
 
         # Otherwise, get the first image associated with this problem
-        image = BoulderImage.objects.filter(problem_lines__problem=obj).first()
-        if image and image.image:
-            if request:
-                return request.build_absolute_uri(image.image.url)
-            # Fallback
-
-            base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
-            return f"{base_url}{image.image.url}"
+        # Use prefetched image_lines if available
+        if hasattr(obj, 'image_lines'):
+            # Image lines are prefetched, use them directly
+            for image_line in obj.image_lines.all():
+                if image_line.image and image_line.image.image:
+                    image = image_line.image
+                    if request:
+                        return request.build_absolute_uri(image.image.url)
+                    base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
+                    return f"{base_url}{image.image.url}"
+        else:
+            # Fallback to database query if not prefetched
+            image = BoulderImage.objects.filter(problem_lines__problem=obj).first()
+            if image and image.image:
+                if request:
+                    return request.build_absolute_uri(image.image.url)
+                base_url = getattr(settings, "BASE_URL", "http://localhost:8000")
+                return f"{base_url}{image.image.url}"
         return None
 
     def get_has_video(self, obj):

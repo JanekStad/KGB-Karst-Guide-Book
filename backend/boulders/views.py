@@ -160,13 +160,17 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
             sector.problems.filter(area__is_secret=False)
             .filter(Q(sector__isnull=True) | Q(sector__is_secret=False))
             .select_related("area", "sector", "wall", "author", "created_by")
-            .prefetch_related("ticks")
+            .prefetch_related(
+                "ticks",
+                "image_lines__image",  # Prefetch images for media_count and primary_image
+                "sector__images__image",  # Prefetch sector images for primary_image fallback
+            )
             .annotate(
                 tick_count_annotated=Count("ticks", distinct=True),
                 avg_rating_annotated=Avg("ticks__rating"),
             )
         )
-        serializer = BoulderProblemListSerializer(problems, many=True)
+        serializer = BoulderProblemListSerializer(problems, many=True, context={"request": request})
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
@@ -257,7 +261,11 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
             queryset = queryset.select_related(
                 "area", "sector", "wall", "author", "created_by"
             )
-            queryset = queryset.prefetch_related("ticks")
+            queryset = queryset.prefetch_related(
+                "ticks",
+                "image_lines__image",  # Prefetch images for media_count and primary_image
+                "sector__images__image",  # Prefetch sector images for primary_image fallback
+            )
 
         return queryset
 

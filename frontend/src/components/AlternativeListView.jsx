@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import StarRating from './StarRating';
 import './AlternativeListView.css';
+import StarRating from './StarRating';
+import { useAuth } from '../contexts/AuthContext';
+import { ticksAPI } from '../services/api';
 
 const AlternativeListView = ({ 
   sectors, 
   problems, 
   areas, 
-  selectedArea,
+  selectedArea, 
   selectedSector,
   searchTerm,
   onAreaChange,
@@ -15,8 +17,40 @@ const AlternativeListView = ({
   onSwitchToMapView
 }) => {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [sortField, setSortField] = useState('grade');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [tableSearchTerm, setTableSearchTerm] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('all'); // 'all', 'ticked', 'unticked'
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showGradeDropdown, setShowGradeDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [gradeSearchTerm, setGradeSearchTerm] = useState('');
+  const gradeFilterRef = useRef(null);
+  const statusFilterRef = useRef(null);
+  const sortFilterRef = useRef(null);
+  const PAGE_SIZE = 50; // Number of problems per page
+
+  const GRADE_CHOICES = [
+    '3', '3+', '4', '4+', '5', '5+',
+    '6A', '6A+', '6B', '6B+', '6C', '6C+',
+    '7A', '7A+', '7B', '7B+', '7C', '7C+',
+    '8A', '8A+', '8B', '8B+', '8C', '8C+',
+    '9A', '9A+',
+  ];
+
+  const SORT_OPTIONS = [
+    { value: 'grade', label: 'Grade (Hardest)', order: 'desc' },
+    { value: 'grade', label: 'Grade (Easiest)', order: 'asc' },
+    { value: 'name', label: 'Name (A-Z)', order: 'asc' },
+    { value: 'name', label: 'Name (Z-A)', order: 'desc' },
+    { value: 'ascents', label: 'Ascents (Most)', order: 'desc' },
+    { value: 'ascents', label: 'Ascents (Least)', order: 'asc' },
+    { value: 'stars', label: 'Rating (Highest)', order: 'desc' },
+    { value: 'stars', label: 'Rating (Lowest)', order: 'asc' },
+  ];
 
   // Get selected area details
   const selectedAreaData = useMemo(() => {
@@ -45,9 +79,9 @@ const AlternativeListView = ({
       }
       
       grouped[areaId].sectors.push({
-        id: sector.id,
-        name: sector.name,
-        description: sector.description,
+          id: sector.id,
+          name: sector.name,
+          description: sector.description,
         problem_count: sector.problem_count || 0,
         latitude: sector.latitude,
         longitude: sector.longitude,
@@ -77,18 +111,118 @@ const AlternativeListView = ({
     }
   };
 
+  const [ticks, setTicks] = useState({}); // Map of problemId -> tick object
+
+  // Fetch user ticks when sector is selected and user is authenticated
+  useEffect(() => {
+    if (selectedSector && isAuthenticated) {
+      fetchUserTicks();
+    } else {
+      setTicks({});
+    }
+  }, [selectedSector?.id, isAuthenticated]);
+
+  const fetchUserTicks = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const response = await ticksAPI.list();
+      const ticksList = response.data.results || response.data;
+      // Create a map of problemId -> tick
+      const ticksMap = {};
+      ticksList.forEach(tick => {
+        const problemId = tick.problem?.id || tick.problem;
+        if (problemId) {
+          ticksMap[problemId] = tick;
+        }
+      });
+      setTicks(ticksMap);
+    } catch (err) {
+      console.error('Failed to fetch ticks:', err);
+    }
+  };
+
   const handleProblemClick = (problem) => {
     navigate(`/problems/${problem.id}`);
   };
 
-  // Filter problems by selected sector
-  const sectorProblems = useMemo(() => {
+  // Get all problems for the sector (unfiltered) for grade counts
+  const allSectorProblems = useMemo(() => {
     if (!selectedSector) return [];
     return problems.filter(problem => {
       const problemSectorId = problem.sector?.id || problem.sector;
       return problemSectorId === selectedSector.id;
     });
   }, [problems, selectedSector]);
+
+  // Get available grades from problems
+  const availableGrades = useMemo(() => {
+    const grades = new Set(allSectorProblems.map(p => p.grade).filter(Boolean));
+    return GRADE_CHOICES.filter(grade => grades.has(grade));
+  }, [allSectorProblems]);
+
+  // Get grade counts from all sector problems
+  const gradeCounts = useMemo(() => {
+    const counts = {};
+    allSectorProblems.forEach(problem => {
+      if (problem.grade) {
+        counts[problem.grade] = (counts[problem.grade] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [allSectorProblems]);
+
+  // Filter problems by selected sector, search term, grade, and status
+  const sectorProblems = useMemo(() => {
+    if (!selectedSector) return [];
+    let filtered = problems.filter(problem => {
+      const problemSectorId = problem.sector?.id || problem.sector;
+      return problemSectorId === selectedSector.id;
+    });
+    
+    // Apply search filter
+    if (tableSearchTerm) {
+      const searchLower = tableSearchTerm.toLowerCase();
+      filtered = filtered.filter(problem => {
+        const name = (problem.name || '').toLowerCase();
+        const description = (problem.description || '').toLowerCase();
+        const author = (problem.author_username || '').toLowerCase();
+        return name.includes(searchLower) || 
+               description.includes(searchLower) || 
+               author.includes(searchLower);
+      });
+    }
+    
+    // Apply grade filter
+    if (selectedGrade) {
+      filtered = filtered.filter(problem => problem.grade === selectedGrade);
+    }
+    
+    // Apply status filter (ticked/unticked)
+    if (selectedStatus === 'ticked') {
+      filtered = filtered.filter(problem => {
+        const problemId = problem.id;
+        return ticks[problemId] !== undefined;
+      });
+    } else if (selectedStatus === 'unticked') {
+      filtered = filtered.filter(problem => {
+        const problemId = problem.id;
+        return ticks[problemId] === undefined;
+      });
+    }
+    
+    return filtered;
+  }, [problems, selectedSector, tableSearchTerm, selectedGrade, selectedStatus, ticks]);
+
+  // Grade classification utility (same as SectorDetail)
+  const gradeClass = (grade) => {
+    if (!grade) return 'grade-badge-unknown';
+    const clean = grade.replace('+', '');
+    if (/^[345]$/.test(clean)) return 'grade-badge-easy';
+    if (/^6[A-C]?$/.test(clean)) return 'grade-badge-medium';
+    if (/^7[A-C]?$/.test(clean)) return 'grade-badge-hard';
+    if (/^[89]/.test(clean) || /^9/.test(clean)) return 'grade-badge-pro';
+    return 'grade-badge-default';
+  };
 
   // Sort problems
   const sortedProblems = useMemo(() => {
@@ -108,19 +242,25 @@ const AlternativeListView = ({
           aVal = (a.name || '').toLowerCase();
           bVal = (b.name || '').toLowerCase();
           break;
+        case 'stars':
         case 'rating':
           aVal = parseFloat(a.average_rating || a.rating || 0);
           bVal = parseFloat(b.average_rating || b.rating || 0);
           break;
+        case 'ascents':
         case 'repeats':
           aVal = a.tick_count || 0;
           bVal = b.tick_count || 0;
+          break;
+        case 'author':
+          aVal = (a.author_username || '').toLowerCase();
+          bVal = (b.author_username || '').toLowerCase();
           break;
         default:
           return 0;
       }
       
-      if (sortField === 'name') {
+      if (sortField === 'name' || sortField === 'author') {
         return sortOrder === 'asc' 
           ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal);
@@ -131,14 +271,78 @@ const AlternativeListView = ({
     return sorted;
   }, [sectorProblems, sortField, sortOrder]);
 
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder(field === 'name' ? 'asc' : 'desc');
+  // Paginate sorted problems
+  const totalPages = Math.ceil(sortedProblems.length / PAGE_SIZE);
+  const paginatedProblems = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    return sortedProblems.slice(startIndex, endIndex);
+  }, [sortedProblems, currentPage]);
+
+  // Reset to page 1 when search term changes
+  const handleSearchChange = (value) => {
+    setTableSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top of table
+    const tableSection = document.querySelector('.problems-table-section');
+    if (tableSection) {
+      tableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  const handleSort = (field, order) => {
+    setSortField(field);
+    setSortOrder(order);
+    setShowSortDropdown(false);
+  };
+
+  // Filter available grades by search term
+  const filteredAvailableGrades = useMemo(() => {
+    if (!gradeSearchTerm) return availableGrades;
+    const searchLower = gradeSearchTerm.toLowerCase();
+    return availableGrades.filter(grade => grade.toLowerCase().includes(searchLower));
+  }, [availableGrades, gradeSearchTerm]);
+
+  // Get current sort option label
+  const currentSortLabel = useMemo(() => {
+    const option = SORT_OPTIONS.find(opt => 
+      opt.value === sortField && opt.order === sortOrder
+    );
+    return option ? option.label : 'Grade (Hardest)';
+  }, [sortField, sortOrder]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (gradeFilterRef.current && !gradeFilterRef.current.contains(event.target)) {
+        setShowGradeDropdown(false);
+      }
+      if (statusFilterRef.current && !statusFilterRef.current.contains(event.target)) {
+        setShowStatusDropdown(false);
+      }
+      if (sortFilterRef.current && !sortFilterRef.current.contains(event.target)) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Reset search and pagination when sector changes
+  useEffect(() => {
+    setTableSearchTerm('');
+    setSelectedGrade(null);
+    setSelectedStatus('all');
+    setCurrentPage(1);
+    setGradeSearchTerm('');
+  }, [selectedSector?.id]);
 
   return (
     <div className="alternative-list-view">
@@ -250,21 +454,191 @@ const AlternativeListView = ({
             <div className="problems-table-header">
               <h2>{selectedSector.name}</h2>
               <p className="problems-count">
-                {sortedProblems.length} Problem{sortedProblems.length !== 1 ? 's' : ''}
+                {allSectorProblems.length} Problem{allSectorProblems.length !== 1 ? 's' : ''}
+                {sortedProblems.length !== allSectorProblems.length && (
+                  <span className="filtered-count"> ({sortedProblems.length} filtered)</span>
+                )}
               </p>
+          </div>
+
+            {/* Filters Bar */}
+            <div className="filters-bar">
+              {/* Search Input */}
+              <div className="search-wrapper">
+                <span className="material-symbols-outlined search-icon">search</span>
+                <input
+                  type="text"
+                  placeholder="Filter by name..."
+                  value={tableSearchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="search-input"
+                  aria-label="Search problems"
+                />
+                {tableSearchTerm && (
+                  <button 
+                    onClick={() => handleSearchChange('')}
+                    className="search-clear"
+                    aria-label="Clear search"
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* Grade Filter */}
+              <div className="filter-dropdown-wrapper" ref={gradeFilterRef}>
+                <button
+                  onClick={() => {
+                    setShowGradeDropdown(!showGradeDropdown);
+                    setShowStatusDropdown(false);
+                    setShowSortDropdown(false);
+                  }}
+                  className={`filter-dropdown-toggle ${selectedGrade ? 'active' : ''} ${showGradeDropdown ? 'open' : ''}`}
+                  aria-expanded={showGradeDropdown}
+                >
+                  <span>{selectedGrade ? selectedGrade : 'Any Grade'}</span>
+                  <span className="filter-icon">▾</span>
+                </button>
+                {showGradeDropdown && (
+                  <div className="filter-dropdown">
+                    <div className="filter-dropdown-search">
+                      <input
+                        type="text"
+                        placeholder="Search grades..."
+                        value={gradeSearchTerm}
+                        onChange={(e) => setGradeSearchTerm(e.target.value)}
+                        className="filter-search-input"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    <div className="filter-dropdown-list">
+                      <button
+                        onClick={() => {
+                          setSelectedGrade(null);
+                          setShowGradeDropdown(false);
+                          setGradeSearchTerm('');
+                        }}
+                        className={`filter-option ${selectedGrade === null ? 'active' : ''}`}
+                      >
+                        Any Grade ({allSectorProblems.length})
+                      </button>
+                      {filteredAvailableGrades.length > 0 ? (
+                        filteredAvailableGrades.map((grade) => (
+                          <button
+                            key={grade}
+                            onClick={() => {
+                              setSelectedGrade(selectedGrade === grade ? null : grade);
+                              setShowGradeDropdown(false);
+                              setGradeSearchTerm('');
+                            }}
+                            className={`filter-option ${selectedGrade === grade ? 'active' : ''}`}
+                          >
+                            {grade} ({gradeCounts[grade] || 0})
+                          </button>
+                        ))
+                      ) : (
+                        <div className="filter-option no-results">No grades found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Filter */}
+              {isAuthenticated && (
+                <div className="filter-dropdown-wrapper" ref={statusFilterRef}>
+                  <button
+                    onClick={() => {
+                      setShowStatusDropdown(!showStatusDropdown);
+                      setShowGradeDropdown(false);
+                      setShowSortDropdown(false);
+                    }}
+                    className={`filter-dropdown-toggle ${selectedStatus !== 'all' ? 'active' : ''} ${showStatusDropdown ? 'open' : ''}`}
+                    aria-expanded={showStatusDropdown}
+                  >
+                    <span>
+                      {selectedStatus === 'ticked' ? 'Ticked' : 
+                       selectedStatus === 'unticked' ? 'Unticked' : 
+                       'Status'}
+                    </span>
+                    <span className="filter-icon">▾</span>
+                  </button>
+                  {showStatusDropdown && (
+                    <div className="filter-dropdown">
+                      <div className="filter-dropdown-list">
+                        <button
+                          onClick={() => {
+                            setSelectedStatus('all');
+                            setShowStatusDropdown(false);
+                          }}
+                          className={`filter-option ${selectedStatus === 'all' ? 'active' : ''}`}
+                        >
+                          All
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedStatus('ticked');
+                            setShowStatusDropdown(false);
+                          }}
+                          className={`filter-option ${selectedStatus === 'ticked' ? 'active' : ''}`}
+                        >
+                          Ticked
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedStatus('unticked');
+                            setShowStatusDropdown(false);
+                          }}
+                          className={`filter-option ${selectedStatus === 'unticked' ? 'active' : ''}`}
+                        >
+                          Unticked
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sort By */}
+              <div className="sort-wrapper">
+                <span className="sort-label">SORT BY:</span>
+                <div className="filter-dropdown-wrapper" ref={sortFilterRef}>
+                  <button
+                    onClick={() => {
+                      setShowSortDropdown(!showSortDropdown);
+                      setShowGradeDropdown(false);
+                      setShowStatusDropdown(false);
+                    }}
+                    className={`filter-dropdown-toggle ${showSortDropdown ? 'open' : ''}`}
+                    aria-expanded={showSortDropdown}
+                  >
+                    <span>{currentSortLabel}</span>
+                    <span className="filter-icon">▾</span>
+                  </button>
+                  {showSortDropdown && (
+                    <div className="filter-dropdown">
+                      <div className="filter-dropdown-list">
+                        {SORT_OPTIONS.map((option, index) => (
+                          <button
+                            key={`${option.value}-${option.order}-${index}`}
+                            onClick={() => handleSort(option.value, option.order)}
+                            className={`filter-option ${sortField === option.value && sortOrder === option.order ? 'active' : ''}`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="problems-table-wrapper">
               <table className="problems-table">
                 <thead>
                   <tr>
-                    <th>TICK</th>
-                    <th 
-                      className={`sortable ${sortField === 'name' ? `sort-${sortOrder}` : ''}`}
-                      onClick={() => handleSort('name')}
-                    >
-                      PROBLEM
-                    </th>
                     <th 
                       className={`sortable ${sortField === 'grade' ? `sort-${sortOrder}` : ''}`}
                       onClick={() => handleSort('grade')}
@@ -272,72 +646,132 @@ const AlternativeListView = ({
                       GRADE
                     </th>
                     <th 
-                      className={`sortable ${sortField === 'rating' ? `sort-${sortOrder}` : ''}`}
-                      onClick={() => handleSort('rating')}
+                      className={`sortable ${sortField === 'name' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('name')}
                     >
-                      RATING
+                      NAME
+                    </th>
+                    <th>MEDIA</th>
+                    <th 
+                      className={`sortable ${sortField === 'ascents' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('ascents')}
+                    >
+                      ASCENTS
                     </th>
                     <th 
-                      className={`sortable ${sortField === 'repeats' ? `sort-${sortOrder}` : ''}`}
-                      onClick={() => handleSort('repeats')}
+                      className={`sortable ${sortField === 'author' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('author')}
                     >
-                      REPEATS
+                      AUTHOR
                     </th>
+                    <th 
+                      className={`sortable ${sortField === 'stars' ? `sort-${sortOrder}` : ''}`}
+                      onClick={() => handleSort('stars')}
+                    >
+                      STARS
+                    </th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedProblems.length > 0 ? (
-                    sortedProblems.map((problem) => (
+                  {paginatedProblems.length > 0 ? (
+                    paginatedProblems.map((problem) => (
                       <tr 
                         key={problem.id} 
                         className="problem-row"
-                        onClick={() => handleProblemClick(problem)}
                       >
-                        <td className="problem-tick-cell">
-                          <span className="tick-icon">○</span>
-                        </td>
-                        <td className="problem-name-cell">
-                          <div className="problem-name-main">{problem.name}</div>
-                          {problem.description && (
-                            <div className="problem-description">
-                              {problem.description.length > 60 
-                                ? `${problem.description.substring(0, 60)}...` 
-                                : problem.description}
-                            </div>
-                          )}
-                        </td>
                         <td className="problem-grade-cell">
-                          <div className="problem-grade-badge">
+                          <div 
+                            className={`problem-grade-badge ${gradeClass(problem.grade)}`}
+                          >
                             {problem.grade || '?'}
                           </div>
                         </td>
-                        <td className="problem-rating-cell">
+                        <td className="problem-name-cell">
+                          <div 
+                            className="problem-name-link"
+                            onClick={() => handleProblemClick(problem)}
+                          >
+                            <div className="problem-name-main">{problem.name}</div>
+                            <div className="problem-location">
+                              {problem.sector_name || selectedSector?.name || ''}
+                              {problem.wall_name && `, ${problem.wall_name}`}
+                        </div>
+                          </div>
+                        </td>
+                        <td className="problem-media-cell">
+                          {problem.media_count > 0 ? problem.media_count : '-'}
+                        </td>
+                        <td className="problem-ascents-cell">
+                          {problem.tick_count || 0}
+                        </td>
+                        <td className="problem-author-cell">
+                          {problem.author_username || '-'}
+                        </td>
+                        <td className="problem-stars-cell">
                           {(problem.average_rating || problem.rating) ? (
                             <StarRating 
                               rating={parseFloat(problem.average_rating || problem.rating)} 
                               size="small" 
                             />
-                          ) : (
-                            <span className="no-rating">-</span>
-                          )}
+                          ) : '-'}
                         </td>
-                        <td className="problem-repeats-cell">
-                          {problem.tick_count ? (
-                            problem.tick_count >= 1000 
-                              ? `${(problem.tick_count / 1000).toFixed(1)}k`
-                              : problem.tick_count.toLocaleString()
-                          ) : '0'}
+                        <td className="problem-actions-cell">
+                          <div className="problem-actions">
+                            <button 
+                              className="tick-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // TODO: Handle tick action
+                              }}
+                              title="Add to tick list"
+                            >
+                              +
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="no-problems">No problems found.</td>
+                      <td colSpan="7" className="no-problems">
+                        {tableSearchTerm ? 'No problems found matching your search.' : 'No problems found.'}
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {sortedProblems.length > 0 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  Showing {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, sortedProblems.length)} of {sortedProblems.length} problem{sortedProblems.length !== 1 ? 's' : ''}
+                </div>
+                {totalPages > 1 && (
+                  <div className="pagination-controls">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="pagination-btn"
+                    >
+                      ← Previous
+                    </button>
+                    <span className="pagination-page">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="pagination-btn"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           /* Area/Sector view when no sector is selected */
@@ -376,7 +810,7 @@ const AlternativeListView = ({
                           <span className="sector-card-badge">
                             {sector.problem_count || 0}
                           </span>
-                        </div>
+                          </div>
                         {sector.description && (
                           <p className="sector-card-description">
                             {sector.description.length > 100 
@@ -397,10 +831,10 @@ const AlternativeListView = ({
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </section>
-            ))
+                    </div>
+              </div>
+            </section>
+          ))
           )
         )}
       </div>
@@ -409,3 +843,4 @@ const AlternativeListView = ({
 };
 
 export default AlternativeListView;
+
