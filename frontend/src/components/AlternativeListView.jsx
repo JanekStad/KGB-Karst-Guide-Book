@@ -354,7 +354,6 @@ const AlternativeListView = ({
             backgroundImage: 'linear-gradient(135deg, var(--background-dark) 0%, var(--surface-dark) 100%)'
           }}
         >
-          <div className="hero-overlay"></div>
           <div className="hero-content">
             <div className="hero-text">
               {selectedSector.area_name && (
@@ -392,6 +391,7 @@ const AlternativeListView = ({
               )}
             </div>
           </div>
+          <div className="hero-overlay"></div>
         </div>
       ) : selectedAreaData ? (
         <div 
@@ -402,7 +402,6 @@ const AlternativeListView = ({
               : 'linear-gradient(135deg, var(--background-dark) 0%, var(--surface-dark) 100%)'
           }}
         >
-          <div className="hero-overlay"></div>
           <div className="hero-content">
             <div className="hero-text">
               {selectedAreaData.region && (
@@ -433,16 +432,17 @@ const AlternativeListView = ({
               )}
             </div>
           </div>
+          <div className="hero-overlay"></div>
         </div>
       ) : (
         <div className="list-hero-section">
-          <div className="hero-overlay"></div>
           <div className="hero-content">
             <div className="hero-text">
               <h1>Explore All Areas</h1>
               <p className="hero-description">Browse boulder problems across all areas and sectors.</p>
             </div>
           </div>
+          <div className="hero-overlay"></div>
         </div>
       )}
 

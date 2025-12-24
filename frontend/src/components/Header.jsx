@@ -59,13 +59,6 @@ const Header = () => {
     return location.pathname === path;
   };
 
-  // Handle map view - navigate to explore and set map view in localStorage
-  const handleMapClick = (e) => {
-    e.preventDefault();
-    localStorage.setItem('exploreViewMode', 'map');
-    navigate('/explore');
-  };
-
   return (
     <header className="header">
       <div className="header-container">
@@ -104,31 +97,18 @@ const Header = () => {
                   Dashboard
                 </Link>
                 <Link 
+                  to="/explore" 
+                  className={`nav-link ${isActiveRoute('/explore') || isActiveRoute('/areas') ? 'active' : ''}`}
+                >
+                  Explore
+                </Link>
+                <Link 
                   to="/my-ticks" 
                   className={`nav-link ${isActiveRoute('/my-ticks') ? 'active' : ''}`}
                 >
                   Logbook
                 </Link>
-                <Link 
-                  to="/explore" 
-                  className={`nav-link ${isActiveRoute('/explore') ? 'active' : ''}`}
-                  onClick={handleMapClick}
-                >
-                  Map
-                </Link>
-                <Link 
-                  to="/explore" 
-                  className={`nav-link ${isActiveRoute('/explore') || isActiveRoute('/areas') ? 'active' : ''}`}
-                >
-                  Local Crags
-                </Link>
               </nav>
-
-              {/* Notifications */}
-              <button className="notification-btn">
-                <span className="material-symbols-outlined">notifications</span>
-                <span className="notification-badge"></span>
-              </button>
 
               {/* User Profile */}
               <div className="user-profile-container" ref={dropdownRef}>
