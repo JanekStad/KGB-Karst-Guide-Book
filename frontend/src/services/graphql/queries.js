@@ -174,6 +174,7 @@ export const GET_SECTORS = gql`
       description
       latitude
       longitude
+      radiusMeters
       area {
         id
         name

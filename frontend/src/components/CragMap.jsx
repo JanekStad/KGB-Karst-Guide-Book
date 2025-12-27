@@ -60,9 +60,32 @@ function ZoomHandler({ onZoomChange }) {
   return null;
 }
 
-// Helper function to create a simple polygon around a point
+// Helper function to generate a circular polygon from center point and radius
+function createCirclePolygon(latitude, longitude, radiusMeters, numPoints = 12) {
+  // Convert radius from meters to degrees
+  // 1 degree of latitude ≈ 111,000 meters (constant)
+  // 1 degree of longitude ≈ 111,000 * cos(latitude) meters (varies by latitude)
+  const radiusLatDegrees = radiusMeters / 111000.0;
+  const radiusLngDegrees = radiusMeters / (111000.0 * Math.cos(latitude * Math.PI / 180));
+
+  const points = [];
+  for (let i = 0; i < numPoints; i++) {
+    const angle = (2 * Math.PI * i) / numPoints;
+    const lat = latitude + radiusLatDegrees * Math.cos(angle);
+    const lng = longitude + radiusLngDegrees * Math.sin(angle);
+    points.push([lat, lng]);
+  }
+  
+  // Close the polygon by adding the first point at the end
+  if (points.length > 0) {
+    points.push([points[0][0], points[0][1]]);
+  }
+  
+  return points;
+}
+
+// Helper function to create a simple polygon around a point (fallback)
 // This creates a square polygon centered on the lat/lng point
-// In production, you'd use actual polygon coordinates from the backend
 function createSectorPolygon(latitude, longitude, size = 0.0015) {
   // Create a square polygon around the center point
   // size is in degrees (approximately 150m for 0.0015)
@@ -357,10 +380,16 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
             sectorsWithCoords.map((sector) => {
               const lat = parseFloat(sector.latitude);
               const lng = parseFloat(sector.longitude);
-              // Use polygon_boundary if available, otherwise create a placeholder polygon
-              const polygonCoords = sector.polygon_boundary 
-                ? sector.polygon_boundary 
-                : createSectorPolygon(lat, lng);
+              // Priority: polygon_boundary > radius_meters > fallback square
+              let polygonCoords;
+              if (sector.polygon_boundary) {
+                polygonCoords = sector.polygon_boundary;
+              } else if (sector.radius_meters || sector.radiusMeters) {
+                const radius = sector.radius_meters || sector.radiusMeters;
+                polygonCoords = createCirclePolygon(lat, lng, parseFloat(radius));
+              } else {
+                polygonCoords = createSectorPolygon(lat, lng);
+              }
               
               // Calculate centroid for label placement
               const centroid = getPolygonCentroid(polygonCoords) || [lat, lng];
@@ -417,9 +446,16 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
             sectorsWithCoords.map((sector) => {
               const lat = parseFloat(sector.latitude);
               const lng = parseFloat(sector.longitude);
-              const polygonCoords = sector.polygon_boundary 
-                ? sector.polygon_boundary 
-                : createSectorPolygon(lat, lng);
+              // Priority: polygon_boundary > radius_meters > fallback square
+              let polygonCoords;
+              if (sector.polygon_boundary) {
+                polygonCoords = sector.polygon_boundary;
+              } else if (sector.radius_meters || sector.radiusMeters) {
+                const radius = sector.radius_meters || sector.radiusMeters;
+                polygonCoords = createCirclePolygon(lat, lng, parseFloat(radius));
+              } else {
+                polygonCoords = createSectorPolygon(lat, lng);
+              }
               const centroid = getPolygonCentroid(polygonCoords) || [lat, lng];
               
               return (

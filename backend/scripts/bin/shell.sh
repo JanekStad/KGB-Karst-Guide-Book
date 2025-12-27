@@ -2,7 +2,7 @@
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-# Navigate to backend directory (two levels up from scripts/bin/)
+# Navigate to backend directory (2 levels up from scripts/bin/)
 BACKEND_DIR="$( cd "$SCRIPT_DIR/../.." && pwd )"
 cd "$BACKEND_DIR"
 
