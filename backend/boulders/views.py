@@ -2,7 +2,7 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Count, Avg, Q, F
+from django.db.models import Count, Avg, Q
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
 from .mixins import CreatedByMixin, ListDetailSerializerMixin
 from .filters import NormalizedSearchFilter
@@ -59,7 +59,11 @@ class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
     filterset_fields = ["city"]
     search_fields = ["name", "description", "city__name"]
     ordering_fields = ["name", "created_at", "city", "problem_count_annotated"]
-    ordering = ["-problem_count_annotated", "city", "name"]  # Sort by problem_count descending by default
+    ordering = [
+        "-problem_count_annotated",
+        "city",
+        "name",
+    ]  # Sort by problem_count descending by default
 
     def get_queryset(self):
         """Filter out secret areas by default unless user has permission"""
@@ -73,24 +77,24 @@ class AreaViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelViewS
         queryset = queryset.annotate(
             problem_count_annotated=Count(
                 "problems",
-                filter=Q(problems__sector__isnull=True) | Q(problems__sector__is_secret=False),
-                distinct=True
+                filter=Q(problems__sector__isnull=True)
+                | Q(problems__sector__is_secret=False),
+                distinct=True,
             ),
             # Annotate sector_count (excluding secret sectors)
             sector_count_annotated=Count(
-                "sectors",
-                filter=Q(sectors__is_secret=False),
-                distinct=True
+                "sectors", filter=Q(sectors__is_secret=False), distinct=True
             ),
             # Calculate average coordinates from non-secret sectors for location display
             avg_latitude=Avg(
                 "sectors__latitude",
-                filter=Q(sectors__is_secret=False) & Q(sectors__latitude__isnull=False)
+                filter=Q(sectors__is_secret=False) & Q(sectors__latitude__isnull=False),
             ),
             avg_longitude=Avg(
                 "sectors__longitude",
-                filter=Q(sectors__is_secret=False) & Q(sectors__longitude__isnull=False)
-            )
+                filter=Q(sectors__is_secret=False)
+                & Q(sectors__longitude__isnull=False),
+            ),
         )
         return queryset
 
@@ -134,7 +138,11 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
     filterset_fields = ["area"]
     search_fields = ["name", "description", "area__name"]
     ordering_fields = ["name", "created_at", "area", "problem_count_annotated"]
-    ordering = ["-problem_count_annotated", "area", "name"]  # Sort by problem_count descending by default
+    ordering = [
+        "-problem_count_annotated",
+        "area",
+        "name",
+    ]  # Sort by problem_count descending by default
 
     def get_queryset(self):
         """Filter out sectors from secret areas and secret sectors"""
@@ -170,7 +178,9 @@ class SectorViewSet(CreatedByMixin, ListDetailSerializerMixin, viewsets.ModelVie
                 avg_rating_annotated=Avg("ticks__rating"),
             )
         )
-        serializer = BoulderProblemListSerializer(problems, many=True, context={"request": request})
+        serializer = BoulderProblemListSerializer(
+            problems, many=True, context={"request": request}
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
@@ -239,9 +249,7 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
         queryset = super().get_queryset()
         # Filter out problems from secret areas and secret sectors
         # Include problems with no sector (sector__isnull=True) or non-secret sectors
-        queryset = queryset.filter(
-            area__is_secret=False
-        ).filter(
+        queryset = queryset.filter(area__is_secret=False).filter(
             Q(sector__isnull=True) | Q(sector__is_secret=False)
         )
 

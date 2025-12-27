@@ -38,7 +38,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         Similar to my_ticks but for any user by ID.
         """
         user = self.get_object()
-        
+
         # Get user's ticks with optimized queries
         ticks = (
             Tick.objects.filter(user=user)
@@ -52,15 +52,17 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             .prefetch_related("problem__sector", "problem__wall")
             .order_by("-date", "-created_at")
         )
-        
+
         # Serialize user info and ticks
         user_serializer = UserSerializer(user)
         ticks_serializer = TickSerializer(ticks, many=True)
-        
-        return Response({
-            "user": user_serializer.data,
-            "ticks": ticks_serializer.data,
-        })
+
+        return Response(
+            {
+                "user": user_serializer.data,
+                "ticks": ticks_serializer.data,
+            }
+        )
 
     @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def register(self, request):

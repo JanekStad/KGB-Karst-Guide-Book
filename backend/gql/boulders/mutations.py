@@ -25,7 +25,7 @@ async def resolve_update_problem_video_links(_, info, id, input):
 
             # Get videoLinks from input
             video_links = input.get("videoLinks", [])
-            
+
             # Ensure video_links is a list (handle None case)
             if video_links is None:
                 video_links = []
@@ -55,4 +55,3 @@ async def resolve_update_problem_video_links(_, info, id, input):
             raise GraphQLError(f"Validation error: {str(e)}")
 
     return await sync_to_async(update_video_links)()
-
