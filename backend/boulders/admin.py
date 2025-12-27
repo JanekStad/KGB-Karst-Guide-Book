@@ -25,19 +25,19 @@ class AreaAdmin(admin.ModelAdmin):
 
 @admin.register(Sector)
 class SectorAdmin(admin.ModelAdmin):
-    list_display = ["name", "area", "latitude", "longitude", "created_by", "created_at"]
+    list_display = ["name", "area", "latitude", "longitude", "created_by", "created_at", "radius_meters", "is_secret"]
     list_filter = ["area", "created_at"]
     search_fields = ["name", "description", "area__name"]
     readonly_fields = ["created_at", "updated_at", "problem_count", "wall_count"]
     fieldsets = (
         (
             "Basic Information",
-            {"fields": ("area", "name", "description")},
+            {"fields": ("area", "name", "description", "is_secret")},
         ),
         (
             "Location",
             {
-                "fields": ("latitude", "longitude", "polygon_boundary"),
+                "fields": ("latitude", "longitude", "radius_meters", "polygon_boundary"),
                 "description": "Latitude/longitude for marker positioning. Polygon boundary is an array of [lat, lng] pairs defining the sector boundary. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
             },
         ),
