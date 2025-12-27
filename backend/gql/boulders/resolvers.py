@@ -79,11 +79,21 @@ async def resolve_area(_, info, id):
 
 
 @query.field("areas")
-async def resolve_areas(_, info, cityId=None):
+async def resolve_areas(_, info, cityId=None, search=None):
     def get_areas():
+        from boulders.utils import normalize_problem_name
+        
         queryset = Area.objects.filter(is_secret=False).select_related("city")
         if cityId:
             queryset = queryset.filter(city_id=cityId)
+        if search:
+            # Use normalized search for diacritic-insensitive matching
+            normalized_search = normalize_problem_name(search)
+            queryset = queryset.filter(
+                Q(name_normalized__icontains=normalized_search) |
+                Q(description__icontains=normalized_search) |
+                Q(city__name_normalized__icontains=normalized_search)
+            ).distinct()
         return list(queryset)
 
     return await sync_to_async(get_areas)()
@@ -150,6 +160,18 @@ async def resolve_avg_rating(problem_obj, info):
     """Resolve average rating using DataLoader to batch queries."""
     dataloaders = get_dataloaders(info.context)
     return await dataloaders["avg_rating_by_problem"].load(str(problem_obj.id))
+
+
+@problem.field("videoLinks")
+async def resolve_video_links(problem_obj, info):
+    """Resolve video links from the model."""
+    return problem_obj.video_links if problem_obj.video_links else []
+
+
+@problem.field("externalLinks")
+async def resolve_external_links(problem_obj, info):
+    """Resolve external links from the model."""
+    return problem_obj.external_links if problem_obj.external_links else []
 
 
 @area.field("problemCount")

@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import Register from './pages/Register';
 import SectorDetail from './pages/SectorDetail';
 import UserDiary from './pages/UserDiary';
+import UserProfile from './pages/UserProfile';
 import { apolloClient } from './services/graphql';
 
 function App() {
@@ -56,6 +57,7 @@ function App() {
                   <Route path="/my-lists" element={<MyLists />} />
                   <Route path="/my-ticks" element={<MyTicks />} />
                   <Route path="/users/:userId/diary" element={<UserDiary />} />
+                  <Route path="/user/:id" element={<UserProfile />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />

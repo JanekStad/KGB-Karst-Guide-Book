@@ -47,6 +47,8 @@ type BoulderProblem {
     ticks: [Tick!]!
     tickCount: Int
     avgRating: Float
+    videoLinks: JSONString
+    externalLinks: JSONString
 }
 
 type ProblemStatistics {

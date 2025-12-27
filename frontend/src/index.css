@@ -1,17 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
 :root {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Lexend', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   font-weight: 400;
   
   /* Light theme (default) */
-  --bg-primary: #f5f7fa;
+  --bg-primary: #f6f8f6;
   --bg-secondary: #ffffff;
   --text-primary: #2c3e50;
   --text-secondary: #7f8c8d;
   --accent: #667eea;
   
-  /* Dark theme colors */
+  /* Dark theme colors - New Design System */
   --slate-900: #0F172A;
   --slate-800: #1E293B;
   --slate-700: #334155;
@@ -20,6 +23,31 @@
   --text-white: #FFFFFF;
   --text-muted: #94A3B8;
   
+  /* New BoulderDB Design System - Cyan Color Scheme (Default) */
+  --primary-cyan: #21EEEE; /* Cyan - buttons, links, interactive elements */
+  --primary-cyan-hover: #1ddddd; /* Slightly darker for hover */
+  --primary-cyan-light: rgba(33, 238, 238, 0.1); /* Light tint for backgrounds */
+  --primary-cyan-glow: rgba(33, 238, 238, 0.3); /* Glow effect */
+  
+  --background-dark: #020617; /* Main background - very dark blue */
+  --background-deep: #000000; /* Deep background - black */
+  
+  --surface-dark: #1E293B; /* Card/surface background - slate-800 */
+  --surface-hover: rgba(30, 41, 59, 0.8); /* Surface hover state */
+  
+  --border-dark: rgba(51, 65, 85, 0.3); /* Subtle borders - slate-700 */
+  --border-surface: #334155; /* Slate borders - slate-700 */
+  --border-accent: rgba(33, 238, 238, 0.4); /* Accent borders - cyan */
+  
+  --secondary-text: #94A3B8; /* Slate for secondary text - slate-400 */
+  --text-muted: rgba(148, 163, 184, 0.7); /* More muted text */
+  
+  /* Legacy Radioactive Palette (kept for backward compatibility) */
+  --primary-green: #53A62D;
+  --primary-green-hover: #4a9526;
+  --primary-green-light: rgba(83, 166, 45, 0.1);
+  --primary-green-glow: rgba(83, 166, 45, 0.3);
+  
   color: var(--text-primary);
   background-color: var(--bg-primary);
 }
@@ -27,11 +55,23 @@
 /* Dark theme - apply to body or specific components */
 body[data-theme="dark"],
 [data-theme="dark"] {
-  --bg-primary: var(--slate-900);
-  --bg-secondary: var(--slate-800);
+  --bg-primary: var(--background-dark);
+  --bg-secondary: var(--surface-dark);
   --text-primary: var(--text-white);
-  --text-secondary: var(--text-muted);
-  --accent: var(--energy-orange);
+  --text-secondary: var(--secondary-text);
+  --accent: var(--primary-cyan); /* Use cyan as default accent */
+  
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Radioactive theme - alternative theme using the full palette */
+[data-theme="radioactive"] {
+  --bg-primary: #0D0D0D;
+  --bg-secondary: #2C5916;
+  --text-primary: var(--text-white);
+  --text-secondary: #668C54;
+  --accent: var(--primary-green);
   
   color: var(--text-primary);
   background-color: var(--bg-primary);

@@ -4,7 +4,7 @@ type Query {
     area(id: ID!): Area
     sector(id: ID!): Sector
     problems(areaId: ID, sectorId: ID, wallId: ID, search: String): [BoulderProblem!]!
-    areas(cityId: ID): [Area!]!
+    areas(cityId: ID, search: String): [Area!]!
     sectors(areaId: ID): [Sector!]!
 }
 
@@ -13,6 +13,7 @@ type Mutation {
     updateTick(id: ID!, input: UpdateTickInput!): Tick!
     deleteTick(id: ID!): Boolean!
     createComment(input: CreateCommentInput!): Comment!
+    updateProblemVideoLinks(id: ID!, input: UpdateProblemVideoLinksInput!): BoulderProblem!
 }
 
 schema {

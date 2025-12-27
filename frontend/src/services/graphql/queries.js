@@ -72,6 +72,8 @@ export const GET_PROBLEM_DETAIL = gql`
       }
       tickCount
       avgRating
+      videoLinks
+      externalLinks
     }
   }
 `;
@@ -123,8 +125,8 @@ export const GET_AREA = gql`
  * Get list of areas
  */
 export const GET_AREAS = gql`
-  query GetAreas($cityId: ID) {
-    areas(cityId: $cityId) {
+  query GetAreas($cityId: ID, $search: String) {
+    areas(cityId: $cityId, search: $search) {
       id
       name
       description
@@ -262,6 +264,19 @@ export const CREATE_COMMENT = gql`
         id
         name
       }
+    }
+  }
+`;
+
+/**
+ * Update video links for a boulder problem
+ */
+export const UPDATE_PROBLEM_VIDEO_LINKS = gql`
+  mutation UpdateProblemVideoLinks($id: ID!, $input: UpdateProblemVideoLinksInput!) {
+    updateProblemVideoLinks(id: $id, input: $input) {
+      id
+      name
+      videoLinks
     }
   }
 `;

@@ -9,6 +9,7 @@ from gql.boulders.resolvers import (
     wall,
     city,
 )
+from gql.boulders.mutations import mutation as boulder_mutation
 from gql.comments.resolvers import comment
 from gql.comments.mutations import mutation as comment_mutation
 from gql.lists.resolvers import tick
@@ -52,6 +53,9 @@ type_defs_list = [
     load_schema_from_path(
         base_path / "comments" / "resources" / "types" / "inputs.graphql"
     ),
+    load_schema_from_path(
+        base_path / "boulders" / "resources" / "types" / "inputs.graphql"
+    ),
 ]
 
 # Combine all type definitions
@@ -63,6 +67,7 @@ schema = make_executable_schema(
     query,
     tick_mutation,
     comment_mutation,
+    boulder_mutation,
     problem,
     area,
     sector,

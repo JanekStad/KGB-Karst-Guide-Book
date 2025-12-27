@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Boulder Problem Details - CragLog</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#11d411",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for better aesthetics in dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1c271c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #283928;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #11d411;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-200">
+<!-- Top Navbar -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-[#283928] bg-background-light dark:bg-[#111811] px-10 py-3">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-[32px]">landscape</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">CragLog</h2>
+</div>
+<div class="flex flex-1 justify-end gap-8">
+<label class="flex flex-col min-w-40 !h-10 max-w-64 hidden sm:flex">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full border border-gray-300 dark:border-[#283928] bg-white dark:bg-[#283928] overflow-hidden">
+<div class="text-gray-500 dark:text-[#9db99d] flex items-center justify-center pl-4 bg-transparent">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-gray-400 dark:placeholder:text-[#9db99d] px-4 text-base font-normal leading-normal" placeholder="Search problems..." value=""/>
+</div>
+</label>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary cursor-pointer" data-alt="User profile avatar showing a smiling climber" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5q6GZjqSAuA9Fp7dtbEtt7SP3FQzSdi5G9taIr-LrC0ccZMtV7YHojFThp81plzvavKxIk9QDCdleKXXfsNeYBhWcEt4oCaA4s2488sI1A4vhVJKQUNFx620cb-vKvbhqaOKuiP1iqS5TpTmP67Sf_wcT22P3Nov9iA2K7WY_rLdVekKsjqZX7bs4bRMg6rqSBg4u2G0Yn4f8gyDBSmrU2Qr0yOUwwka2kSE1bg_qEf12L7kXChsByHa70XSYkRQM5dIjxObXzq8n");'></div>
+</div>
+</header>
+<div class="flex flex-col min-h-screen">
+<div class="layout-container flex h-full grow flex-col">
+<div class="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-5">
+<div class="layout-content-container flex flex-col max-w-[1200px] flex-1">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap gap-2 px-4 py-2">
+<a class="text-gray-500 dark:text-[#9db99d] hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal flex items-center gap-1" href="#">
+<span class="material-symbols-outlined text-[16px]">home</span> Home
+                        </a>
+<span class="text-gray-400 dark:text-[#5a6b5a] text-sm font-medium leading-normal">/</span>
+<a class="text-gray-500 dark:text-[#9db99d] hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Hueco Tanks</a>
+<span class="text-gray-400 dark:text-[#5a6b5a] text-sm font-medium leading-normal">/</span>
+<a class="text-gray-500 dark:text-[#9db99d] hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">East Mountain</a>
+<span class="text-gray-400 dark:text-[#5a6b5a] text-sm font-medium leading-normal">/</span>
+<span class="text-slate-900 dark:text-white text-sm font-medium leading-normal">The Green Bastard</span>
+</div>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 p-4 mt-2">
+<!-- LEFT COLUMN (Visuals & Map) -->
+<div class="lg:col-span-7 flex flex-col gap-8">
+<!-- Hero Image / Gallery -->
+<div class="flex flex-col gap-4">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden shadow-lg group">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Climber attempting a dyno move on a large boulder overhang" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDgLEj8ctcaij9RkVRrsns9f9OnWWCWOHKqqbHbU1pEbK6r3HUj6_3oExfUnQChF8pWYlUb0oZNd4a6tS-XHJVFuRP4aZySr15YfO79ZjmMV6UwbWwrjGlbMkAAuCYoRLVd88_VAeZ8I1oPTZXIhoHtGbXqDSPsVrMqFpg66-39WSbmSjhvKLjIhWPsEVoO6BlJL9r3OBb2zH2VEiW1ngdmdh5wI8XUiaeEgYqrzlik-rkW_FDKxik3fXg90a05PvJeHIv5qQBcEeDq");'></div>
+<div class="absolute bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">photo_camera</span> 1/4
+                                    </div>
+<div class="absolute top-4 left-4">
+<span class="inline-flex items-center justify-center px-3 py-1 bg-primary text-background-dark text-sm font-bold rounded shadow-lg uppercase tracking-wider">
+                                            Featured
+                                        </span>
+</div>
+</div>
+<!-- Thumbnails -->
+<div class="grid grid-cols-4 gap-3">
+<div class="aspect-square rounded-lg bg-cover bg-center cursor-pointer ring-2 ring-primary ring-offset-2 ring-offset-background-dark" data-alt="Close up of a climbing hold" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdSxuaT6fYG_F54lhcGhaFRx0FRPL5qATO4RbYsdaFnSze5k7xcYl2rN96l6CLTk5GcixLbO7TM9CbnAKytmMeVgpOF64xGczYE-1hJs3Z03-Gq8QwHeSQg6eYB42ZurLwv1ES7Pw5-DWbpCFcO6mHZcnOdzVnuhwu0BGRpN-3Q5H-pP4dvyV1iE2gttU6XVbpAdrZeKkmUEkn8dqtJyPIrErdQ9w0RWhcEKHb1Di5g7R3V3vf4SoN_-68SQDvJcO0g82prjd6xywZ");'></div>
+<div class="aspect-square rounded-lg bg-cover bg-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity" data-alt="Side view of the boulder problem showing angle" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAuYG0mEfOmY96jb0Albe7YAkMrVKbcVdBPv4-iLkInA-TL6uzGn-IPZEfrLLZYhXGfneFIl0i1knm7I5qHBZ-EAeaLvUJ7BOfkkeOTENfQQ9-5MRMxNJzIisKUFks8ZrLB8odI2QqCqkRUdULDXi7MyzNs0v2QLNlBFbfwyxkx79ai6AdK7DOX3oFK8aUC5uwAvnzyGuvN7CiIu81HvO49LeL7r0HjDRLdXcUAD9B7nM416nk3JrnwOwJcWXNPwUQNtm4WbR-nPfHk");'></div>
+<div class="aspect-square rounded-lg bg-cover bg-center cursor-pointer opacity-70 hover:opacity-100 transition-opacity" data-alt="Top out section of the boulder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDnAFDEfgRb5iGDwn3BoW3jKOcqcV7JCcmPyVBI8mko_3pTzbbk2fD2cZ8eqLtTG-qVK-PzHKtouvetjnvskg6L7uKFrT8VnsrbRVBagxs1b1hqjV37oqmQctjBcZwOXI7neQU1bOwpYOuscPdPAm53E3VpRmAxuESxsTg-WyeqAKGKDEt98i5nfsrsZslvKMYQsrIIJaB6NWRMcYlFL51G93WO0VE965e0L2YtdzZAx16cgGzICcj8ZhbwBRMzuDjBrE2YISEYvvEx");'></div>
+<div class="aspect-square rounded-lg bg-[#283928] flex items-center justify-center cursor-pointer opacity-70 hover:opacity-100 text-white">
+<span class="material-symbols-outlined">add</span>
+</div>
+</div>
+</div>
+<!-- Map Section -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">location_on</span> Location
+                                    </h3>
+<button class="text-sm text-primary hover:text-green-400 font-medium flex items-center gap-1">
+                                        Get Directions <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+<div class="w-full aspect-[2/1] bg-[#1c271c] rounded-xl overflow-hidden relative shadow-md border border-gray-200 dark:border-[#283928]">
+<!-- Placeholder Map Image -->
+<div class="w-full h-full bg-cover bg-center opacity-80" data-alt="Interactive map showing the location of the boulder in a park" data-location="Hueco Tanks" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA02PMUialuNMVT7MfPcP1dgzBRmlgIzOSHYx2nTnzhcNXdmG2NI2KL8PGr3aPVi0iq4Z27d8qgQ7MN-X-KjZVNJ_o93Pkh3gFlbd9a9N1nxEkbcf5J8yoU4V-fmCsWIo0I9lyZFsC0lI0IcPGj_lrJ9J0148POKSbv_ESXPm6aoBkVIaIafMQIDVAQuagkFr1p0QjntthmqfjBK6EEWXIN_x6_Nwgg4WqkZG40QH176XZ5kdTySWDe0WTrnVhBLgli3nOhskqJJ7bv"); filter: grayscale(40%) contrast(120%);'></div>
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="bg-primary text-background-dark p-2 rounded-full shadow-lg transform -translate-y-4">
+<span class="material-symbols-outlined">landscape</span>
+</div>
+</div>
+<div class="absolute bottom-3 left-3 bg-white dark:bg-[#111811] px-3 py-1.5 rounded-lg text-xs shadow-md border border-gray-200 dark:border-[#283928] text-slate-700 dark:text-gray-300">
+                                        31.9167° N, 106.0333° W
+                                    </div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN (Data & Comments) -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- Header Info -->
+<div class="flex flex-col gap-4 border-b border-gray-200 dark:border-[#283928] pb-6">
+<div class="flex justify-between items-start gap-4">
+<h1 class="text-4xl md:text-5xl font-black leading-tight tracking-tight text-slate-900 dark:text-white">
+                                        The Green Bastard
+                                    </h1>
+<div class="flex flex-col items-center justify-center bg-[#1c271c] border border-primary/30 rounded-lg p-2 min-w-[70px]">
+<span class="text-2xl font-bold text-primary">V8</span>
+<span class="text-xs text-gray-400 font-medium">7B</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 bg-gray-200 dark:bg-[#283928] text-slate-700 dark:text-[#9db99d] text-xs font-medium rounded">#Overhang</span>
+<span class="px-2 py-1 bg-gray-200 dark:bg-[#283928] text-slate-700 dark:text-[#9db99d] text-xs font-medium rounded">#Crimps</span>
+<span class="px-2 py-1 bg-gray-200 dark:bg-[#283928] text-slate-700 dark:text-[#9db99d] text-xs font-medium rounded">#PowerEndurance</span>
+<div class="flex items-center gap-1 ml-auto text-yellow-500">
+<span class="material-symbols-outlined text-[18px] fill-current">star</span>
+<span class="material-symbols-outlined text-[18px] fill-current">star</span>
+<span class="material-symbols-outlined text-[18px] fill-current">star</span>
+<span class="material-symbols-outlined text-[18px] fill-current">star</span>
+<span class="material-symbols-outlined text-[18px] text-gray-600">star</span>
+<span class="text-xs text-gray-500 ml-1">(4.2)</span>
+</div>
+</div>
+<div class="flex gap-3 mt-2">
+<button class="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary hover:bg-green-500 transition-colors text-[#102210] text-base font-bold leading-normal tracking-[0.015em] shadow-[0_0_15px_rgba(17,212,17,0.3)]">
+                                        Log Ascent
+                                    </button>
+<button class="flex-none cursor-pointer items-center justify-center overflow-hidden rounded-lg size-12 bg-[#283928] hover:bg-[#364a36] text-white border border-[#3e523e] transition-colors" title="Add to Project">
+<span class="material-symbols-outlined">bookmark_add</span>
+</button>
+<button class="flex-none cursor-pointer items-center justify-center overflow-hidden rounded-lg size-12 bg-[#283928] hover:bg-[#364a36] text-white border border-[#3e523e] transition-colors" title="Share">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+</div>
+<!-- Description & Stats -->
+<div class="grid grid-cols-2 gap-4">
+<div class="p-3 bg-white dark:bg-[#1c271c] rounded-lg border border-gray-100 dark:border-none shadow-sm">
+<p class="text-xs text-gray-500 dark:text-[#8ba08b] mb-1">First Ascent</p>
+<p class="text-sm font-semibold text-slate-800 dark:text-white">Dave Graham, 2005</p>
+</div>
+<div class="p-3 bg-white dark:bg-[#1c271c] rounded-lg border border-gray-100 dark:border-none shadow-sm">
+<p class="text-xs text-gray-500 dark:text-[#8ba08b] mb-1">Safety</p>
+<p class="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-1">
+<span class="size-2 rounded-full bg-yellow-500 inline-block"></span> PG-13 (Bad Landing)
+                                    </p>
+</div>
+</div>
+<div class="prose dark:prose-invert max-w-none text-slate-600 dark:text-gray-300 text-sm leading-relaxed">
+<p>
+                                    Start low on the obvious jug rail. Move right to the sharp crimp, generate huge momentum for the dyno to the lip. The crux is holding the swing. A classic test piece for the grade requiring serious finger strength and core tension.
+                                </p>
+<p class="mt-2 text-xs italic text-gray-400">
+                                    Warning: The landing is uneven, multiple pads and spotters recommended.
+                                </p>
+</div>
+<!-- Comments Section -->
+<div class="flex flex-col gap-4 mt-4 bg-white dark:bg-[#151f15] p-5 rounded-xl shadow-sm border border-gray-100 dark:border-[#283928]">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    Beta &amp; Comments <span class="text-xs font-normal text-gray-500 bg-gray-100 dark:bg-[#283928] px-2 py-0.5 rounded-full">12</span>
+</h3>
+<!-- Input -->
+<div class="flex gap-3 items-start">
+<div class="size-8 rounded-full bg-gray-300 dark:bg-[#283928] flex-shrink-0 bg-cover bg-center" data-alt="Current user avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA5G33a3w0mUrHGziBachP-X3BOdp3t5bgPbZvnxo3mHhhZNo2940NRLKtDt5jkaaVdSuKpzAQCF77ldT7PIgS7os4N8wP08w3YB44loqphcFboOxDzsEPMV5LDhbUVKoqw9uNd3NildHjKmuFA0sYolcTXI0WcQGKTyZ9Aod2mQIryL_CeETreTyuGuRnNtin99jEmb6ROPKtwyqukIvwyKb5kgH3cBI6Jw1sC0g349ygxs0BwFzo1dPOhcyhmP8pq1XFxsKs6lXL1");'></div>
+<div class="flex-1 relative">
+<textarea class="w-full bg-gray-50 dark:bg-[#1c271c] border border-gray-200 dark:border-[#283928] rounded-lg p-3 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-none min-h-[80px]" placeholder="Share your beta or thoughts..."></textarea>
+<div class="absolute bottom-2 right-2">
+<button class="bg-primary hover:bg-green-500 text-[#102210] text-xs font-bold px-3 py-1.5 rounded transition-colors">
+                                                Post
+                                            </button>
+</div>
+</div>
+</div>
+<!-- Comment List -->
+<div class="flex flex-col gap-5 mt-2">
+<!-- Comment 1 -->
+<div class="flex gap-3">
+<div class="size-8 rounded-full bg-gray-300 dark:bg-[#283928] flex-shrink-0 bg-cover bg-center" data-alt="User avatar for Sarah" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCID8BKuEld_3CAjr-aEDawvOXtqVfPx8rfeh60uwjckFWjQeq0T6msqbft-KXjM17ouS_Ey5yPM7BBjflRE8V9cIONBUpVIpxvtSdcbwDFrHZ2peY_yTFRRw08AG86ZmZFtbIgx0iUrGCWyyH0KUBiHIrtowNINwvgHirSXOV0CN0UAAw4OSTG1plHRLMGIF6B2Iqs2Ap6A3-NegFo0UmXmWI4b1k8l_erulAhaowY1oFdCVWM771haSlYRTAk3s3Hl5mRAgMFUimo");'></div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold text-slate-900 dark:text-white">Sarah Jenkins</span>
+<span class="text-xs text-gray-400">2 days ago</span>
+</div>
+<p class="text-sm text-slate-600 dark:text-gray-300">
+                                                Found a cheeky knee bar on the right side before the throw! Makes the setup way more static.
+                                            </p>
+<div class="flex gap-3 mt-1">
+<button class="text-xs text-gray-400 hover:text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">thumb_up</span> 4
+                                                </button>
+<button class="text-xs text-gray-400 hover:text-white">Reply</button>
+</div>
+</div>
+</div>
+<!-- Comment 2 -->
+<div class="flex gap-3">
+<div class="size-8 rounded-full bg-gray-300 dark:bg-[#283928] flex-shrink-0 bg-cover bg-center" data-alt="User avatar for Mike" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCyavB8IyWgRtV2EXEOUSZU0ynenwDgrKL4TAwokzMlM5poV1EpWToR2JpummlbQKgGvxJTKERSXEBgWbgptcIsBFkL6XVavPp9O27Qv-Gl-LvCKk4vdB3fChm9CkIuB8Dlynz4ZoqCh9noHzE6RNz9oIqhzSHW5uO3Xroe_VTFnxusUcenPo7hl3kXiWucRc8t6KM7quK3CniEfvrR98KYb57a5gV8SoeTRGn849MeOh-qARSkm-OZuN2VbxY8n4Mse8dQRgVlQoQV");'></div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold text-slate-900 dark:text-white">Mike T.</span>
+<span class="text-xs text-gray-400">1 week ago</span>
+</div>
+<p class="text-sm text-slate-600 dark:text-gray-300">
+                                                Condition are prime right now. Not too humid.
+                                            </p>
+<div class="flex gap-3 mt-1">
+<button class="text-xs text-gray-400 hover:text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">thumb_up</span> 1
+                                                </button>
+<button class="text-xs text-gray-400 hover:text-white">Reply</button>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-2 text-sm text-gray-500 dark:text-[#9db99d] hover:text-primary dark:hover:text-primary transition-colors font-medium border-t border-gray-100 dark:border-[#283928] mt-2">
+                                    Load more comments
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Interactive Crag Map</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#11d411",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102210",
+                        "surface-dark": "#1c271c",
+                        "surface-highlight": "#283928",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Custom scrollbar for sidebar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #102210; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #283928; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #11d411; 
+        }
+        
+        /* Map marker pulse animation */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.33); opacity: 1; }
+            80%, 100% { opacity: 0; }
+        }
+        @keyframes pulse-dot {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1); }
+            100% { transform: scale(0.8); }
+        }
+        .marker-pulse::before {
+            content: '';
+            position: absolute;
+            display: block;
+            width: 300%;
+            height: 300%;
+            box-sizing: border-box;
+            margin-left: -100%;
+            margin-top: -100%;
+            border-radius: 45px;
+            background-color: rgba(17, 212, 17, 0.4);
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen w-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden selection:bg-primary selection:text-black">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-[#283928] bg-background-light dark:bg-background-dark px-6 py-3 shrink-0 z-30">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">landscape</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">CragMap</h2>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center rounded-lg h-10 w-10 bg-gray-200 dark:bg-[#283928] text-slate-700 dark:text-white transition-colors hover:bg-gray-300 dark:hover:bg-[#3b543b]">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="flex items-center gap-3 pl-2">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold leading-none">Alex Honnold</p>
+<p class="text-xs text-gray-500 dark:text-[#9db99d] mt-1">Free Soloist</p>
+</div>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-primary" data-alt="Profile picture of a climber looking at a mountain" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBV6mdMiJ7u8sqzSZun3a7u8KCIW2DhdITqBhs2p9mRHI9KX_hNRNIfRd8w24keE95cbm1kaT9Ddu2WYjaggTBAfZgZV7v8n9PJmQE4UtqL_WXD8BGkmualP5vhKX7RAyR7gQaANjliWmYZFMd4YfpITbJu3OExvm5qgRvgDbcbj3cSqse1f-CHZWUvBH351HWcOVx0Jl90UqG9gOknF30dswTVbsePKjuWvORoKkEp04zsU4zgJHOiC3-1AOhLqy9Uto2O-nYyW-yQ");'></div>
+</div>
+</div>
+</header>
+<!-- Main Content Split View -->
+<div class="flex flex-1 overflow-hidden relative">
+<!-- Sidebar -->
+<aside class="w-full md:w-[420px] flex flex-col border-r border-gray-200 dark:border-[#283928] bg-background-light dark:bg-background-dark shrink-0 z-20 absolute md:relative h-full transition-transform transform md:translate-x-0 -translate-x-full shadow-xl md:shadow-none" id="sidebar">
+<!-- Sidebar Controls -->
+<div class="p-4 flex flex-col gap-4 border-b border-gray-200 dark:border-[#283928]">
+<!-- Search -->
+<label class="flex flex-col w-full h-12">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full overflow-hidden border border-gray-200 dark:border-none">
+<div class="text-gray-500 dark:text-[#9db99d] flex bg-white dark:bg-[#283928] items-center justify-center pl-4 pr-2">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="flex w-full min-w-0 flex-1 resize-none bg-white dark:bg-[#283928] text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none h-full placeholder:text-gray-400 dark:placeholder:text-[#9db99d] px-2 text-base font-normal leading-normal" placeholder="Find a crag or problem..."/>
+</div>
+</label>
+<!-- Filters Row 1 -->
+<div class="flex gap-2 items-center">
+<div class="relative flex-1">
+<select class="w-full appearance-none rounded-lg bg-white dark:bg-[#1c271c] border border-gray-200 dark:border-[#3b543b] text-slate-900 dark:text-white py-2.5 pl-3 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary">
+<option>Any Grade</option>
+<option>V0 - V2 (Beginner)</option>
+<option>V3 - V5 (Intermediate)</option>
+<option>V6 - V8 (Advanced)</option>
+<option>V9+ (Elite)</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-[#9db99d]">
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</div>
+</div>
+<button class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white dark:bg-[#1c271c] border border-gray-200 dark:border-[#3b543b] text-slate-900 dark:text-white hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-sm text-primary">filter_list</span>
+<span class="text-sm font-medium">More</span>
+</button>
+</div>
+<!-- Chips Row -->
+<div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+<button class="flex shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary text-black px-4 py-1.5 transition-transform active:scale-95">
+<p class="text-xs font-bold leading-normal">Nearby</p>
+</button>
+<button class="flex shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-[#283928] border border-gray-200 dark:border-transparent px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-[#3b543b] transition-colors">
+<p class="text-slate-700 dark:text-white text-xs font-medium leading-normal">Sent</p>
+</button>
+<button class="flex shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-[#283928] border border-gray-200 dark:border-transparent px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-[#3b543b] transition-colors">
+<p class="text-slate-700 dark:text-white text-xs font-medium leading-normal">Projects</p>
+</button>
+<button class="flex shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-[#283928] border border-gray-200 dark:border-transparent px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-[#3b543b] transition-colors">
+<p class="text-slate-700 dark:text-white text-xs font-medium leading-normal">★★★★★</p>
+</button>
+</div>
+</div>
+<!-- List View -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+<p class="px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-[#9db99d]">Visible Crags (12)</p>
+<!-- List Item 1 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#111811] hover:bg-gray-50 dark:hover:bg-[#1c271c] p-3 rounded-xl cursor-pointer transition-all border border-transparent hover:border-primary/30">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-16 shrink-0 relative" data-alt="Boulder problem with climber on overhang" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA6JvYhT-xlwdUI78s_3y9vwR9-HqXpRAeW_2jkzVP4ieMirpOvlK4FgSVAPtOBIJJk0q5tmfmVctJoDMFQPezKsJ2cuK-arLzMVo9nH3dOdhuwdAKqEYWY_20Vp6dYaljfA53qJB2HDAuQ6NNRJ2fhcBM7LoVrFKoNyxtB7wColOMB0YcadIsSD7CAKoJ7-RzWW1_l55NLkhRuwhBMhM5kkipC1PvWryubSjEWZECeVVlINbFdZTeUUjkso2ETU01NkdnMMR8E8DOV");'>
+<div class="absolute top-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
+<span class="text-[10px] font-bold text-primary">V8</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-base font-bold leading-normal truncate">Midnight Lightning</p>
+<span class="material-symbols-outlined text-green-500 text-[16px]" title="Sent">check_circle</span>
+</div>
+<p class="text-gray-500 dark:text-[#9db99d] text-sm font-normal leading-normal truncate">Camp 4 • Yosemite</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="text-[10px] text-gray-400 ml-1">(428)</span>
+</div>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#111811] hover:bg-gray-50 dark:hover:bg-[#1c271c] p-3 rounded-xl cursor-pointer transition-all border border-transparent hover:border-primary/30">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-16 shrink-0 relative" data-alt="Granite boulder in forest" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDGhZvT7DM4I3Wrzar_6wtILS-HxOkzsp3Sy8O3-wcAvDoOr-WmCQpR8gAFCr9w2Xb1j9w8tzasRiu088W-PSbt0d1RPHAYuJGv8jWCPgeeheNX_dI1yrhAd4x_omt9gjiK_vgYvTTLxbwHxTGwPKjEfwtNVnvg-y7mzITkjVfbDQ-l8tNsSjU4K5QHnTQf9JX-fDrtNaEaejAd6v298sLNzUKtXHTH8cLOH4Z9ZzTpJ_Kd6LhEtwwlVamVB1Oqx2t8NGswyH1HAVA0");'>
+<div class="absolute top-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
+<span class="text-[10px] font-bold text-white">V4</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal truncate">The Force</p>
+</div>
+<p class="text-gray-500 dark:text-[#9db99d] text-sm font-normal leading-normal truncate">Camp 4 • Yosemite</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-gray-600 text-[12px]">star</span>
+</div>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#111811] hover:bg-gray-50 dark:hover:bg-[#1c271c] p-3 rounded-xl cursor-pointer transition-all border border-transparent hover:border-primary/30">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-16 shrink-0 relative" data-alt="Climber on a traverse" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDq1he5lVTtG08S5-wDJoSMcu-4-UzSpJL3un7Tnku7vrGQRAHurFE5LogDGL1a_hvouFe0YA1PNoTunr3fdVc9OFnct8e18Yx1lSymzunZi_pQgH0FqOKPpt7ezOyxqluzD1Q1tH369CsJBdCL4fgz5WsVgp3IjJ23HDGqhPxO-0sslFdJThEQzcumW0L4HW5eHRMKVBCd-dRAN1D0ZdKXyD5dqh6u14cIpJIuHADQNmTkWNj_hVbWFMp86gpff1rvIYg5C1dxJyPt");'>
+<div class="absolute top-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
+<span class="text-[10px] font-bold text-white">V10</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal truncate">Thriller</p>
+<span class="bg-primary/20 text-primary text-[10px] px-1.5 py-0.5 rounded font-bold">PROJECT</span>
+</div>
+<p class="text-gray-500 dark:text-[#9db99d] text-sm font-normal leading-normal truncate">Camp 4 • Yosemite</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+</div>
+</div>
+</div>
+<!-- List Item 4 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-[#111811] hover:bg-gray-50 dark:hover:bg-[#1c271c] p-3 rounded-xl cursor-pointer transition-all border border-transparent hover:border-primary/30">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-16 shrink-0 relative" data-alt="Boulder problem low start" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuByxbQelBauFC3nqjOWh2BdY8-NYaVX_XZ-fMdnvBgeJ48aY03z6zf578fnJNjNcQ9MemIPfGUhGckHVMZ3o_36MKgqjkC-_yyvjPasn-vbzLYjGhXqdN2vux9H8fFDUTE-M9R5Be993iRaC8CEiLq69Q07hc8du4qWscTCk8KTlu587-qa8ZC3K5f9wuyyJw-AT6D9vOvg-1UH8RDL68TADe9O-koZDwsQQFZywoBmvtww6ziAKb6Ga2jskODir1qsCx5-Q2br7LKS");'>
+<div class="absolute top-1 left-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
+<span class="text-[10px] font-bold text-white">V2</span>
+</div>
+</div>
+<div class="flex flex-col justify-center flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-white text-base font-medium leading-normal truncate">Bachar Cracker</p>
+</div>
+<p class="text-gray-500 dark:text-[#9db99d] text-sm font-normal leading-normal truncate">Camp 4 • Yosemite</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-yellow-400 text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-gray-600 text-[12px]">star</span>
+<span class="material-symbols-outlined text-gray-600 text-[12px]">star</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Map Area -->
+<main class="flex-1 relative bg-gray-900 overflow-hidden w-full">
+<!-- Simulated Map Background -->
+<div class="absolute inset-0 bg-cover bg-center grayscale contrast-125 opacity-60" data-alt="Dark aerial map view of forest and rocky terrain" data-location="Yosemite Map View" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAkQujOg7CZO0RNXMk8cli4ixQE308LqKzxFyRtGT3KIPSIV3xA4dJWHgVg-BAQp1CqBmYLizn71xlGb5qz970red5PM7PSQBw3GHcA4N5Mu7lmEzkhlk_V0M-FSxh94Q00TNGPw0qKWxlMAULCze9vEQy8_x9mXhDg7KrnJu6IdWt8V9EomiiMPAqbv_JKMO2FjkmzOQVHzy7uCUV0n6DzGiOY1W2JvvRbW6SPj7bFLEV9bJRbijDv-_1kqBrH1birEyCJvEB93PgH");'></div>
+<div class="absolute inset-0 bg-background-dark/40 pointer-events-none mix-blend-multiply"></div>
+<!-- Map Markers -->
+<!-- Marker 1 (Active) -->
+<button class="absolute top-[40%] left-[55%] -translate-x-1/2 -translate-y-1/2 group z-10 focus:outline-none">
+<div class="relative flex items-center justify-center">
+<div class="marker-pulse absolute w-8 h-8 rounded-full bg-primary/40"></div>
+<div class="w-4 h-4 bg-primary rounded-full border-2 border-white dark:border-background-dark shadow-lg shadow-primary/50 relative z-10 transition-transform group-hover:scale-125"></div>
+</div>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-100 transition-opacity bg-background-dark text-white text-xs font-bold px-2 py-1 rounded shadow-lg border border-white/10 whitespace-nowrap">
+                    Midnight Lightning (V8)
+                 </div>
+</button>
+<!-- Marker 2 -->
+<button class="absolute top-[35%] left-[48%] -translate-x-1/2 -translate-y-1/2 group z-0 focus:outline-none opacity-80 hover:opacity-100 hover:z-10">
+<div class="w-3 h-3 bg-white rounded-full border border-gray-500 shadow-md transition-transform group-hover:scale-150 group-hover:bg-primary group-hover:border-white"></div>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-background-dark text-white text-xs font-medium px-2 py-1 rounded shadow-lg border border-white/10 whitespace-nowrap">
+                    The Force (V4)
+                 </div>
+</button>
+<!-- Marker 3 -->
+<button class="absolute top-[60%] left-[62%] -translate-x-1/2 -translate-y-1/2 group z-0 focus:outline-none opacity-80 hover:opacity-100 hover:z-10">
+<div class="w-3 h-3 bg-white rounded-full border border-gray-500 shadow-md transition-transform group-hover:scale-150 group-hover:bg-primary group-hover:border-white"></div>
+<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-background-dark text-white text-xs font-medium px-2 py-1 rounded shadow-lg border border-white/10 whitespace-nowrap">
+                   Thriller (V10)
+                </div>
+</button>
+<!-- Marker Cluster -->
+<button class="absolute top-[25%] left-[30%] -translate-x-1/2 -translate-y-1/2 group z-0 focus:outline-none hover:z-10">
+<div class="flex items-center justify-center size-8 bg-[#283928] text-white text-xs font-bold rounded-full border-2 border-[#3b543b] shadow-lg transition-transform group-hover:scale-110">
+                    5
+                </div>
+</button>
+<!-- Detail Card (Floating Overlay) -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 w-[calc(100%-3rem)] md:w-80 bg-background-dark/90 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20">
+<!-- Header Image -->
+<div class="h-32 w-full bg-cover bg-center relative" data-alt="Close up of crimp hold on rock" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBa3pNqkAY19rO8Y34gd-F3EKFxK3P7O_P2P3lNXdq3tUnMS9oXQ0ZP030ZHku2N0TjPlHVKgto5Bua4DR5ks6rcxo-0iNYEjgfx64NsTpsGbw-FoFKtt5L9WBjS2-ukne-or8fw5go4pYEFG9IuwzRQvp8Yuj-RTwLSlBWDY8uu6EQMq3Ty7fiNK_j3bc2-H7kwQC1FId3Uh7_JfMIF0ydoZeHJeH018x4dGrkqiK9FTaDY2Oxnrryk1-e50kAsEuIBqkODnB2CT6l");'>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent"></div>
+<button class="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/70 transition">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+<div class="absolute bottom-2 left-4">
+<h3 class="text-white text-xl font-bold drop-shadow-md">Midnight Lightning</h3>
+<p class="text-primary text-sm font-bold drop-shadow-md">V8 • ★★★★★</p>
+</div>
+</div>
+<!-- Content -->
+<div class="p-4 pt-2">
+<div class="flex items-center gap-2 mb-3">
+<span class="px-2 py-0.5 rounded bg-[#283928] text-[#9db99d] text-xs font-medium border border-[#3b543b]">Highball</span>
+<span class="px-2 py-0.5 rounded bg-[#283928] text-[#9db99d] text-xs font-medium border border-[#3b543b]">Crimps</span>
+<span class="px-2 py-0.5 rounded bg-[#283928] text-[#9db99d] text-xs font-medium border border-[#3b543b]">Classic</span>
+</div>
+<p class="text-gray-300 text-sm leading-relaxed line-clamp-3 mb-4">
+                        The most famous boulder problem in the world. Start on the obvious lightning bolt hold and move up through crimps to the mantle finish. Iconic.
+                    </p>
+<div class="flex gap-2">
+<button class="flex-1 bg-primary text-black font-bold text-sm py-2 rounded-lg hover:bg-[#0eb80e] transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">check</span>
+                            Log Ascent
+                        </button>
+<button class="aspect-square bg-[#283928] text-white rounded-lg flex items-center justify-center border border-[#3b543b] hover:bg-[#3b543b] transition-colors">
+<span class="material-symbols-outlined">directions</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Map Controls -->
+<div class="absolute bottom-6 right-4 md:right-auto md:left-6 flex flex-col gap-2 z-10">
+<button class="size-10 bg-background-dark/90 backdrop-blur border border-white/10 rounded-lg text-white flex items-center justify-center shadow-lg hover:bg-background-dark transition-colors">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+<div class="flex flex-col rounded-lg overflow-hidden border border-white/10 shadow-lg">
+<button class="size-10 bg-background-dark/90 backdrop-blur text-white flex items-center justify-center hover:bg-background-dark transition-colors border-b border-white/10">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="size-10 bg-background-dark/90 backdrop-blur text-white flex items-center justify-center hover:bg-background-dark transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+</div>
+<!-- Mobile Menu Toggle (Visible only on small screens) -->
+<button class="md:hidden absolute top-4 left-4 z-30 p-2 bg-background-dark/90 backdrop-blur text-white rounded-lg border border-white/10 shadow-lg" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</main>
+</div>
+</body></html>
