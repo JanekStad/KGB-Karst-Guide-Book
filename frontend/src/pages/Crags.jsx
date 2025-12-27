@@ -81,14 +81,16 @@ const Crags = () => {
     }
   };
 
-  const fetchSectors = async (isInitialLoad = false) => {
+  const fetchSectors = async (isInitialLoad = false, areaId = null) => {
     try {
       console.log('📡 Fetching sectors for explore...');
       if (isInitialLoad) {
         setLoading(true);
       }
+      // Use provided areaId or fall back to selectedArea state
+      const areaToFilter = areaId !== null ? areaId : selectedArea;
       const params = {
-        ...(selectedArea !== 'any' ? { area: selectedArea } : {}),
+        ...(areaToFilter !== 'any' ? { area: areaToFilter } : {}),
         ...(searchTerm ? { search: searchTerm } : {}),
       };
       
@@ -144,6 +146,8 @@ const Crags = () => {
 
   const handleSectorSelect = (sector) => {
     setSelectedSector(sector);
+    // Switch to list view to show table when sector is selected
+    setViewMode('list');
     // Close sidebar on mobile when sector is selected
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
@@ -160,6 +164,14 @@ const Crags = () => {
   const handleAreaClick = (area) => {
     setSelectedArea(area.id);
     setFilterType('sector'); // Switch to showing sectors when area is selected
+  };
+
+  const handleAreaSelectFromMap = (area) => {
+    // Handle area selection from map view
+    setSelectedArea(area.id);
+    setFilterType('sector'); // Switch to showing sectors when area is selected
+    // Fetch sectors for the selected area (pass area.id directly to avoid race condition)
+    fetchSectors(false, area.id);
   };
 
   // Combine areas, sectors and problems for display
@@ -506,6 +518,7 @@ const Crags = () => {
                   sectors={sectorsWithCoords}
                   selectedSector={selectedSector}
                   onSectorSelect={handleSectorSelect}
+                  onAreaSelect={handleAreaSelectFromMap}
                 />
               </div>
 
