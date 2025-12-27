@@ -3,7 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Polygon, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
-import { sectorsAPI } from '../services/api';
+import { areasAPI, sectorsAPI } from '../services/api';
 import './CragMap.css';
 
 // Fix for default marker icons in react-leaflet
@@ -60,8 +60,33 @@ function ZoomHandler({ onZoomChange }) {
   return null;
 }
 
+// Component to handle area selection and zoom
+function AreaZoomHandler({ selectedAreaCoords, onZoomComplete }) {
+  const map = useMap();
+  const hasZoomedRef = useRef(false);
+
+  useEffect(() => {
+    if (selectedAreaCoords && !hasZoomedRef.current) {
+      hasZoomedRef.current = true;
+      map.setView(selectedAreaCoords, 15, { animate: true });
+      
+      // Reset after zoom completes
+      map.once('zoomend', () => {
+        setTimeout(() => {
+          hasZoomedRef.current = false;
+          if (onZoomComplete) {
+            onZoomComplete();
+          }
+        }, 100);
+      });
+    }
+  }, [map, selectedAreaCoords, onZoomComplete]);
+
+  return null;
+}
+
 // Helper function to generate a circular polygon from center point and radius
-function createCirclePolygon(latitude, longitude, radiusMeters, numPoints = 12) {
+function createCirclePolygon(latitude, longitude, radiusMeters, numPoints = 32) {
   // Convert radius from meters to degrees
   // 1 degree of latitude ≈ 111,000 meters (constant)
   // 1 degree of longitude ≈ 111,000 * cos(latitude) meters (varies by latitude)
@@ -119,6 +144,26 @@ function getPolygonCentroid(coordinates) {
   return [latSum / coords.length, lngSum / coords.length];
 }
 
+// Helper function to calculate label position at the edge of a circle
+// Positioned at 2 o'clock (30 degrees from east/3 o'clock, or 60 degrees clockwise from north/12 o'clock)
+function calculateLabelPositionAtEdge(centerLat, centerLng, radiusMeters) {
+  // Convert radius from meters to degrees
+  // Same calculation as in createCirclePolygon
+  const radiusLatDegrees = radiusMeters / 111000.0;
+  const radiusLngDegrees = radiusMeters / (111000.0 * Math.cos(centerLat * Math.PI / 180));
+  
+  // 2 o'clock position: 30 degrees from east (3 o'clock)
+  // In standard polar coordinates: 0° = east (3 o'clock), positive = counter-clockwise
+  // 2 o'clock = 30° (or -30° from north)
+  const angleRadians = (30 * Math.PI) / 180;
+  
+  // Calculate edge position
+  const lat = centerLat + radiusLatDegrees * Math.cos(angleRadians);
+  const lng = centerLng + radiusLngDegrees * Math.sin(angleRadians);
+  
+  return [lat, lng];
+}
+
 // Component to display text label on map
 function SectorLabel({ position, name }) {
   const map = useMap();
@@ -172,9 +217,65 @@ function SectorLabel({ position, name }) {
   return null;
 }
 
-const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect }) => {
+// Component to display area label on map
+function AreaLabel({ position, name }) {
+  const map = useMap();
+  const markerRef = useRef(null);
+  
+  useEffect(() => {
+    if (!position || !map) return;
+    
+    // Create custom div icon for area label with inline styles (matching sector color scheme)
+    const icon = L.divIcon({
+      className: 'area-label',
+      html: `<div style="
+        background-color: rgba(30, 41, 59, 0.95);
+        color: #ffffff;
+        padding: 0.4rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        text-align: center;
+        pointer-events: none;
+        user-select: none;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        letter-spacing: 0.02em;
+        line-height: 1.2;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      ">${name}</div>`,
+      iconSize: [150, 30],
+      iconAnchor: [50, 15],
+    });
+    
+    // Create marker for label
+    const marker = L.marker(position, { 
+      icon,
+      interactive: false, // Don't interfere with polygon clicks
+      zIndexOffset: 1000, // Ensure labels appear above polygons
+    }).addTo(map);
+    
+    markerRef.current = marker;
+    
+    return () => {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+    };
+  }, [map, position, name]);
+  
+  return null;
+}
+
+const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect }) => {
   const navigate = useNavigate();
   const [sectors, setSectors] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [areaToZoom, setAreaToZoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(11);
   const [shouldFitInitialBounds, setShouldFitInitialBounds] = useState(false);
@@ -183,8 +284,18 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
   const defaultCenter = [49.4, 16.7];
   const defaultZoom = 11;
 
-  // Show polygons when zoomed in (zoom level >= 13)
-  const showPolygons = zoomLevel >= 13;
+  // Show areas when zoomed out (zoom level < 15)
+  // Show sectors when zoomed in (zoom level >= 15)
+  const showAreas = zoomLevel < 15;
+  const showPolygons = zoomLevel >= 15;
+
+  // Calculate hasProblems early (only depends on props, not state)
+  const hasProblems = problems && problems.length > 0;
+
+  // Fetch areas on initial load
+  useEffect(() => {
+    fetchAreas();
+  }, []);
 
   // Use sectors from props if provided, otherwise fetch
   useEffect(() => {
@@ -193,12 +304,48 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
       setLoading(false);
       setShouldFitInitialBounds(true);
     } else if (!problems || problems.length === 0) {
-      fetchSectors();
+      // Only fetch sectors if we're not showing areas (i.e., zoomed in)
+      if (!showAreas) {
+        fetchSectors();
+      } else {
+        setLoading(false);
+        setShouldFitInitialBounds(true);
+      }
     } else {
       setLoading(false);
       setShouldFitInitialBounds(true);
     }
-  }, [sectorsProp, problems]);
+  }, [sectorsProp, problems, showAreas]);
+
+  // Fetch sectors when area is selected or when zoomed in
+  useEffect(() => {
+    if (selectedArea && showPolygons) {
+      fetchSectorsForArea(selectedArea.id);
+    } else if (showPolygons && !selectedArea && !sectorsProp && !hasProblems) {
+      fetchSectors();
+    }
+  }, [selectedArea, showPolygons, sectorsProp, hasProblems]);
+
+  // Clear selected area when zooming out
+  useEffect(() => {
+    if (showAreas && selectedArea) {
+      setSelectedArea(null);
+      // Don't clear sectors here - they might be needed when zooming back in
+    }
+  }, [showAreas, selectedArea]);
+
+  const fetchAreas = async () => {
+    try {
+      console.log('📡 Fetching areas for map...');
+      const response = await areasAPI.list();
+      console.log('✅ Areas fetched successfully:', response.data);
+      const fetchedAreas = response.data.results || response.data;
+      setAreas(fetchedAreas || []);
+      console.log('📍 Total areas loaded:', fetchedAreas?.length || 0);
+    } catch (err) {
+      console.error('❌ Failed to fetch areas:', err);
+    }
+  };
 
   const fetchSectors = async () => {
     try {
@@ -211,6 +358,22 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
       setShouldFitInitialBounds(true);
     } catch (err) {
       console.error('❌ Failed to fetch sectors:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSectorsForArea = async (areaId) => {
+    try {
+      console.log('📡 Fetching sectors for area:', areaId);
+      setLoading(true);
+      const response = await areasAPI.getSectors(areaId);
+      console.log('✅ Sectors fetched successfully:', response.data);
+      const fetchedSectors = response.data.results || response.data;
+      setSectors(fetchedSectors || []);
+      setShouldFitInitialBounds(true);
+    } catch (err) {
+      console.error('❌ Failed to fetch sectors for area:', err);
     } finally {
       setLoading(false);
     }
@@ -231,14 +394,58 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
     return problems.filter(problem => getProblemCoordinates(problem) !== null);
   }, [problems]);
 
+
   // Filter sectors that have coordinates (memoized to prevent unnecessary recalculations)
   const sectorsWithCoords = useMemo(
     () => sectors.filter((sector) => sector.latitude && sector.longitude),
     [sectors]
   );
 
+  // Filter areas that have coordinates (use direct lat/lng or fallback to avg)
+  const areasWithCoords = useMemo(() => {
+    const filtered = areas.filter((area) => {
+      const lat = area.latitude || area.avg_latitude;
+      const lng = area.longitude || area.avg_longitude;
+      return lat && lng;
+    });
+    console.log('🗺️ Areas with coordinates:', filtered.length, 'out of', areas.length);
+    return filtered;
+  }, [areas]);
+
+  // Get coordinates for an area (prefer direct coordinates, fallback to avg)
+  const getAreaCoordinates = (area) => {
+    const lat = area.latitude || area.avg_latitude;
+    const lng = area.longitude || area.avg_longitude;
+    if (lat && lng) {
+      return [parseFloat(lat), parseFloat(lng)];
+    }
+    return null;
+  };
+
+  // Determine what to display (calculate after useMemos)
+  const hasSectors = sectorsWithCoords.length > 0;
+  const hasAreas = areasWithCoords.length > 0;
+  const hasData = hasProblems ? problemsWithCoords.length > 0 : (hasSectors || hasAreas);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🗺️ Map state:', {
+      zoomLevel,
+      showAreas,
+      showPolygons,
+      areasCount: areas.length,
+      areasWithCoordsCount: areasWithCoords.length,
+      sectorsCount: sectors.length,
+      sectorsWithCoordsCount: sectorsWithCoords.length,
+      hasProblems,
+      hasSectors,
+      hasAreas,
+      hasData,
+    });
+  }, [zoomLevel, showAreas, showPolygons, areas.length, areasWithCoords.length, sectors.length, sectorsWithCoords.length, hasProblems, hasSectors, hasAreas, hasData]);
+
   // Get bounds for problems
-  const problemsBounds = useMemo(() => {
+  const _problemsBounds = useMemo(() => {
     if (problemsWithCoords.length === 0) return null;
     const coords = problemsWithCoords
       .map(problem => getProblemCoordinates(problem))
@@ -267,6 +474,27 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
     navigate(`/sectors/${sectorId}`);
   };
 
+  const handleAreaClick = (areaId) => {
+    const area = areasWithCoords.find(a => a.id === areaId);
+    if (!area) return;
+
+    // Set selected area
+    setSelectedArea(area);
+
+    // Get area coordinates and trigger zoom
+    const coords = getAreaCoordinates(area);
+    if (coords) {
+      setAreaToZoom(coords);
+    }
+
+    // Fetch sectors for this area
+    fetchSectorsForArea(areaId);
+  };
+
+  const handleZoomComplete = () => {
+    setAreaToZoom(null);
+  };
+
   const handleProblemMarkerClick = (problem) => {
     if (onProblemSelect) {
       onProblemSelect(problem);
@@ -274,11 +502,6 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
       navigate(`/problems/${problem.id}`);
     }
   };
-
-  // Determine what to display
-  const hasProblems = problems && problems.length > 0;
-  const hasSectors = sectorsWithCoords.length > 0;
-  const hasData = hasProblems ? problemsWithCoords.length > 0 : hasSectors;
 
   if (loading) {
     return (
@@ -294,7 +517,7 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
     <div className="crag-map-container">
       {!hasData ? (
         <div className="map-empty-state">
-          <p>{hasProblems ? 'No problems with coordinates available.' : 'No sectors with coordinates available.'}</p>
+          <p>{hasProblems ? 'No problems with coordinates available.' : 'No areas or sectors with coordinates available.'}</p>
           <p className="map-empty-hint">Add coordinates to see them on the map.</p>
         </div>
       ) : (
@@ -323,8 +546,82 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
               sectorsWithCoords={sectorsWithCoords} 
               shouldFitBounds={shouldFitInitialBounds && !loading}
             />
+          ) : hasAreas && showAreas ? (
+            <MapBounds 
+              sectorsWithCoords={areasWithCoords.map(area => {
+                const coords = getAreaCoordinates(area);
+                return coords ? { latitude: coords[0], longitude: coords[1] } : null;
+              }).filter(c => c !== null)} 
+              shouldFitBounds={shouldFitInitialBounds && !loading}
+            />
           ) : null}
           <ZoomHandler onZoomChange={setZoomLevel} />
+          {areaToZoom && <AreaZoomHandler selectedAreaCoords={areaToZoom} onZoomComplete={handleZoomComplete} />}
+          
+          {/* Render areas when zoomed out (only if no problems) */}
+          {showAreas && areasWithCoords.length > 0 && !hasProblems && areasWithCoords.map((area) => {
+            const coords = getAreaCoordinates(area);
+            if (!coords) return null;
+            const lat = coords[0];
+            const lng = coords[1];
+            
+            // Create a larger circle for areas (default radius ~500m)
+            const areaRadius = 500;
+            const polygonCoords = createCirclePolygon(lat, lng, areaRadius);
+            // Calculate label position at edge of circle (2 o'clock)
+            const labelPosition = calculateLabelPositionAtEdge(lat, lng, areaRadius);
+            
+            return (
+              <div key={`area-${area.id}`}>
+                <Polygon
+                  positions={polygonCoords}
+                  pathOptions={{
+                    color: '#1E293B',
+                    fillColor: '#334155',
+                    fillOpacity: 0.5,
+                    weight: 1,
+                  }}
+                  eventHandlers={{
+                    click: () => handleAreaClick(area.id),
+                    mouseover: (e) => {
+                      const layer = e.target;
+                      layer.setStyle({
+                        fillOpacity: 0.5,
+                        weight: 3,
+                      });
+                    },
+                    mouseout: (e) => {
+                      const layer = e.target;
+                      layer.setStyle({
+                        fillOpacity: 0.5,
+                        weight: 1,
+                      });
+                    },
+                  }}
+                >
+                  <Popup>
+                    <div className="map-popup">
+                      <h3>{area.name}</h3>
+                      <p className="map-popup-area">{area.city_name || 'Unknown City'}</p>
+                      <p className="map-popup-stats">
+                        {area.sector_count || 0} sector{(area.sector_count || 0) !== 1 ? 's' : ''} • {area.problem_count || 0} problem{(area.problem_count || 0) !== 1 ? 's' : ''}
+                      </p>
+                      <button
+                        onClick={() => handleAreaClick(area.id)}
+                        className="map-popup-button"
+                      >
+                        View Area
+                      </button>
+                    </div>
+                  </Popup>
+                </Polygon>
+                <AreaLabel 
+                  position={labelPosition} 
+                  name={area.name}
+                />
+              </div>
+            );
+          })}
           
           {/* Render problem markers if using problems */}
           {hasProblems && problemsWithCoords.map((problem) => {
@@ -375,8 +672,8 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
             );
           })}
           
-          {/* Render polygons when zoomed in */}
-          {showPolygons &&
+          {/* Render polygons when zoomed in (only if not showing areas) */}
+          {showPolygons && !showAreas &&
             sectorsWithCoords.map((sector) => {
               const lat = parseFloat(sector.latitude);
               const lng = parseFloat(sector.longitude);
@@ -390,9 +687,6 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
               } else {
                 polygonCoords = createSectorPolygon(lat, lng);
               }
-              
-              // Calculate centroid for label placement
-              const centroid = getPolygonCentroid(polygonCoords) || [lat, lng];
               
               return (
                 <Polygon
@@ -441,34 +735,40 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
               );
             })}
           
-          {/* Render sector labels when zoomed in */}
-          {showPolygons &&
+          {/* Render sector labels when zoomed in (only if not showing areas) */}
+          {showPolygons && !showAreas &&
             sectorsWithCoords.map((sector) => {
               const lat = parseFloat(sector.latitude);
               const lng = parseFloat(sector.longitude);
               // Priority: polygon_boundary > radius_meters > fallback square
               let polygonCoords;
+              let labelPosition;
               if (sector.polygon_boundary) {
                 polygonCoords = sector.polygon_boundary;
+                // For polygon_boundary, use centroid since it's not a circle
+                labelPosition = getPolygonCentroid(polygonCoords) || [lat, lng];
               } else if (sector.radius_meters || sector.radiusMeters) {
                 const radius = sector.radius_meters || sector.radiusMeters;
                 polygonCoords = createCirclePolygon(lat, lng, parseFloat(radius));
+                // For circles, calculate position at edge (2 o'clock)
+                labelPosition = calculateLabelPositionAtEdge(lat, lng, parseFloat(radius));
               } else {
                 polygonCoords = createSectorPolygon(lat, lng);
+                // For fallback square, use centroid
+                labelPosition = getPolygonCentroid(polygonCoords) || [lat, lng];
               }
-              const centroid = getPolygonCentroid(polygonCoords) || [lat, lng];
               
               return (
                 <SectorLabel 
                   key={`label-${sector.id}`}
-                  position={centroid} 
+                  position={labelPosition} 
                   name={sector.name} 
                 />
               );
             })}
           
-          {/* Render markers when not zoomed in or as fallback */}
-          {!showPolygons &&
+          {/* Render sector markers when not zoomed in or as fallback (only if not showing areas) */}
+          {!showPolygons && !showAreas &&
             sectorsWithCoords.map((sector) => {
               const isSelected = selectedSector?.id === sector.id;
               

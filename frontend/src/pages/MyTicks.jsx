@@ -102,8 +102,7 @@ const MyTicks = () => {
       setListsLoading(false);
     }
   };
-
-  const handleDelete = async (tickId) => {
+  const _handleDelete = async (tickId) => {
     if (!window.confirm('Are you sure you want to delete this tick?')) {
       return;
     }
@@ -852,7 +851,7 @@ const MyTicks = () => {
             <div className="loading">Loading your lists...</div>
           ) : lists.length === 0 ? (
             <div className="empty-state">
-              <p>You haven't created any lists yet.</p>
+              <p>You haven&apos;t created any lists yet.</p>
               <button 
                 className="btn-primary"
                 onClick={() => {

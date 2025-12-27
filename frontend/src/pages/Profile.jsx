@@ -7,7 +7,7 @@ import './Profile.css';
 const Profile = () => {
   const { isAuthenticated, user, loading: authLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(null);
+  const [_profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);

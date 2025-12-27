@@ -204,7 +204,7 @@ class SectorListSerializer(serializers.ModelSerializer):
 
     def get_problem_count(self, obj):
         # Use annotated value if available (for sorting), otherwise fall back to property
-        if hasattr(obj, 'problem_count_annotated'):
+        if hasattr(obj, "problem_count_annotated"):
             return obj.problem_count_annotated
         return obj.problem_count
 
@@ -273,32 +273,34 @@ class AreaListSerializer(serializers.ModelSerializer):
             "is_secret",
             "problem_count",
             "sector_count",
+            "latitude",
+            "longitude",
             "avg_latitude",
             "avg_longitude",
         ]
 
     def get_problem_count(self, obj):
         # Use annotated value if available (for sorting), otherwise fall back to property
-        if hasattr(obj, 'problem_count_annotated'):
+        if hasattr(obj, "problem_count_annotated"):
             return obj.problem_count_annotated
         return obj.problem_count
 
     def get_sector_count(self, obj):
         """Count of sectors in this area (excluding secret sectors)"""
         # Use annotated value if available, otherwise fall back to property
-        if hasattr(obj, 'sector_count_annotated'):
+        if hasattr(obj, "sector_count_annotated"):
             return obj.sector_count_annotated
         return obj.sectors.filter(is_secret=False).count()
 
     def get_avg_latitude(self, obj):
         """Get average latitude from annotation or calculate from sectors"""
-        if hasattr(obj, 'avg_latitude') and obj.avg_latitude is not None:
+        if hasattr(obj, "avg_latitude") and obj.avg_latitude is not None:
             return float(obj.avg_latitude)
         return None
 
     def get_avg_longitude(self, obj):
         """Get average longitude from annotation or calculate from sectors"""
-        if hasattr(obj, 'avg_longitude') and obj.avg_longitude is not None:
+        if hasattr(obj, "avg_longitude") and obj.avg_longitude is not None:
             return float(obj.avg_longitude)
         return None
 
@@ -528,15 +530,17 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
     def get_recommended_percentage(self, obj):
         """Calculate percentage of ticks that recommended this problem (rating >= 4.0)"""
         # Use prefetched ticks if available to avoid N+1 queries
-        if hasattr(obj, 'ticks'):
+        if hasattr(obj, "ticks"):
             # Ticks are prefetched, use them directly
             ticks_list = list(obj.ticks.all())
             total_ticks = len(ticks_list)
             if total_ticks == 0:
                 return 0
-            recommended_ticks = sum(1 for tick in ticks_list if tick.rating and tick.rating >= 4.0)
+            recommended_ticks = sum(
+                1 for tick in ticks_list if tick.rating and tick.rating >= 4.0
+            )
             return round((recommended_ticks / total_ticks) * 100)
-        
+
         # Fallback to database query if not prefetched
         total_ticks = obj.ticks.count()
         if total_ticks == 0:
@@ -547,7 +551,7 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
     def get_media_count(self, obj):
         """Count total media items (images + videos)"""
         # Use prefetched image_lines if available to avoid N+1 queries
-        if hasattr(obj, 'image_lines'):
+        if hasattr(obj, "image_lines"):
             # Image lines are prefetched, use them directly
             image_ids = set()
             for image_line in obj.image_lines.all():
@@ -557,7 +561,9 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
         else:
             # Fallback to database query if not prefetched
             image_count = (
-                BoulderImage.objects.filter(problem_lines__problem=obj).distinct().count()
+                BoulderImage.objects.filter(problem_lines__problem=obj)
+                .distinct()
+                .count()
             )
         # Count videos
         video_count = len(obj.video_links) if obj.video_links else 0
@@ -570,13 +576,15 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
         # Try to get a primary image from the sector first
         if obj.sector:
             # Use prefetched sector images if available
-            if hasattr(obj.sector, 'images'):
+            if hasattr(obj.sector, "images"):
                 # Images are prefetched
-                primary = next((img for img in obj.sector.images.all() if img.is_primary), None)
+                primary = next(
+                    (img for img in obj.sector.images.all() if img.is_primary), None
+                )
             else:
                 # Fallback to database query
                 primary = obj.sector.images.filter(is_primary=True).first()
-            
+
             if primary and primary.image:
                 if request:
                     return request.build_absolute_uri(primary.image.url)
@@ -585,7 +593,7 @@ class BoulderProblemListSerializer(BoulderProblemMixin, serializers.ModelSeriali
 
         # Otherwise, get the first image associated with this problem
         # Use prefetched image_lines if available
-        if hasattr(obj, 'image_lines'):
+        if hasattr(obj, "image_lines"):
             # Image lines are prefetched, use them directly
             for image_line in obj.image_lines.all():
                 if image_line.image and image_line.image.image:

@@ -10,6 +10,8 @@ type Area {
     name: String!
     description: String
     city: City
+    latitude: Float
+    longitude: Float
     problemCount: Int
 }
 

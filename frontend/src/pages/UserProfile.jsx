@@ -182,7 +182,7 @@ const UserProfile = () => {
             {getInitials(userData.username || 'U')}
           </div>
           <div className="user-info">
-            <h1>{userData.username}'s Profile</h1>
+            <h1>{userData.username}&apos;s Profile</h1>
             {userData.profile?.bio && (
               <p className="user-bio">{userData.profile.bio}</p>
             )}
@@ -218,7 +218,7 @@ const UserProfile = () => {
           <h2>Climbing History</h2>
           {ticks.length === 0 ? (
             <div className="user-profile-page empty-state">
-              <p>This user hasn't ticked any boulder problems yet.</p>
+              <p>This user hasn&apos;t ticked any boulder problems yet.</p>
             </div>
           ) : (
             <div className="dashboard-table-container">

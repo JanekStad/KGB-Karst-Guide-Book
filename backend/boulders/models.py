@@ -48,6 +48,20 @@ class Area(NameNormalizedMixin, models.Model):
     )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    latitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Latitude coordinate for map positioning",
+    )
+    longitude = models.DecimalField(
+        max_digits=9,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        help_text="Longitude coordinate for map positioning",
+    )
     is_secret = models.BooleanField(
         default=False,
         help_text="If True, this area is hidden from public view (secret/illegal climbing spots)",

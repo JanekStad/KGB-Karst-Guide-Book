@@ -52,7 +52,7 @@ const Problems = () => {
   // Fetch crags on mount
   useEffect(() => {
     fetchCrags();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch walls when crag changes
   useEffect(() => {
@@ -62,7 +62,7 @@ const Problems = () => {
       setWalls([]);
       setSelectedWall('');
     }
-  }, [selectedCrag]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCrag]);
 
   // Fetch problems when filters change (including initial mount)
   useEffect(() => {

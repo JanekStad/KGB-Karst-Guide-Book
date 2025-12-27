@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,6 +55,7 @@ const SectorDetail = () => {
   useEffect(() => {
     fetchSector();
     fetchProblems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchSector = async () => {
@@ -234,7 +235,7 @@ const SectorDetail = () => {
     setGradeCounts(counts);
   };
 
-  const filterProblems = (problemsList, grade, search = '') => {
+  const filterProblems = useCallback((problemsList, grade, search = '') => {
     let filtered = problemsList;
     
     // Filter by grade
@@ -252,13 +253,13 @@ const SectorDetail = () => {
     }
     
     setProblems(filtered);
-  };
+  }, []);
 
   useEffect(() => {
     if (allProblems.length > 0) {
       filterProblems(allProblems, selectedGrade, searchTerm);
     }
-  }, [selectedGrade, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedGrade, searchTerm, allProblems, filterProblems]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -295,7 +296,7 @@ const SectorDetail = () => {
     let aVal, bVal;
     
     switch (sortField) {
-      case 'grade':
+      case 'grade': {
         const gradeOrder = GRADE_CHOICES;
         // Use -1 for missing grades so they sort to the end
         aVal = a.grade ? gradeOrder.indexOf(a.grade) : -1;
@@ -306,6 +307,7 @@ const SectorDetail = () => {
         if (aVal === -1) return 1;
         if (bVal === -1) return -1;
         break;
+      }
       case 'name':
         aVal = (a.name || '').toLowerCase();
         bVal = (b.name || '').toLowerCase();
