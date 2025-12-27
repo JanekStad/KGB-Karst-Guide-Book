@@ -12,6 +12,7 @@ const RecentActivityFeed = ({ limit = 5 }) => {
 
   useEffect(() => {
     fetchRecentTicks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit]);
 
   const fetchRecentTicks = async () => {

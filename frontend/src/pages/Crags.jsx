@@ -11,7 +11,7 @@ const Crags = () => {
   const [problems, setProblems] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
+  const [_isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState('any');
@@ -31,6 +31,7 @@ const Crags = () => {
       isInitialMount.current = false;
     }, 100);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Debounce search to avoid too many API calls
@@ -62,6 +63,7 @@ const Crags = () => {
       clearTimeout(timeoutId);
       setIsSearching(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedArea, selectedSector, searchTerm, filterType]);
 
   const fetchAreas = async () => {
@@ -150,9 +152,6 @@ const Crags = () => {
     // when selectedSector changes, so we don't need to call it here
   };
 
-  const handleSectorClick = (sector) => {
-    navigate(`/sectors/${sector.id}`);
-  };
 
   const handleProblemClick = (problem) => {
     navigate(`/problems/${problem.id}`);

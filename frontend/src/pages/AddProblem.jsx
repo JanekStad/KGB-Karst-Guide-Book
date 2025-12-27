@@ -33,6 +33,7 @@ const AddProblem = () => {
 
   useEffect(() => {
     fetchAreas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ const AddProblem = () => {
     try {
       // Note: Walls belong to sectors, not areas directly. This might need backend support.
       // For now, we'll keep this as a placeholder
-      const response = await areasAPI.getSectors(areaId);
+      await areasAPI.getSectors(areaId);
       // This would need to be updated when backend provides wall endpoints per area
       setWalls([]);
     } catch (err) {

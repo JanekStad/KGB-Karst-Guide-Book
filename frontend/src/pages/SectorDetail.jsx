@@ -55,6 +55,7 @@ const SectorDetail = () => {
   useEffect(() => {
     fetchSector();
     fetchProblems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchSector = async () => {
@@ -295,7 +296,7 @@ const SectorDetail = () => {
     let aVal, bVal;
     
     switch (sortField) {
-      case 'grade':
+      case 'grade': {
         const gradeOrder = GRADE_CHOICES;
         // Use -1 for missing grades so they sort to the end
         aVal = a.grade ? gradeOrder.indexOf(a.grade) : -1;
@@ -306,6 +307,7 @@ const SectorDetail = () => {
         if (aVal === -1) return 1;
         if (bVal === -1) return -1;
         break;
+      }
       case 'name':
         aVal = (a.name || '').toLowerCase();
         bVal = (b.name || '').toLowerCase();

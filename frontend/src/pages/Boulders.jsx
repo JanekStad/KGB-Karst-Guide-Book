@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { bouldersAPI } from '../services/api';
 import './Boulders.css';
 
 const Boulders = () => {
-  const { isAuthenticated } = useAuth();
   const [boulders, setBoulders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,6 +11,7 @@ const Boulders = () => {
 
   useEffect(() => {
     fetchBoulders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchBoulders = async () => {

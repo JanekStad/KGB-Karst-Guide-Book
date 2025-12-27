@@ -13,6 +13,7 @@ const UserDiary = () => {
 
   useEffect(() => {
     fetchUserDiary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const fetchUserDiary = async () => {
@@ -64,7 +65,7 @@ const UserDiary = () => {
     <div className="user-diary-page">
       <div className="user-diary-container">
         <div className="user-diary-header">
-          <h1>{user.username}'s Diary</h1>
+          <h1>{user.username}&apos;s Diary</h1>
           <p className="subtitle">
             {ticks.length === 0 
               ? 'No ticks yet' 
@@ -75,7 +76,7 @@ const UserDiary = () => {
 
         {ticks.length === 0 ? (
           <div className="empty-state">
-            <p>This user hasn't ticked any boulder problems yet.</p>
+            <p>This user hasn&apos;t ticked any boulder problems yet.</p>
           </div>
         ) : (
           <div className="ticks-list">

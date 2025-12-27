@@ -40,8 +40,8 @@ const ProblemDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [statistics, setStatistics] = useState(null);
   const [showTickModal, setShowTickModal] = useState(false);
-  const [problemTicks, setProblemTicks] = useState([]);
-  const [loadingTicks, setLoadingTicks] = useState(false);
+  const [_problemTicks, setProblemTicks] = useState([]);
+  const [_loadingTicks, setLoadingTicks] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [videoFormData, setVideoFormData] = useState({
@@ -57,7 +57,7 @@ const ProblemDetail = () => {
   });
 
   // Use GraphQL query to fetch problem with all related data in one request
-  const { data, loading: graphqlLoading, error: graphqlError, refetch } = useQuery(
+  const { data, loading: graphqlLoading, error: graphqlError } = useQuery(
     GET_PROBLEM_DETAIL,
     {
       variables: { id },
@@ -241,6 +241,7 @@ const ProblemDetail = () => {
     if (problemData && !problemData.images) {
       fetchProblemImages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [problemData, id]);
 
 
@@ -412,11 +413,11 @@ const ProblemDetail = () => {
   };
 
   // Helper function to extract video ID and create embed
-  const getVideoEmbed = (url) => {
+  const _getVideoEmbed = (url) => {
     if (!url) return null;
 
     // YouTube
-    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const youtubeRegex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
     const youtubeMatch = url.match(youtubeRegex);
     if (youtubeMatch) {
       const videoId = youtubeMatch[1];
@@ -468,18 +469,16 @@ const ProblemDetail = () => {
     if (!url) return null;
     
     // YouTube
-    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const youtubeRegex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
     const youtubeMatch = url.match(youtubeRegex);
     if (youtubeMatch) {
-      const videoId = youtubeMatch[1];
-      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      return `https://img.youtube.com/vi/${youtubeMatch[1]}/maxresdefault.jpg`;
     }
     
     // Vimeo
     const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
     const vimeoMatch = url.match(vimeoRegex);
     if (vimeoMatch) {
-      const videoId = vimeoMatch[1];
       // Vimeo requires API call for thumbnail, using placeholder for now
       return null;
     }
@@ -1232,7 +1231,7 @@ const ProblemDetail = () => {
                   onChange={(e) => setVideoFormData({ ...videoFormData, label: e.target.value })}
                   placeholder="e.g., Send Video, Beta Video, etc."
                 />
-                <small>Optional label for the video (defaults to "Beta Video")</small>
+                <small>Optional label for the video (defaults to &quot;Beta Video&quot;)</small>
               </div>
               <div className="modal-actions">
                 <button 

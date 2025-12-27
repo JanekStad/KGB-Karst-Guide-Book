@@ -270,7 +270,7 @@ function AreaLabel({ position, name }) {
   return null;
 }
 
-const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect }) => {
+const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect }) => {
   const navigate = useNavigate();
   const [sectors, setSectors] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -445,7 +445,7 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
   }, [zoomLevel, showAreas, showPolygons, areas.length, areasWithCoords.length, sectors.length, sectorsWithCoords.length, hasProblems, hasSectors, hasAreas, hasData]);
 
   // Get bounds for problems
-  const problemsBounds = useMemo(() => {
+  const _problemsBounds = useMemo(() => {
     if (problemsWithCoords.length === 0) return null;
     const coords = problemsWithCoords
       .map(problem => getProblemCoordinates(problem))
@@ -570,7 +570,6 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
             const polygonCoords = createCirclePolygon(lat, lng, areaRadius);
             // Calculate label position at edge of circle (2 o'clock)
             const labelPosition = calculateLabelPositionAtEdge(lat, lng, areaRadius);
-            const isSelected = selectedArea?.id === area.id;
             
             return (
               <div key={`area-${area.id}`}>
@@ -688,9 +687,6 @@ const CragMap = ({ crags, problems, sectors: sectorsProp, selectedProblem, selec
               } else {
                 polygonCoords = createSectorPolygon(lat, lng);
               }
-              
-              // Calculate centroid for label placement
-              const centroid = getPolygonCentroid(polygonCoords) || [lat, lng];
               
               return (
                 <Polygon

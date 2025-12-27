@@ -104,7 +104,8 @@ const CragDetail = () => {
     } catch (err) {
       console.error('❌ Failed to fetch problems:', err);
     }
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, updateAvailableGrades]);
 
   // Use ref to track if fetch is in progress to prevent duplicates
   const fetchingRef = useRef(false);
@@ -261,7 +262,7 @@ const CragDetail = () => {
     }
   };
 
-  const updateAvailableGrades = (problemsList) => {
+  const updateAvailableGrades = useCallback((problemsList) => {
     const grades = new Set();
     const counts = {};
     
@@ -276,7 +277,8 @@ const CragDetail = () => {
     const sortedGrades = GRADE_CHOICES.filter(grade => grades.has(grade));
     setAvailableGrades(sortedGrades);
     setGradeCounts(counts);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filterProblems = (problemsList, grade, sector, search = '') => {
     let filtered = problemsList;
@@ -356,7 +358,7 @@ const CragDetail = () => {
     let aVal, bVal;
     
     switch (sortField) {
-      case 'grade':
+      case 'grade': {
         const gradeOrder = GRADE_CHOICES;
         // Use -1 for missing grades so they sort to the end
         aVal = a.grade ? gradeOrder.indexOf(a.grade) : -1;
@@ -367,6 +369,7 @@ const CragDetail = () => {
         if (aVal === -1) return 1;
         if (bVal === -1) return -1;
         break;
+      }
       case 'name':
         aVal = (a.name || '').toLowerCase();
         bVal = (b.name || '').toLowerCase();

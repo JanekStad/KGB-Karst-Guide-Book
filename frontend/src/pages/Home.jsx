@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { problemsAPI, ticksAPI } from '../services/api';
 import UsernameLink from '../components/UsernameLink';
@@ -7,17 +7,17 @@ import './Home.css';
 
 const Home = () => {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [trendingProblems, setTrendingProblems] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [userTicks, setUserTicks] = useState([]);
-  const [userProjects, setUserProjects] = useState([]);
+  const [userProjects, _setUserProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading) {
       fetchData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, authLoading]);
 
   const fetchData = async () => {

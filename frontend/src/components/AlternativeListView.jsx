@@ -11,13 +11,13 @@ const AlternativeListView = ({
   areas, 
   selectedArea, 
   selectedSector,
-  searchTerm,
-  onAreaChange,
+  searchTerm: _searchTerm,
+  onAreaChange: _onAreaChange,
   onSectorSelect,
   onSwitchToMapView
 }) => {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [sortField, setSortField] = useState('grade');
   const [sortOrder, setSortOrder] = useState('desc');
   const [tableSearchTerm, setTableSearchTerm] = useState('');
@@ -120,6 +120,7 @@ const AlternativeListView = ({
     } else {
       setTicks({});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSector?.id, isAuthenticated]);
 
   const fetchUserTicks = async () => {
@@ -158,6 +159,7 @@ const AlternativeListView = ({
   const availableGrades = useMemo(() => {
     const grades = new Set(allSectorProblems.map(p => p.grade).filter(Boolean));
     return GRADE_CHOICES.filter(grade => grades.has(grade));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allSectorProblems]);
 
   // Get grade counts from all sector problems
@@ -231,13 +233,14 @@ const AlternativeListView = ({
       let aVal, bVal;
       
       switch (sortField) {
-        case 'grade':
+        case 'grade': {
           const GRADE_ORDER = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
           aVal = GRADE_ORDER.indexOf(a.grade || '3');
           bVal = GRADE_ORDER.indexOf(b.grade || '3');
           if (aVal === -1) aVal = 999;
           if (bVal === -1) bVal = 999;
           break;
+        }
         case 'name':
           aVal = (a.name || '').toLowerCase();
           bVal = (b.name || '').toLowerCase();
@@ -313,6 +316,7 @@ const AlternativeListView = ({
       opt.value === sortField && opt.order === sortOrder
     );
     return option ? option.label : 'Grade (Hardest)';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortField, sortOrder]);
 
   // Close dropdowns when clicking outside

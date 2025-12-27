@@ -17,7 +17,7 @@ const MyLists = () => {
       <h1>My Lists</h1>
       <p className="coming-soon">This feature is coming soon!</p>
       <p className="description">
-        You'll be able to create and manage custom lists of boulder problems here.
+        You&apos;ll be able to create and manage custom lists of boulder problems here.
       </p>
     </div>
   );
