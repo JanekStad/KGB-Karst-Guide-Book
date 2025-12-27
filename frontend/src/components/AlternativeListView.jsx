@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './AlternativeListView.css';
-import StarRating from './StarRating';
 import { useAuth } from '../contexts/AuthContext';
 import { ticksAPI } from '../services/api';
+import './AlternativeListView.css';
+import StarRating from './StarRating';
 
 const AlternativeListView = ({ 
   sectors, 

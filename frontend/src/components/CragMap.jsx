@@ -270,7 +270,7 @@ function AreaLabel({ position, name }) {
   return null;
 }
 
-const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect }) => {
+const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProblem, selectedSector, onProblemSelect, onSectorSelect, onAreaSelect }) => {
   const navigate = useNavigate();
   const [sectors, setSectors] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -461,7 +461,7 @@ const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProble
         onSectorSelect(sector);
       }
     }
-    navigate(`/sectors/${sectorId}`);
+    // No navigation - stay on explore page and show table view
   };
 
   const handlePolygonClick = (sectorId) => {
@@ -471,7 +471,7 @@ const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProble
         onSectorSelect(sector);
       }
     }
-    navigate(`/sectors/${sectorId}`);
+    // No navigation - stay on explore page and show table view
   };
 
   const handleAreaClick = (areaId) => {
@@ -489,6 +489,11 @@ const CragMap = ({ crags: _crags, problems, sectors: sectorsProp, selectedProble
 
     // Fetch sectors for this area
     fetchSectorsForArea(areaId);
+
+    // Notify parent component about area selection
+    if (onAreaSelect) {
+      onAreaSelect(area);
+    }
   };
 
   const handleZoomComplete = () => {
