@@ -37,7 +37,7 @@ class SectorAdmin(admin.ModelAdmin):
         (
             "Location",
             {
-                "fields": ("latitude", "longitude", "polygon_boundary"),
+                "fields": ("latitude", "longitude", "radius_meters", "polygon_boundary"),
                 "description": "Latitude/longitude for marker positioning. Polygon boundary is an array of [lat, lng] pairs defining the sector boundary. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
             },
         ),
