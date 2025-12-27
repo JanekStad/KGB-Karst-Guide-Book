@@ -104,7 +104,6 @@ const CragDetail = () => {
     } catch (err) {
       console.error('❌ Failed to fetch problems:', err);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, updateAvailableGrades]);
 
   // Use ref to track if fetch is in progress to prevent duplicates
@@ -280,7 +279,7 @@ const CragDetail = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filterProblems = (problemsList, grade, sector, search = '') => {
+  const filterProblems = useCallback((problemsList, grade, sector, search = '') => {
     let filtered = problemsList;
     
     // Filter by sector
@@ -307,13 +306,13 @@ const CragDetail = () => {
     }
     
     setProblems(filtered);
-  };
+  }, []);
 
   useEffect(() => {
     if (allProblems.length > 0) {
       filterProblems(allProblems, selectedGrade, selectedSector, searchTerm);
     }
-  }, [selectedGrade, selectedSector, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedGrade, selectedSector, searchTerm, allProblems, filterProblems]);
 
   // Use ref to prevent duplicate tick fetches
   const fetchingTicksRef = useRef(false);

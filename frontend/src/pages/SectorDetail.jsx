@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
@@ -235,7 +235,7 @@ const SectorDetail = () => {
     setGradeCounts(counts);
   };
 
-  const filterProblems = (problemsList, grade, search = '') => {
+  const filterProblems = useCallback((problemsList, grade, search = '') => {
     let filtered = problemsList;
     
     // Filter by grade
@@ -253,13 +253,13 @@ const SectorDetail = () => {
     }
     
     setProblems(filtered);
-  };
+  }, []);
 
   useEffect(() => {
     if (allProblems.length > 0) {
       filterProblems(allProblems, selectedGrade, searchTerm);
     }
-  }, [selectedGrade, searchTerm, allProblems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedGrade, searchTerm, allProblems, filterProblems]);
 
   useEffect(() => {
     if (isAuthenticated) {
