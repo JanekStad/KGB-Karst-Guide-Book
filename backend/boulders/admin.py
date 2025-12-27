@@ -25,7 +25,7 @@ class AreaAdmin(admin.ModelAdmin):
 
 @admin.register(Sector)
 class SectorAdmin(admin.ModelAdmin):
-    list_display = ["name", "area", "latitude", "longitude", "created_by", "created_at"]
+    list_display = ["name", "area", "latitude", "longitude", "created_by", "created_at", "radius_meters"]
     list_filter = ["area", "created_at"]
     search_fields = ["name", "description", "area__name"]
     readonly_fields = ["created_at", "updated_at", "problem_count", "wall_count"]
