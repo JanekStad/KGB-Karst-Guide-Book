@@ -1,3 +1,5 @@
+import math
+from typing import List
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
@@ -129,6 +131,41 @@ class Sector(NameNormalizedMixin, models.Model):
     def wall_count(self):
         """Count of walls in this sector"""
         return self.walls.count()
+
+    def _generate_circular_boundary(
+        self, radius_meters: float = 100.0, num_points: int = 12
+    ) -> List[List[float]]:
+        if not self.latitude or not self.longitude:
+            return []
+
+        center_lat = float(self.latitude)
+        center_lng = float(self.longitude)
+
+        radius_lat_degrees = radius_meters / 111000.0
+        radius_lng_degrees = radius_meters / (
+            111000.0 * math.cos(math.radians(center_lat))
+        )
+
+        points = []
+        for i in range(num_points):
+            angle = 2 * math.pi * i / num_points
+            lat = center_lat + radius_lat_degrees * math.cos(angle)
+            lng = center_lng + radius_lng_degrees * math.sin(angle)
+            points.append([round(lat, 6), round(lng, 6)])
+
+        if points:
+            points.append([points[0][0], points[0][1]])
+
+        return points
+
+    def save(self, *args, **kwargs):
+        """
+        Auto-generate circular polygon boundary if not set and coordinates are available.
+        """
+        if not self.polygon_boundary and self.latitude and self.longitude:
+            self.polygon_boundary = self._generate_circular_boundary()
+
+        super().save(*args, **kwargs)
 
 
 class Wall(NameNormalizedMixin, models.Model):
