@@ -20,6 +20,7 @@ type Sector {
     area: Area
     latitude: Float
     longitude: Float
+    radiusMeters: Float
     problemCount: Int
 }
 

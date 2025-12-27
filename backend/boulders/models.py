@@ -97,10 +97,16 @@ class Sector(NameNormalizedMixin, models.Model):
         decimal_places=6,
         help_text="Longitude coordinate for map positioning",
     )
+    radius_meters = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=100.0,
+        help_text="Radius in meters for the circular sector boundary. Used by frontend to generate circle polygon.",
+    )
     polygon_boundary = models.JSONField(
         null=True,
         blank=True,
-        help_text="Array of [lat, lng] coordinate pairs defining the sector boundary polygon. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
+        help_text="Array of [lat, lng] coordinate pairs defining the sector boundary polygon. If not set, frontend will generate a circle from latitude, longitude, and radius_meters. Example: [[49.4, 16.7], [49.401, 16.7], [49.401, 16.701], [49.4, 16.701]]",
     )
     is_secret = models.BooleanField(
         default=False,
