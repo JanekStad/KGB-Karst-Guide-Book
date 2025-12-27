@@ -160,6 +160,12 @@ async def resolve_area_problem_count(area_obj, info):
     return await sync_to_async(get_count)()
 
 
+@sector.field("radiusMeters")
+async def resolve_sector_radius_meters(sector_obj, info):
+    """Resolve radius_meters field (snake_case to camelCase)"""
+    return float(sector_obj.radius_meters) if sector_obj.radius_meters else None
+
+
 @sector.field("problemCount")
 async def resolve_sector_problem_count(sector_obj, info):
     def get_count():
