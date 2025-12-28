@@ -358,20 +358,22 @@ const AlternativeListView = ({
             backgroundImage: 'linear-gradient(135deg, var(--background-dark) 0%, var(--surface-dark) 100%)'
           }}
         >
+          {selectedSector.area_name && (
+            <div className="hero-breadcrumb">
+              <span>{selectedSector.area_name}</span>
+              <span className="material-symbols-outlined">chevron_right</span>
+              <span>{selectedSector.name}</span>
+            </div>
+          )}
           <div className="hero-content">
             <div className="hero-text">
-              {selectedSector.area_name && (
-                <div className="hero-breadcrumb">
-                  <span>{selectedSector.area_name}</span>
-                  <span className="material-symbols-outlined">chevron_right</span>
-                  <span>{selectedSector.name}</span>
-                </div>
-              )}
               <h1>{selectedSector.name}</h1>
               {selectedSector.description && (
                 <p className="hero-description">{selectedSector.description}</p>
               )}
             </div>
+          </div>
+          <div className="hero-overlay">
             <div className="hero-actions">
               <button 
                 className="hero-btn-secondary"
@@ -395,7 +397,6 @@ const AlternativeListView = ({
               )}
             </div>
           </div>
-          <div className="hero-overlay"></div>
         </div>
       ) : selectedAreaData ? (
         <div 
@@ -406,20 +407,22 @@ const AlternativeListView = ({
               : 'linear-gradient(135deg, var(--background-dark) 0%, var(--surface-dark) 100%)'
           }}
         >
+          {selectedAreaData.region && (
+            <div className="hero-breadcrumb">
+              <span>{selectedAreaData.region}</span>
+              <span className="material-symbols-outlined">chevron_right</span>
+              <span>{selectedAreaData.name}</span>
+            </div>
+          )}
           <div className="hero-content">
             <div className="hero-text">
-              {selectedAreaData.region && (
-                <div className="hero-breadcrumb">
-                  <span>{selectedAreaData.region}</span>
-                  <span className="material-symbols-outlined">chevron_right</span>
-                  <span>{selectedAreaData.name}</span>
-                </div>
-              )}
               <h1>{selectedAreaData.name}</h1>
               {selectedAreaData.description && (
                 <p className="hero-description">{selectedAreaData.description}</p>
               )}
             </div>
+          </div>
+          <div className="hero-overlay">
             <div className="hero-actions">
               <button className="hero-btn-secondary">
                 <span className="material-symbols-outlined">share</span>
@@ -436,7 +439,6 @@ const AlternativeListView = ({
               )}
             </div>
           </div>
-          <div className="hero-overlay"></div>
         </div>
       ) : (
         <div className="list-hero-section">
@@ -722,16 +724,18 @@ const AlternativeListView = ({
                         </td>
                         <td className="problem-actions-cell">
                           <div className="problem-actions">
-                            <button 
-                              className="tick-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // TODO: Handle tick action
-                              }}
-                              title="Add to tick list"
-                            >
-                              +
-                            </button>
+                            {isAuthenticated && (
+                              <button 
+                                className={`tick-btn ${ticks[problem.id] ? 'ticked' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // TODO: Handle tick action
+                                }}
+                                title={ticks[problem.id] ? 'Edit tick' : 'Add to tick list'}
+                              >
+                                {ticks[problem.id] ? '✓' : '+'}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
