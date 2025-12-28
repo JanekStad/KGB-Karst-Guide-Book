@@ -550,14 +550,14 @@ const ProblemDetail = () => {
     const area = problem.area_detail || problem.area;
     breadcrumbs.push({ 
       label: area?.name || `Area #${area?.id || problem.area}`, 
-      path: `/areas/${area?.id || problem.area}` 
+      path: `/explore?area=${area?.id || problem.area}` 
     });
   }
   if (problem?.sector_detail || problem?.sector) {
     const sector = problem.sector_detail || problem.sector;
     breadcrumbs.push({ 
       label: sector?.name || `Sector #${sector?.id || problem.sector}`, 
-      path: `/sectors/${sector?.id || problem.sector}` 
+      path: `/explore?sector=${sector?.id || problem.sector}` 
     });
   }
   breadcrumbs.push({ label: problem?.name, path: null });

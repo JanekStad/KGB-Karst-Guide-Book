@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AlternativeListView from '../components/AlternativeListView';
 import CragMap from '../components/CragMap';
 import { areasAPI, problemsAPI, sectorsAPI } from '../services/api';
@@ -7,6 +7,7 @@ import './Crags.css';
 
 const Crags = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sectors, setSectors] = useState([]);
   const [problems, setProblems] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -21,6 +22,71 @@ const Crags = () => {
   const [viewMode, setViewMode] = useState('list'); // 'map' or 'list' - start with list view
   const sidebarRef = useRef(null);
   const isInitialMount = useRef(true);
+
+  // Handle area and sector selection from URL parameters
+  useEffect(() => {
+    const areaId = searchParams.get('area');
+    const sectorId = searchParams.get('sector');
+    
+    // Handle area selection from URL parameter
+    if (areaId) {
+      // Set the area and filter type
+      setSelectedArea(areaId);
+      setFilterType('sector'); // Show sectors when area is selected
+      // Fetch sectors for the selected area
+      sectorsAPI.list({ area: areaId })
+        .then((response) => {
+          const fetchedSectors = response.data.results || response.data;
+          setSectors(fetchedSectors || []);
+        })
+        .catch((err) => {
+          console.error('❌ Failed to fetch sectors for area:', err);
+        });
+      // Fetch problems for the selected area
+      problemsAPI.list({ area: areaId })
+        .then((response) => {
+          const fetchedProblems = response.data.results || response.data;
+          setProblems(fetchedProblems || []);
+        })
+        .catch((err) => {
+          console.error('❌ Failed to fetch problems for area:', err);
+        });
+    }
+    
+    // Handle sector selection from URL parameter
+    if (sectorId) {
+      // Fetch the sector details and select it
+      sectorsAPI.get(sectorId)
+        .then((response) => {
+          const sector = response.data;
+          setSelectedSector(sector);
+          // Set the area if sector has one (unless already set from area param)
+          if (sector.area && !areaId) {
+            setSelectedArea(sector.area);
+            setFilterType('sector');
+          }
+          // Switch to list view to show table when sector is selected
+          setViewMode('list');
+          // Close sidebar on mobile when sector is selected
+          if (window.innerWidth < 768) {
+            setSidebarOpen(false);
+          }
+          // Explicitly fetch problems for the selected sector
+          // This ensures problems load even on initial mount
+          sectorsAPI.getProblems(sector.id)
+            .then((problemsResponse) => {
+              const fetchedProblems = problemsResponse.data.results || problemsResponse.data;
+              setProblems(fetchedProblems || []);
+            })
+            .catch((err) => {
+              console.error('❌ Failed to fetch problems for sector:', err);
+            });
+        })
+        .catch((err) => {
+          console.error('❌ Failed to fetch sector from URL:', err);
+        });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchAreas();
@@ -37,7 +103,10 @@ const Crags = () => {
   // Debounce search to avoid too many API calls
   useEffect(() => {
     // Skip debounce on initial mount (handled by initial useEffect)
-    if (isInitialMount.current) {
+    // BUT: if a sector is selected from URL, we need to fetch problems
+    // The explicit fetch in the URL parameter useEffect handles this,
+    // but we also allow this to run if sector is set during initial mount
+    if (isInitialMount.current && !selectedSector) {
       return;
     }
 

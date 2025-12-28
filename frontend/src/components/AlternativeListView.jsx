@@ -724,16 +724,18 @@ const AlternativeListView = ({
                         </td>
                         <td className="problem-actions-cell">
                           <div className="problem-actions">
-                            <button 
-                              className="tick-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // TODO: Handle tick action
-                              }}
-                              title="Add to tick list"
-                            >
-                              +
-                            </button>
+                            {isAuthenticated && (
+                              <button 
+                                className={`tick-btn ${ticks[problem.id] ? 'ticked' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // TODO: Handle tick action
+                                }}
+                                title={ticks[problem.id] ? 'Edit tick' : 'Add to tick list'}
+                              >
+                                {ticks[problem.id] ? '✓' : '+'}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
