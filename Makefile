@@ -49,9 +49,16 @@ security:
 	@$(BANDIT) -r $(BACKEND_DIR)
 
 # Backend: Dependency vulnerability audit
+# Uses UV if available, falls back to pip-audit
 audit:
-	@echo "Running pip-audit..."
-	@$(PIP_AUDIT) -r $(BACKEND_DIR)/requirements.txt
+	@echo "Running dependency audit..."
+	@if command -v uv >/dev/null 2>&1; then \
+		echo "Using UV for audit..."; \
+		uv pip audit -r $(BACKEND_DIR)/requirements.txt; \
+	else \
+		echo "Using pip-audit..."; \
+		$(PIP_AUDIT) -r $(BACKEND_DIR)/requirements.txt; \
+	fi
 
 # Frontend: Format/Lint fix (auto-fix ESLint errors)
 frontend-fmt:
