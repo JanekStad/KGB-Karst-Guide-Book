@@ -89,7 +89,7 @@ const RecentSendsCard = () => {
     <div className="dashboard-card recent-sends-card">
       <div className="card-header">
         <h3 className="card-title">RECENT SENDS</h3>
-        <Link to="/my-ticks" className="card-view-all">View All →</Link>
+        <Link to="/profile" className="card-view-all">View All →</Link>
       </div>
       <div className="recent-sends-scroll">
         {recentTicks.map((tick) => {

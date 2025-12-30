@@ -1,10 +1,36 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { usersAPI } from '../services/api';
+import { usersAPI, ticksAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import StarRating from '../components/StarRating';
 import './UserProfile.css';
 import './MyTicks.css';
+
+const GRADE_CHOICES = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
+const STYLE_CHOICES = ['send', 'flash', 'solo'];
+
+const getTickStyle = (tick) => {
+  if (tick.notes?.toLowerCase().includes('style:')) {
+    const styleMatch = tick.notes.toLowerCase().match(/style:\s*(\w+)/);
+    if (styleMatch) {
+      const style = styleMatch[1].toLowerCase();
+      if (STYLE_CHOICES.includes(style) || style === 'redpoint') {
+        return style === 'redpoint' ? 'send' : style;
+      }
+    }
+  }
+  return 'send';
+};
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -28,33 +54,20 @@ const UserProfile = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching user profile for ID:', id);
       const response = await usersAPI.getUserTicks(id);
-      console.log('User profile response:', response);
       
-      // Validate response structure
-      if (!response) {
-        throw new Error('No response from server');
-      }
-      
-      if (!response.data) {
-        throw new Error('Invalid response structure: missing data');
+      if (!response || !response.data) {
+        throw new Error('Invalid response structure');
       }
       
       if (!response.data.user) {
         throw new Error('User data not found in response');
       }
       
-      console.log('Setting user data:', response.data.user);
       setUserData(response.data.user);
       setTicks(Array.isArray(response.data.ticks) ? response.data.ticks : []);
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response,
-        data: err.response?.data,
-      });
       const errorMessage = err.response?.data?.detail || err.response?.data?.error || err.message || 'Failed to load user profile. Please try again.';
       setError(errorMessage);
       setUserData(null);
@@ -79,12 +92,134 @@ const UserProfile = () => {
     fetchUserProfile();
   }, [id, isAuthenticated, navigate, fetchUserProfile]);
 
-  // Reset to page 1 when ticks change
   useEffect(() => {
     setCurrentPage(1);
   }, [ticks.length]);
 
-  // Early return checks - must be after all hooks
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric'
+    });
+  };
+
+  // Calculate statistics from ticks
+  const statistics = useMemo(() => {
+    if (!ticks || ticks.length === 0) {
+      return {
+        total_ticks: 0,
+        hardest_grade: '-',
+        unique_crags: 0,
+        unique_cities: 0,
+        average_rating: null,
+        rated_problems_count: 0,
+        first_send: null,
+        latest_send: null,
+        climbing_span_years: null,
+        grade_distribution: {},
+        ticks_per_year: {},
+        unique_days: 0,
+      };
+    }
+
+    const totalTicks = ticks.length;
+    
+    // Get effective grade (tick_grade if available, otherwise problem grade)
+    const getEffectiveGrade = (tick) => {
+      return tick.tick_grade || tick.problem?.grade;
+    };
+
+    // Hardest grade
+    const grades = ticks
+      .map(t => getEffectiveGrade(t))
+      .filter(Boolean);
+    
+    const hardestGrade = grades.sort((a, b) => {
+      const indexA = GRADE_CHOICES.indexOf(a);
+      const indexB = GRADE_CHOICES.indexOf(b);
+      return indexB - indexA;
+    })[0] || '-';
+
+    // Unique crags/areas
+    const uniqueCrags = new Set();
+    const uniqueCities = new Set();
+    ticks.forEach(tick => {
+      const area = tick.problem?.area_detail || tick.problem?.area;
+      if (area) {
+        const areaObj = typeof area === 'object' ? area : null;
+        if (areaObj?.id) {
+          uniqueCrags.add(areaObj.id);
+          if (areaObj.city) {
+            const cityObj = typeof areaObj.city === 'object' ? areaObj.city : null;
+            if (cityObj?.id) {
+              uniqueCities.add(cityObj.id);
+            }
+          }
+        }
+      }
+    });
+
+    // Average rating
+    const ratedTicks = ticks.filter(t => t.rating);
+    const averageRating = ratedTicks.length > 0
+      ? ratedTicks.reduce((sum, t) => sum + parseFloat(t.rating || 0), 0) / ratedTicks.length
+      : null;
+
+    // Date statistics
+    const dates = ticks
+      .map(t => t.date)
+      .filter(Boolean)
+      .map(d => new Date(d))
+      .sort((a, b) => a - b);
+    
+    const firstSend = dates.length > 0 ? dates[0].toISOString() : null;
+    const latestSend = dates.length > 0 ? dates[dates.length - 1].toISOString() : null;
+    
+    // Climbing span in years
+    const climbingSpanYears = dates.length > 0
+      ? ((dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1)
+      : null;
+
+    // Unique days
+    const uniqueDays = new Set(ticks.map(t => t.date)).size;
+
+    // Grade distribution
+    const gradeDistribution = {};
+    ticks.forEach(tick => {
+      const grade = getEffectiveGrade(tick);
+      if (grade) {
+        gradeDistribution[grade] = (gradeDistribution[grade] || 0) + 1;
+      }
+    });
+
+    // Ticks per year
+    const ticksPerYear = {};
+    ticks.forEach(tick => {
+      if (tick.date) {
+        const year = new Date(tick.date).getFullYear();
+        ticksPerYear[year] = (ticksPerYear[year] || 0) + 1;
+      }
+    });
+
+    return {
+      total_ticks: totalTicks,
+      hardest_grade: hardestGrade,
+      unique_crags: uniqueCrags.size,
+      unique_cities: uniqueCities.size,
+      average_rating: averageRating,
+      rated_problems_count: ratedTicks.length,
+      first_send: firstSend,
+      latest_send: latestSend,
+      climbing_span_years: climbingSpanYears ? parseFloat(climbingSpanYears) : null,
+      grade_distribution: gradeDistribution,
+      ticks_per_year: ticksPerYear,
+      unique_days: uniqueDays,
+    };
+  }, [ticks]);
+
   if (!id) {
     return (
       <div className="user-profile-page">
@@ -100,40 +235,6 @@ const UserProfile = () => {
       </div>
     );
   }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const getTickStyle = (tick) => {
-    // Default to 'send' since there's no style field in the model
-    if (tick.notes?.toLowerCase().includes('style:')) {
-      const styleMatch = tick.notes.toLowerCase().match(/style:\s*(\w+)/);
-      if (styleMatch) {
-        const style = styleMatch[1].toLowerCase();
-        if (['send', 'flash', 'solo'].includes(style) || style === 'redpoint') {
-          return style === 'redpoint' ? 'send' : style;
-        }
-      }
-    }
-    return 'send';
-  };
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   if (loading) {
     return (
@@ -151,7 +252,6 @@ const UserProfile = () => {
     );
   }
 
-  // Ensure userData exists before calculating stats
   if (!userData || !userData.username) {
     return (
       <div className="user-profile-page">
@@ -159,14 +259,6 @@ const UserProfile = () => {
       </div>
     );
   }
-
-  // Calculate basic stats
-  const totalTicks = ticks.length;
-  const uniqueGrades = new Set(ticks.map(t => t.tick_grade || t.problem?.grade).filter(Boolean));
-  const hardestGrade = Array.from(uniqueGrades).sort((a, b) => {
-    const gradeOrder = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
-    return gradeOrder.indexOf(b) - gradeOrder.indexOf(a);
-  })[0] || '-';
 
   // Pagination
   const totalPages = Math.ceil(ticks.length / itemsPerPage);
@@ -179,45 +271,184 @@ const UserProfile = () => {
         {/* User Header */}
         <div className="user-profile-header">
           <div className="user-avatar-large">
-            {getInitials(userData.username || 'U')}
+            {userData.profile?.avatar ? (
+              <img src={userData.profile.avatar} alt={userData.username} />
+            ) : (
+              <span>{getInitials(userData.username || 'U')}</span>
+            )}
           </div>
           <div className="user-info">
             <h1>{userData.username}&apos;s Profile</h1>
             {userData.profile?.bio && (
               <p className="user-bio">{userData.profile.bio}</p>
             )}
-            {userData.profile?.location && (
-              <p className="user-location">
-                <span className="material-symbols-outlined">location_on</span>
-                {userData.profile.location}
-              </p>
+            <div className="user-details">
+              {userData.profile?.location && (
+                <p className="user-detail-item">
+                  <span className="material-symbols-outlined">location_on</span>
+                  {userData.profile.location}
+                </p>
+              )}
+              {userData.profile?.height && (
+                <p className="user-detail-item">
+                  <span className="material-symbols-outlined">height</span>
+                  {userData.profile.height} cm
+                </p>
+              )}
+              {userData.profile?.ape_index !== null && userData.profile?.ape_index !== undefined && (
+                <p className="user-detail-item">
+                  <span className="material-symbols-outlined">straighten</span>
+                  Ape Index: {parseFloat(userData.profile.ape_index) > 0 ? '+' : ''}{parseFloat(userData.profile.ape_index).toFixed(1)} cm
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Metrics Card */}
+        <div className="performance-metrics-card">
+          <div className="card-header">
+            <div className="card-title">
+              <span className="material-symbols-outlined">bar_chart</span>
+              <h3>PERFORMANCE METRICS</h3>
+            </div>
+          </div>
+          <div className="metrics-grid">
+            <div className="metric-item">
+              <span className="metric-label">Total Sends</span>
+              <span className="metric-value">{statistics.total_ticks}</span>
+            </div>
+            <div className="metric-item">
+              <span className="metric-label">Hardest Grade</span>
+              <span className="metric-value">{statistics.hardest_grade}</span>
+            </div>
+            {statistics.unique_crags > 0 && (
+              <div className="metric-item">
+                <span className="metric-label">Crags Visited</span>
+                <span className="metric-value">{statistics.unique_crags}</span>
+              </div>
+            )}
+            {statistics.unique_cities > 0 && (
+              <div className="metric-item">
+                <span className="metric-label">Cities Explored</span>
+                <span className="metric-value">{statistics.unique_cities}</span>
+              </div>
+            )}
+            {statistics.average_rating && (
+              <div className="metric-item">
+                <span className="metric-label">Avg Rating</span>
+                <span className="metric-value">{statistics.average_rating.toFixed(1)}</span>
+                <span className="metric-subtext">({statistics.rated_problems_count} rated)</span>
+              </div>
+            )}
+            {statistics.climbing_span_years && (
+              <div className="metric-item">
+                <span className="metric-label">Years Climbing</span>
+                <span className="metric-value">{statistics.climbing_span_years}</span>
+              </div>
+            )}
+            {statistics.unique_days > 0 && (
+              <div className="metric-item">
+                <span className="metric-label">Days Out</span>
+                <span className="metric-value">{statistics.unique_days}</span>
+              </div>
+            )}
+            {statistics.first_send && (
+              <div className="metric-item">
+                <span className="metric-label">First Send</span>
+                <span className="metric-value-small">
+                  {new Date(statistics.first_send).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </span>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Stats Summary */}
-        <div className="user-stats-summary">
-          <div className="stat-item">
-            <span className="stat-value">{totalTicks}</span>
-            <span className="stat-label">Total Sends</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{hardestGrade}</span>
-            <span className="stat-label">Hardest Grade</span>
-          </div>
-          {userData.profile?.tick_count !== undefined && (
-            <div className="stat-item">
-              <span className="stat-value">{userData.profile.tick_count}</span>
-              <span className="stat-label">Problems Climbed</span>
+        {/* Grade Distribution Card */}
+        {statistics.grade_distribution && Object.keys(statistics.grade_distribution).length > 0 && (
+          <div className="grade-pyramid-card">
+            <div className="card-header">
+              <div className="card-title">
+                <h3>Grade Pyramid</h3>
+                <span className="card-subtitle">All time • Font Scale</span>
+              </div>
             </div>
-          )}
-        </div>
+            <div className="grade-pyramid">
+              {Object.entries(statistics.grade_distribution)
+                .filter(([_, count]) => count > 0)
+                .sort((a, b) => {
+                  const gradeA = GRADE_CHOICES.indexOf(a[0]);
+                  const gradeB = GRADE_CHOICES.indexOf(b[0]);
+                  return gradeA - gradeB;
+                })
+                .map(([grade, count]) => {
+                  const maxCount = Math.max(...Object.values(statistics.grade_distribution).filter(c => c > 0));
+                  const widthPercentage = (count / maxCount) * 100;
+                  return (
+                    <div key={grade} className="grade-pyramid-item">
+                      <div className="grade-pyramid-bar-container">
+                        <div 
+                          className="grade-pyramid-bar" 
+                          style={{ width: `${widthPercentage}%` }}
+                        />
+                      </div>
+                      <div className="grade-pyramid-label">
+                        <span className="grade-pyramid-grade">{grade}</span>
+                        <span className="grade-pyramid-count">{count}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {/* Activity by Year Chart */}
+        {statistics.ticks_per_year && Object.keys(statistics.ticks_per_year).length > 0 && (
+          <div className="grade-pyramid-card">
+            <div className="card-header">
+              <div className="card-title">
+                <h3>Activity by Year</h3>
+              </div>
+            </div>
+            <div className="year-activity-chart">
+              {Object.entries(statistics.ticks_per_year)
+                .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                .map(([year, count]) => {
+                  const maxCount = Math.max(...Object.values(statistics.ticks_per_year));
+                  const heightPercentage = (count / maxCount) * 100;
+                  return (
+                    <div 
+                      key={year} 
+                      className="year-activity-item" 
+                      title={`${count} ascents in ${year}`}
+                    >
+                      <div className="year-activity-bar-container">
+                        <div 
+                          className="year-activity-bar" 
+                          style={{ height: `${heightPercentage}%` }}
+                        />
+                      </div>
+                      <div className="year-activity-label">
+                        <span className="year-activity-year">{year}</span>
+                        <span className="year-activity-count">{count}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
 
         {/* Ticks List */}
         <div className="user-ticks-section">
           <h2>Climbing History</h2>
           {ticks.length === 0 ? (
-            <div className="user-profile-page empty-state">
+            <div className="empty-state">
               <p>This user hasn&apos;t ticked any boulder problems yet.</p>
             </div>
           ) : (
@@ -320,11 +551,9 @@ const UserProfile = () => {
                     </button>
                     
                     {(() => {
-                      // Always show 7 page slots for consistent size
                       const slots = [];
                       
                       if (currentPage <= 3) {
-                        // Show: 1 2 3 4 5 ... last
                         for (let i = 1; i <= 5 && i <= totalPages; i++) {
                           slots.push(
                             <button
@@ -349,7 +578,6 @@ const UserProfile = () => {
                           );
                         }
                       } else if (currentPage >= totalPages - 2) {
-                        // Show: 1 ... last-4 last-3 last-2 last-1 last
                         slots.push(
                           <button
                             key={1}
@@ -375,7 +603,6 @@ const UserProfile = () => {
                           }
                         }
                       } else {
-                        // Show: 1 ... current-1 current current+1 ... last
                         slots.push(
                           <button
                             key={1}
@@ -432,4 +659,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-
