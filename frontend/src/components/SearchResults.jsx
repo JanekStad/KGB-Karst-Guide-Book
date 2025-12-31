@@ -65,7 +65,7 @@ const SearchResults = ({ results, onClose, query, anchorElement }) => {
         </div>
       ) : !hasResults ? (
         <div className="search-results-empty">
-          <p>No results found for "&quot;{query}&quot;"</p>
+          <p>No results found for &quot;{query}&quot;</p>
         </div>
       ) : (
         <>

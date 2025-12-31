@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import SearchResults from '../components/SearchResults';
+import UsernameLink from '../components/UsernameLink';
 import { useAuth } from '../contexts/AuthContext';
 import { problemsAPI, ticksAPI } from '../services/api';
 import { UNIVERSAL_SEARCH } from '../services/graphql/queries';
-import UsernameLink from '../components/UsernameLink';
-import SearchResults from '../components/SearchResults';
 import './Home.css';
 
 const Home = () => {
@@ -18,7 +18,6 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
@@ -47,7 +46,7 @@ const Home = () => {
   }, [searchQuery]);
 
   // GraphQL search query
-  const { data: searchData, loading: searchLoading } = useQuery(UNIVERSAL_SEARCH, {
+  const { data: searchData } = useQuery(UNIVERSAL_SEARCH, {
     variables: { query: debouncedSearchQuery },
     skip: !debouncedSearchQuery || debouncedSearchQuery.length < 2,
   });
@@ -81,10 +80,6 @@ const Home = () => {
   const handleSearchChange = useCallback((e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    // Ensure input is considered focused when user is typing
-    if (document.activeElement === e.target) {
-      setIsSearchFocused(true);
-    }
     // Immediately show results when user types (if query is long enough)
     // This provides instant feedback even before debounce completes
     if (value.length >= 2) {
@@ -96,7 +91,6 @@ const Home = () => {
 
   // Handle search input focus
   const handleSearchFocus = useCallback(() => {
-    setIsSearchFocused(true);
     // Show results if we already have a query
     if (searchQuery.length >= 2) {
       setShowSearchResults(true);
@@ -106,19 +100,12 @@ const Home = () => {
   // Handle search input blur
   const handleSearchBlur = useCallback(() => {
     // Delay blur to allow clicks on search results to process
-    setTimeout(() => {
-      // Check if focus moved to search results
-      const activeElement = document.activeElement;
-      if (!activeElement || !activeElement.closest('.search-results')) {
-        setIsSearchFocused(false);
-      }
-    }, 200);
+    // No action needed - click-outside handler will manage closing results
   }, []);
 
   // Handle closing search results
   const handleCloseSearch = useCallback(() => {
     setShowSearchResults(false);
-    setIsSearchFocused(false);
     setSearchQuery('');
     if (searchInputRef.current) {
       searchInputRef.current.blur();
@@ -156,7 +143,6 @@ const Home = () => {
         !e.target.closest('.welcome-search')
       ) {
         setShowSearchResults(false);
-        setIsSearchFocused(false);
       }
     };
 
