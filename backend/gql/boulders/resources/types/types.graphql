@@ -61,3 +61,10 @@ type ProblemStatistics {
     gradeVotesCount: Int
 }
 
+type SearchResults {
+    problems: [BoulderProblem!]!
+    areas: [Area!]!
+    sectors: [Sector!]!
+    users: [User!]!
+}
+

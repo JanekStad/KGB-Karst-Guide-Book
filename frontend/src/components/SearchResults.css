@@ -1,0 +1,118 @@
+.search-results {
+  position: fixed;
+  max-height: 32rem;
+  overflow-y: auto;
+  background-color: var(--surface-dark);
+  border: 1px solid var(--border-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  backdrop-filter: blur(8px);
+}
+
+.search-results-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--secondary-text);
+}
+
+.search-results-section {
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.search-results-section:last-child {
+  border-bottom: none;
+}
+
+.search-results-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary-cyan);
+  background-color: var(--border-dark);
+  margin: 0;
+}
+
+.search-results-section-title .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.search-result-item {
+  display: block;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  color: var(--text-white);
+  transition: background-color 0.2s;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background-color: var(--border-surface);
+}
+
+.search-result-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.search-result-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-white);
+}
+
+.search-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--secondary-text);
+  flex-wrap: wrap;
+}
+
+.search-result-grade {
+  font-weight: 600;
+  color: var(--primary-cyan);
+}
+
+.search-result-location {
+  color: var(--secondary-text);
+}
+
+.search-result-count {
+  color: var(--secondary-text);
+}
+
+@media (max-width: 640px) {
+  .search-results {
+    max-height: 24rem;
+  }
+
+  .search-result-item {
+    padding: 0.625rem 0.875rem;
+  }
+
+  .search-result-name {
+    font-size: 0.875rem;
+  }
+
+  .search-result-meta {
+    font-size: 0.75rem;
+  }
+}
+

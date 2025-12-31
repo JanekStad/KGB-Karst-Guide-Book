@@ -8,6 +8,7 @@ from gql.boulders.resolvers import (
     sector,
     wall,
     city,
+    search_results,
 )
 from gql.boulders.mutations import mutation as boulder_mutation
 from gql.comments.resolvers import comment
@@ -73,6 +74,7 @@ schema = make_executable_schema(
     sector,
     wall,
     city,
+    search_results,
     comment,
     tick,
     user,
