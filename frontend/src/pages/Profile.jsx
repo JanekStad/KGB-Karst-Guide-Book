@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
 import { listsAPI, ticksAPI, usersAPI } from '../services/api';
-import './Profile.css';
 import './MyTicks.css';
+import './Profile.css';
 
 const GRADE_CHOICES = ['3', '3+', '4', '4+', '5', '5+', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A', '8A+', '8B', '8B+', '8C', '8C+', '9A', '9A+'];
 const STYLE_CHOICES = ['send', 'flash', 'solo'];
@@ -664,7 +664,7 @@ const Profile = () => {
                   <Link to="/profile" className="export-link">Export CSV</Link>
                 </div>
 
-                <div className="ticklist-table-container">
+                <div className="dashboard-table-container">
                   {loading ? (
                     <div className="loading">Loading your ticks...</div>
                   ) : error ? (
@@ -678,43 +678,68 @@ const Profile = () => {
                     </div>
                   ) : (
                     <>
-                      <table className="ticklist-table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Problem</th>
-                            <th>Grade</th>
-                            <th>Rating</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedTicks.map((tick) => (
-                            <tr key={tick.id}>
-                              <td className="tick-date">{formatDate(tick.date)}</td>
-                              <td className="tick-problem">
-                                <Link to={`/problems/${tick.problem.id}`} className="problem-link">
-                                  {tick.problem.name}
-                                </Link>
-                                {(() => {
-                                  const style = getTickStyle(tick);
-                                  if (style === 'flash') {
-                                    return <span className="style-badge style-flash">FLASH</span>;
-                                  }
-                                  return null;
-                                })()}
-                              </td>
-                              <td className="tick-grade">{tick.problem.grade}</td>
-                              <td className="tick-rating">
-                                {tick.rating ? (
-                                  <StarRating rating={parseFloat(tick.rating)} size="small" />
-                                ) : (
-                                  <span className="no-rating">-</span>
-                                )}
-                              </td>
+                      <div className="table-wrapper">
+                        <table className="dashboard-table">
+                          <thead>
+                            <tr>
+                              <th>Grade</th>
+                              <th>Route Name</th>
+                              <th>Date</th>
+                              <th>Style</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {paginatedTicks.map((tick) => (
+                              <tr key={tick.id}>
+                                <td className="grade-cell">
+                                  {tick.problem && tick.tick_grade && tick.tick_grade !== tick.problem.grade ? (
+                                    <>
+                                      <span title="Grade you climbed">{tick.tick_grade}</span>
+                                      <span> / </span>
+                                      <span title="Problem grade">{tick.problem.grade}</span>
+                                    </>
+                                  ) : (
+                                    tick.problem?.grade || '-'
+                                  )}
+                                </td>
+                                <td className="route-cell">
+                                  <div className="route-cell-content">
+                                    {tick.problem ? (
+                                      <Link to={`/problems/${tick.problem.id}`} className="route-link">
+                                        {tick.problem.name}
+                                      </Link>
+                                    ) : (
+                                      <span>Unknown Problem</span>
+                                    )}
+                                    {tick.rating && (
+                                      <span className="route-rating">
+                                        <StarRating rating={parseFloat(tick.rating)} size="small" showValue={false} />
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="date-cell">{formatDate(tick.date)}</td>
+                                <td className="style-cell">
+                                  {(() => {
+                                    const style = getTickStyle(tick);
+                                    const styleLabels = {
+                                      'send': 'Send',
+                                      'flash': 'Flash',
+                                      'solo': 'Solo'
+                                    };
+                                    const styleClass = style === 'flash' ? 'style-flash' : 'style-redpoint';
+                                    return (
+                                      <span className={`style-badge ${styleClass}`}>
+                                        {styleLabels[style] || 'Send'}
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                       {totalPages > 1 && (
                         <div className="ticklist-pagination">
                           <button
