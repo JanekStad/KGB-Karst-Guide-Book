@@ -295,9 +295,9 @@ async def resolve_dashboard(_, info):
     """Get dashboard data for the current user"""
     from lists.models import Tick, UserList
     from django.db.models import Count
-    
+
     user = info.context.get("user")
-    
+
     def get_dashboard_data():
         # Get trending problems (top by tick count)
         trending_problems = list(
@@ -310,17 +310,19 @@ async def resolve_dashboard(_, info):
             )
             .order_by("-tick_count_annotated")[:20]
         )
-        
+
         # Get user's ticks if authenticated
         my_ticks = []
         if user and user.is_authenticated:
             my_ticks = list(
                 Tick.objects.filter(user=user)
-                .select_related("user", "problem", "problem__area", "problem__area__city")
+                .select_related(
+                    "user", "problem", "problem__area", "problem__area__city"
+                )
                 .prefetch_related("problem__sector", "problem__wall")
                 .order_by("-date", "-created_at")[:10]
             )
-            
+
         # Get user's lists if authenticated
         my_lists = []
         if user and user.is_authenticated:
@@ -330,7 +332,7 @@ async def resolve_dashboard(_, info):
                 .annotate(problem_count_annotated=Count("listentry_set", distinct=True))
                 .order_by("-created_at")
             )
-        
+
         # Recent activity (for now, use recent ticks from all users)
         recent_activity = list(
             Tick.objects.select_related(
@@ -339,14 +341,14 @@ async def resolve_dashboard(_, info):
             .prefetch_related("problem__sector")
             .order_by("-date", "-created_at")[:10]
         )
-        
+
         return {
             "trendingProblems": trending_problems,
             "myTicks": my_ticks,
             "myLists": my_lists,
             "recentActivity": recent_activity,
         }
-    
+
     return await sync_to_async(get_dashboard_data)()
 
 

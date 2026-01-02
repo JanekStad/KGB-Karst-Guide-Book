@@ -1,7 +1,7 @@
 from ariadne import ObjectType
 from graphql import GraphQLError
 from asgiref.sync import sync_to_async
-from lists.models import Tick, UserList, ListEntry
+from lists.models import Tick, UserList
 from django.db.models import Count
 
 tick = ObjectType("Tick")
@@ -54,17 +54,27 @@ async def resolve_my_lists(_, info):
 
 
 @user_list.field("problemCount")
-def resolve_problem_count(list_obj, info):
+async def resolve_problem_count(list_obj, info):
     """Get problem count for a list"""
     if hasattr(list_obj, "problem_count_annotated"):
         return list_obj.problem_count_annotated
-    return list_obj.listentry_set.count()
+
+    def get_count():
+        return list_obj.listentry_set.count()
+
+    return await sync_to_async(get_count)()
 
 
 @user_list.field("problems")
-def resolve_list_problems(list_obj, info):
+async def resolve_list_problems(list_obj, info):
     """Get problems in a list"""
-    return list_obj.listentry_set.select_related("problem", "problem__area").all()
+
+    def get_problems():
+        return list(
+            list_obj.listentry_set.select_related("problem", "problem__area").all()
+        )
+
+    return await sync_to_async(get_problems)()
 
 
 @user_list.field("isPublic")
