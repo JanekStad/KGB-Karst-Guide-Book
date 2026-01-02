@@ -272,7 +272,6 @@ const Home = () => {
                   onFocus={handleSearchFocus}
                   onBlur={handleSearchBlur}
                 />
-                <kbd className="search-shortcut">Cmd+K</kbd>
                 {showSearchResults && (
                   <SearchResults
                     results={searchData?.search}
