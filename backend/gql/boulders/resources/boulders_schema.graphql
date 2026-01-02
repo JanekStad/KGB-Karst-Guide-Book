@@ -8,6 +8,16 @@ type Query {
     sectors(areaId: ID, search: String): [Sector!]!
     users(search: String): [User!]!
     search(query: String!): SearchResults!
+    myTicks: [Tick!]!
+    myLists: [UserList!]!
+    dashboard: Dashboard!
+}
+
+type Dashboard {
+    trendingProblems: [BoulderProblem!]!
+    myTicks: [Tick!]!
+    myLists: [UserList!]!
+    recentActivity: [Tick!]!
 }
 
 type Mutation {

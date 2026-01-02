@@ -4,29 +4,27 @@ import { Link } from 'react-router-dom';
 import SearchResults from '../components/SearchResults';
 import UsernameLink from '../components/UsernameLink';
 import { useAuth } from '../contexts/AuthContext';
-import { problemsAPI, ticksAPI } from '../services/api';
-import { UNIVERSAL_SEARCH } from '../services/graphql/queries';
+import { UNIVERSAL_SEARCH, GET_DASHBOARD } from '../services/graphql/queries';
 import './Home.css';
 
 const Home = () => {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
-  const [trendingProblems, setTrendingProblems] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [userTicks, setUserTicks] = useState([]);
-  const [userProjects, _setUserProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchInputRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
-  useEffect(() => {
-    if (!authLoading) {
-      fetchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, authLoading]);
+  // GraphQL dashboard query - single query replaces all REST API calls
+  const { data: dashboardData, loading: dashboardLoading } = useQuery(GET_DASHBOARD, {
+    errorPolicy: 'all', // Continue rendering even if some fields fail
+  });
+
+  // Extract data from dashboard query
+  const trendingProblems = dashboardData?.dashboard?.trendingProblems?.slice(0, 4) || [];
+  const userTicks = dashboardData?.dashboard?.myTicks || [];
+  const userProjects = dashboardData?.dashboard?.myLists?.slice(0, 3) || [];
+  const recentActivity = dashboardData?.dashboard?.recentActivity || [];
 
   // Debounce search query
   useEffect(() => {
@@ -159,42 +157,8 @@ const Home = () => {
     }
   }, [showSearchResults]);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch trending problems (for both logged in and out)
-      const problemsResponse = await problemsAPI.list({ page_size: 20 });
-      const problems = problemsResponse.data.results || problemsResponse.data;
-      const sortedProblems = problems
-        .sort((a, b) => (b.tick_count || 0) - (a.tick_count || 0))
-        .slice(0, 4);
-      setTrendingProblems(sortedProblems);
-
-      if (isAuthenticated) {
-        // Fetch user-specific data
-        try {
-          const ticksResponse = await ticksAPI.list();
-          const ticks = ticksResponse.data.results || ticksResponse.data;
-          setUserTicks(ticks.slice(0, 5));
-          
-          // Get recent activity (could be from all users or just user's activity)
-          // For now, using user's ticks as activity
-          setRecentActivity(ticks.slice(0, 10));
-        } catch (err) {
-          console.error('Failed to fetch user data:', err);
-        }
-      } else {
-        // For logged-out users, try to get recent activity from all users
-        // This might need a different endpoint
-        setRecentActivity([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Loading state is now managed by GraphQL query
+  const loading = authLoading || dashboardLoading;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -335,8 +299,8 @@ const Home = () => {
                               {activity.problem?.name || 'Unknown Problem'}
                             </Link>
                           </p>
-                          <p className="activity-meta">
-                            {formatTimeAgo(activity.date || activity.created_at)} • {activity.problem?.area_name || ''}
+                            <p className="activity-meta">
+                            {formatTimeAgo(activity.date || activity.created_at)} • {activity.problem?.area?.name || ''}
                           </p>
                         </div>
                       </div>
@@ -366,22 +330,48 @@ const Home = () => {
               <div className="projects-card">
                 <div className="card-header">
                   <h3>My Projects</h3>
-                  <Link to="/my-lists" className="view-all-link">View All</Link>
+                  <Link to="/profile?tab=lists" className="view-all-link">View All</Link>
                 </div>
                 <div className="projects-list">
                   {userProjects.length > 0 ? (
-                    userProjects.map((project, idx) => (
-                      <div key={project.id || idx} className="project-item">
-                        <div className="project-image"></div>
-                        <div className="project-info">
-                          <p className="project-name">{project.name || 'Project'}</p>
-                          <p className="project-meta">{project.area || 'Area'} • {project.grade || 'V?'}</p>
-                        </div>
-                        <div className="project-checkbox"></div>
-                      </div>
-                    ))
+                    userProjects.map((list, idx) => {
+                      const problemCount = list.problemCount || list.problems?.length || 0;
+                      // Get grade range from problems
+                      const getGradeRange = (problems) => {
+                        if (!problems || problems.length === 0) return '';
+                        const grades = problems
+                          .map(entry => entry.problem?.grade)
+                          .filter(Boolean)
+                          .sort();
+                        if (grades.length === 0) return '';
+                        if (grades.length === 1) return grades[0];
+                        return `${grades[0]} - ${grades[grades.length - 1]}`;
+                      };
+                      return (
+                        <Link
+                          key={list.id || idx}
+                          to={`/profile?tab=lists`}
+                          className="project-item"
+                        >
+                          <div className="project-image"></div>
+                          <div className="project-info">
+                            <p className="project-name">{list.name || 'Project'}</p>
+                            <p className="project-meta">
+                              {problemCount} {problemCount === 1 ? 'problem' : 'problems'}
+                              {list.problems?.length > 0 && ` • ${getGradeRange(list.problems)}`}
+                            </p>
+                          </div>
+                          <div className="project-checkbox">
+                            <span className="material-symbols-outlined">chevron_right</span>
+                          </div>
+                        </Link>
+                      );
+                    })
                   ) : (
-                    <div className="empty-state">No active projects</div>
+                    <div className="empty-state">
+                      <p>No active projects</p>
+                      <Link to="/profile?tab=lists" className="view-all-link">Create a project list</Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -511,7 +501,7 @@ const Home = () => {
                 </div>
                 <div className="card-content">
                   <h3>{problem.name}</h3>
-                  <p className="card-location">{problem.area_name || 'Unknown Area'}</p>
+                  <p className="card-location">{problem.area?.name || 'Unknown Area'}</p>
                   <div className="card-footer">
                     <div className="star-rating">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -520,7 +510,7 @@ const Home = () => {
                         </span>
                       ))}
                     </div>
-                    <span className="ascent-count">{problem.tick_count || 0} ascents</span>
+                    <span className="ascent-count">{problem.tickCount || 0} ascents</span>
                   </div>
                 </div>
               </Link>

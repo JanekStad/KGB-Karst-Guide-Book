@@ -349,3 +349,87 @@ export const GET_USERS = gql`
   }
 `;
 
+/**
+ * Get dashboard data (trending problems, user ticks, user lists, recent activity)
+ * This replaces multiple REST API calls with a single GraphQL query
+ */
+export const GET_DASHBOARD = gql`
+  query GetDashboard {
+    dashboard {
+      trendingProblems {
+        id
+        name
+        grade
+        description
+        rating
+        area {
+          id
+          name
+        }
+        sector {
+          id
+          name
+        }
+        tickCount
+        avgRating
+      }
+      myTicks {
+        id
+        date
+        notes
+        tickGrade
+        suggestedGrade
+        rating
+        problem {
+          id
+          name
+          grade
+          area {
+            id
+            name
+          }
+          sector {
+            id
+            name
+          }
+        }
+      }
+      myLists {
+        id
+        name
+        description
+        isPublic
+        problemCount
+        problems {
+          id
+          problem {
+            id
+            name
+            grade
+          }
+        }
+      }
+      recentActivity {
+        id
+        date
+        notes
+        tickGrade
+        rating
+        user {
+          id
+          username
+        }
+        problem {
+          id
+          name
+          grade
+          area {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
