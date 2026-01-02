@@ -715,16 +715,14 @@ const Profile = () => {
                     const widthPercentage = (count / maxCount) * 100;
                     return (
                       <div key={grade} className="grade-pyramid-item">
+                        <span className="grade-pyramid-grade">{grade}</span>
                         <div className="grade-pyramid-bar-container">
                           <div 
                             className="grade-pyramid-bar" 
                             style={{ width: `${widthPercentage}%` }}
                           />
                         </div>
-                        <div className="grade-pyramid-label">
-                          <span className="grade-pyramid-grade">{grade}</span>
-                          <span className="grade-pyramid-count">{count}</span>
-                        </div>
+                        <span className="grade-pyramid-count">{count}</span>
                       </div>
                     );
                   })}
