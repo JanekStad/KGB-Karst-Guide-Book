@@ -68,9 +68,9 @@ const Profile = () => {
   const [editingTick, setEditingTick] = useState(null);
   const [showTickEditModal, setShowTickEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('ticks');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState('all');
-  const [styleFilter, setStyleFilter] = useState('all');
+  const [styleFilter] = useState('all');
   const [showGradeDropdown, setShowGradeDropdown] = useState(false);
   const [showStyleDropdown, setShowStyleDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -279,7 +279,7 @@ const Profile = () => {
     setLezecUsername('');
   };
 
-  const handleEdit = (tick) => {
+  const _handleEdit = (tick) => {
     setEditingTick(tick);
     setTickFormData({
       date: tick.date || new Date().toISOString().split('T')[0],
@@ -386,7 +386,7 @@ const Profile = () => {
 
   const totalSends = statistics?.total_ticks || ticks.length;
   const maxGrade = statistics?.hardest_grade || '-';
-  const activeProjects = Array.isArray(lists) ? lists.length : 0;
+  const _activeProjects = Array.isArray(lists) ? lists.length : 0;
   const firstAscents = statistics?.first_ascents || 0;
   const daysOut = statistics?.unique_days || 0;
 

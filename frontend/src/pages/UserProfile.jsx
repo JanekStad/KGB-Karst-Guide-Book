@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { usersAPI, ticksAPI } from '../services/api';
+import { usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import StarRating from '../components/StarRating';
 import './UserProfile.css';
