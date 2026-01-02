@@ -1,38 +1,68 @@
+/* User Profile Page - Matching Profile Page Design */
 .user-profile-page {
   min-height: 100vh;
-  padding: 2rem 1rem;
-  background: var(--bg-color, #0a0a0a);
-  color: var(--text-color, #e0e0e0);
+  background: var(--background-dark);
+  background-image: linear-gradient(to bottom right, var(--background-dark), #000000);
+  color: var(--text-white);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: clamp(1rem, 4vw, 2rem);
 }
 
 .user-profile-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
+/* User Header */
 .user-profile-header {
   display: flex;
   align-items: center;
   gap: 2rem;
-  margin-bottom: 3rem;
   padding: 2rem;
-  background: var(--card-bg, #1a1a1a);
-  border-radius: 12px;
-  border: 1px solid var(--border-color, #2a2a2a);
+  background: var(--surface-dark);
+  border: 1px solid var(--border-surface);
+  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.user-profile-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, transparent, var(--primary-cyan), transparent);
+  opacity: 0.5;
 }
 
 .user-avatar-large {
-  width: 80px;
-  height: 80px;
+  width: 8rem;
+  height: 8rem;
   border-radius: 50%;
-  background: var(--primary-color, #4a90e2);
+  background: var(--primary-cyan);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  font-weight: bold;
-  color: white;
+  font-weight: 700;
+  color: var(--background-dark);
+  border: 3px solid var(--primary-cyan);
+  overflow: hidden;
   flex-shrink: 0;
+}
+
+.user-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-info {
@@ -42,204 +72,315 @@
 .user-info h1 {
   margin: 0 0 0.5rem 0;
   font-size: 2rem;
-  color: var(--text-color, #e0e0e0);
+  font-weight: 700;
+  color: var(--text-white);
 }
 
 .user-bio {
   margin: 0.5rem 0;
-  color: var(--text-secondary, #b0b0b0);
+  color: var(--text-muted);
   line-height: 1.6;
+  font-size: 0.875rem;
 }
 
-.user-location {
+.user-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.user-detail-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0.5rem 0 0 0;
-  color: var(--text-secondary, #b0b0b0);
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
-.user-location .material-symbols-outlined {
-  font-size: 1.2rem;
+.user-detail-item .material-symbols-outlined {
+  font-size: 1rem;
+  color: var(--primary-cyan);
+  opacity: 0.8;
 }
 
-.user-stats-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 3rem;
-}
-
-.user-profile-page .stat-item {
-  background: var(--card-bg, #1a1a1a);
-  border: 1px solid var(--border-color, #2a2a2a);
-  border-radius: 8px;
+/* Performance Metrics Card */
+.performance-metrics-card {
+  background: var(--surface-dark);
+  border: 1px solid var(--border-surface);
+  border-radius: 1rem;
   padding: 1.5rem;
-  text-align: center;
 }
 
-.user-profile-page .stat-value {
-  display: block;
-  font-size: 2rem;
-  font-weight: bold;
-  color: var(--primary-color, #4a90e2);
-  margin-bottom: 0.5rem;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
-.user-profile-page .stat-label {
-  display: block;
-  font-size: 0.9rem;
-  color: var(--text-secondary, #b0b0b0);
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-title .material-symbols-outlined {
+  font-size: 1.25rem;
+  color: var(--primary-cyan);
+}
+
+.card-title h3 {
+  font-size: 0.875rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  color: var(--text-white);
+  margin: 0;
 }
 
+.card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-white);
+}
+
+.metric-value-small {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-white);
+  line-height: 1.4;
+}
+
+.metric-subtext {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Grade Pyramid Card */
+.grade-pyramid-card {
+  background: var(--surface-dark);
+  border: 1px solid var(--border-surface);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.grade-pyramid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.grade-pyramid-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.grade-pyramid-bar-container {
+  flex: 1;
+  height: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+}
+
+.grade-pyramid-bar {
+  height: 100%;
+  background: var(--primary-cyan);
+  border-radius: 0.25rem;
+  min-width: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.grade-pyramid-item:hover .grade-pyramid-bar {
+  opacity: 0.8;
+}
+
+.grade-pyramid-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 80px;
+  gap: 0.25rem;
+}
+
+.grade-pyramid-grade {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-white);
+}
+
+.grade-pyramid-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Year Activity Chart */
+.year-activity-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 0.5rem;
+  min-height: 200px;
+  padding: 0.5rem 0;
+  margin-top: 1.5rem;
+}
+
+.year-activity-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.year-activity-bar-container {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.year-activity-bar {
+  width: 80%;
+  background: var(--primary-cyan);
+  border-radius: 0.25rem 0.25rem 0 0;
+  transition: opacity 0.2s, transform 0.2s;
+  min-height: 4px;
+}
+
+.year-activity-item:hover .year-activity-bar {
+  opacity: 0.8;
+  transform: scaleY(1.05);
+}
+
+.year-activity-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.year-activity-year {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-white);
+}
+
+.year-activity-count {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Ticks Section */
 .user-ticks-section {
-  margin-top: 3rem;
+  margin-top: 1rem;
 }
 
 .user-ticks-section h2 {
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
-  color: var(--text-color, #e0e0e0);
+  font-weight: 700;
+  color: var(--text-white);
 }
 
-.user-profile-page .empty-state {
+.empty-state {
   text-align: center;
   padding: 3rem;
-  background: var(--card-bg, #1a1a1a);
-  border: 1px solid var(--border-color, #2a2a2a);
-  border-radius: 8px;
-  color: var(--text-secondary, #b0b0b0);
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin: 2rem 0;
 }
 
-.user-profile-page .ticks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.empty-state p {
+  font-size: clamp(1rem, 3vw, 1.1rem);
+  color: var(--text-muted);
+  margin: 0.5rem 0;
 }
 
-.user-profile-page .tick-item {
-  background: var(--card-bg, #1a1a1a);
-  border: 1px solid var(--border-color, #2a2a2a);
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: border-color 0.2s ease;
+.empty-state a {
+  color: var(--primary-cyan);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
 }
 
-.user-profile-page .tick-item:hover {
-  border-color: var(--primary-color, #4a90e2);
+.empty-state a:hover {
+  color: var(--primary-cyan-hover);
+  text-decoration: underline;
 }
 
-.user-profile-page .tick-main {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.user-profile-page .tick-problem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.user-profile-page .problem-name {
+/* Loading and Error States */
+.loading,
+.error {
+  text-align: center;
+  padding: 3rem;
   font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--primary-color, #4a90e2);
-  text-decoration: none;
-  transition: color 0.2s ease;
+  color: var(--text-muted);
 }
 
-.user-profile-page .problem-name:hover {
-  color: var(--primary-hover-color, #357abd);
-  text-decoration: underline;
+.error {
+  color: rgb(239, 68, 68);
 }
 
-.user-profile-page .tick-grades {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.user-profile-page .tick-grade {
-  color: var(--text-color, #e0e0e0);
-  font-weight: 600;
-}
-
-.user-profile-page .grade-separator {
-  color: var(--text-secondary, #b0b0b0);
-}
-
-.user-profile-page .problem-grade {
-  color: var(--text-secondary, #b0b0b0);
-}
-
-.user-profile-page .tick-meta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.9rem;
-  color: var(--text-secondary, #b0b0b0);
-}
-
-.user-profile-page .tick-date {
-  color: var(--text-secondary, #b0b0b0);
-}
-
-.user-profile-page .tick-crag {
-  color: var(--primary-color, #4a90e2);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.user-profile-page .tick-crag:hover {
-  color: var(--primary-hover-color, #357abd);
-  text-decoration: underline;
-}
-
-.user-profile-page .tick-rating {
-  display: flex;
-  align-items: center;
-}
-
-.user-profile-page .tick-notes {
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #2a2a2a);
-  color: var(--text-secondary, #b0b0b0);
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
-
-.user-profile-page .loading,
-.user-profile-page .error {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-color, #e0e0e0);
-}
-
-.user-profile-page .error {
-  color: var(--error-color, #e74c3c);
-}
-
+/* Responsive */
 @media (max-width: 768px) {
   .user-profile-header {
     flex-direction: column;
     text-align: center;
   }
 
-  .user-stats-summary {
+  .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .tick-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+  .user-avatar-large {
+    width: 6rem;
+    height: 6rem;
+    font-size: 1.5rem;
   }
 }
-

@@ -103,8 +103,8 @@ const Header = () => {
                   Explore
                 </Link>
                 <Link 
-                  to="/my-ticks" 
-                  className={`nav-link ${isActiveRoute('/my-ticks') ? 'active' : ''}`}
+                  to="/profile" 
+                  className={`nav-link ${isActiveRoute('/profile') || isActiveRoute('/my-ticks') ? 'active' : ''}`}
                 >
                   Logbook
                 </Link>

@@ -14,7 +14,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate('/my-ticks');
+      navigate('/profile');
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -26,8 +26,8 @@ const Login = () => {
     try {
       const result = await loginAuth(username, password);
       if (result.success) {
-        // Redirect to my ticks page after successful login
-        navigate('/my-ticks');
+        // Redirect to profile page after successful login
+        navigate('/profile');
       } else {
         setError(result.error?.error || result.error || 'Invalid username or password');
       }
