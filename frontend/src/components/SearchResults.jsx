@@ -72,8 +72,8 @@ const SearchResults = ({ results, onClose, query, anchorElement }) => {
           {problems.length > 0 && (
             <div className="search-results-section">
               <h3 className="search-results-section-title">
-                <span className="material-symbols-outlined">boulder</span>
-                Problems ({problems.length})
+                <span className="material-symbols-outlined">terrain</span>
+                <span>Problems ({problems.length})</span>
               </h3>
               <div className="search-results-list">
                 {problems.map((problem) => (

@@ -50,6 +50,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
@@ -224,40 +225,39 @@
 /* Dashboard Main Content */
 .dashboard-main {
   flex: 1;
-  padding: 2rem 1rem;
   background: transparent;
   position: relative;
   z-index: 1;
 }
 
-@media (min-width: 768px) {
-  .dashboard-main {
-    padding: 2rem 2.5rem;
-  }
-}
-
-.dashboard-container {
+.home-dashboard .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 2.5rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
-  .dashboard-container {
+  .home-dashboard .dashboard-container {
+    padding: 2.5rem 2.5rem;
     flex-direction: row;
-    gap: 2rem;
+    gap: 2.5rem;
+    align-items: flex-start;
   }
 }
 
 .dashboard-left {
   width: 100%;
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {
   .dashboard-left {
-    width: 66.666%;
+    flex: 1 1 60%;
+    min-width: 0;
   }
 }
 
@@ -266,11 +266,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
 }
 
 @media (min-width: 1024px) {
   .dashboard-right {
-    width: 33.333%;
+    flex: 0 0 35%;
+    min-width: 0;
   }
 }
 
@@ -282,6 +284,12 @@
   overflow: hidden;
 }
 
+@media (min-width: 1024px) {
+  .activity-section {
+    min-width: 0;
+  }
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -290,6 +298,12 @@
   border-bottom: 1px solid var(--border-dark);
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .section-header {
+    padding: 1.25rem 1.5rem;
+  }
 }
 
 .section-header h3 {
@@ -338,6 +352,13 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .activity-list {
+    padding: 1.25rem 1.5rem;
+    gap: 1.25rem;
+  }
 }
 
 .activity-item {
@@ -403,6 +424,12 @@
   transition: all 0.2s;
 }
 
+@media (min-width: 1024px) {
+  .load-more-btn {
+    margin: 0 1.5rem 1.5rem;
+  }
+}
+
 .load-more-btn:hover {
   color: var(--primary-cyan);
   background-color: var(--surface-dark);
@@ -414,6 +441,12 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .quick-actions {
+    gap: 1rem;
+  }
 }
 
 .action-btn {
@@ -428,6 +461,12 @@
   font-weight: 700;
   transition: all 0.2s;
   gap: 0.25rem;
+}
+
+@media (min-width: 1024px) {
+  .action-btn {
+    padding: 1.25rem 1rem;
+  }
 }
 
 .action-btn .material-symbols-outlined {
@@ -477,6 +516,12 @@
   border-bottom: 1px solid var(--border-dark);
 }
 
+@media (min-width: 1024px) {
+  .card-header {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
 .card-header h3 {
   font-size: 1rem;
   font-weight: 700;
@@ -497,6 +542,12 @@
 .projects-list {
   display: flex;
   flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .projects-list {
+    padding: 0.5rem 0;
+  }
 }
 
 .project-item {
