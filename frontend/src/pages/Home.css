@@ -558,6 +558,8 @@
   border-bottom: 1px solid var(--border-dark);
   cursor: pointer;
   transition: background-color 0.2s;
+  text-decoration: none;
+  color: inherit;
 }
 
 .project-item:hover {
@@ -597,11 +599,17 @@
 }
 
 .project-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  border-radius: 9999px;
-  border: 2px solid var(--border-surface);
   flex-shrink: 0;
+}
+
+.project-checkbox .material-symbols-outlined {
+  font-size: 1.25rem;
+  color: var(--text-muted);
 }
 
 /* Conditions Card */
