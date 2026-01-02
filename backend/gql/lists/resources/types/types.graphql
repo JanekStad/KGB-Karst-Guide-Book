@@ -11,3 +11,22 @@ type Tick {
     created_at: DateTime!
 }
 
+type ListEntry {
+    id: ID!
+    problem: BoulderProblem!
+    addedAt: DateTime!
+    notes: String
+}
+
+type UserList {
+    id: ID!
+    name: String!
+    description: String
+    isPublic: Boolean!
+    user: User!
+    problems: [ListEntry!]!
+    problemCount: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+}
+
