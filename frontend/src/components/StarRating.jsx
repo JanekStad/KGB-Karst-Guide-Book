@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './StarRating.css';
 
-const StarRating = ({ rating = 0, onChange, editable = false, size = 'medium' }) => {
+const StarRating = ({ rating = 0, onChange, editable = false, size = 'medium', showValue = true }) => {
   const [hoverRating, setHoverRating] = useState(0);
 
   // Ensure rating is always a number
@@ -45,7 +45,7 @@ const StarRating = ({ rating = 0, onChange, editable = false, size = 'medium' })
           </span>
         );
       })}
-      {numericRating > 0 && (
+      {numericRating > 0 && showValue && (
         <span className="rating-value">{numericRating.toFixed(1)}</span>
       )}
     </div>

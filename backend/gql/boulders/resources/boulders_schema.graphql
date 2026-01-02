@@ -5,7 +5,9 @@ type Query {
     sector(id: ID!): Sector
     problems(areaId: ID, sectorId: ID, wallId: ID, search: String): [BoulderProblem!]!
     areas(cityId: ID, search: String): [Area!]!
-    sectors(areaId: ID): [Sector!]!
+    sectors(areaId: ID, search: String): [Sector!]!
+    users(search: String): [User!]!
+    search(query: String!): SearchResults!
 }
 
 type Mutation {

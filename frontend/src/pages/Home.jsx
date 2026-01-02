@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@apollo/client/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import SearchResults from '../components/SearchResults';
+import UsernameLink from '../components/UsernameLink';
 import { useAuth } from '../contexts/AuthContext';
 import { problemsAPI, ticksAPI } from '../services/api';
-import UsernameLink from '../components/UsernameLink';
+import { UNIVERSAL_SEARCH } from '../services/graphql/queries';
 import './Home.css';
 
 const Home = () => {
@@ -12,6 +15,11 @@ const Home = () => {
   const [userTicks, setUserTicks] = useState([]);
   const [userProjects, _setUserProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchInputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -19,6 +27,137 @@ const Home = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, authLoading]);
+
+  // Debounce search query
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // GraphQL search query
+  const { data: searchData } = useQuery(UNIVERSAL_SEARCH, {
+    variables: { query: debouncedSearchQuery },
+    skip: !debouncedSearchQuery || debouncedSearchQuery.length < 2,
+  });
+
+  // Show search results when data arrives or when query is ready
+  useEffect(() => {
+    // Show results if we have a valid query (2+ chars in either current or debounced)
+    const hasValidQuery = (searchQuery.length >= 2) || (debouncedSearchQuery && debouncedSearchQuery.length >= 2);
+    
+    if (hasValidQuery) {
+      // Always show results when we have a valid query
+      // This triggers when:
+      // 1. User types (searchQuery changes)
+      // 2. Debounce completes (debouncedSearchQuery changes)
+      // 3. Data arrives (searchData changes)
+      setShowSearchResults(true);
+    } else {
+      // Hide if query is too short
+      setShowSearchResults(false);
+    }
+  }, [debouncedSearchQuery, searchData, searchQuery]);
+
+  // Explicitly show results when search data arrives (even if query hasn't debounced yet)
+  useEffect(() => {
+    if (searchData?.search !== undefined && searchQuery.length >= 2) {
+      setShowSearchResults(true);
+    }
+  }, [searchData, searchQuery]);
+
+  // Handle search input changes
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    // Immediately show results when user types (if query is long enough)
+    // This provides instant feedback even before debounce completes
+    if (value.length >= 2) {
+      setShowSearchResults(true);
+    } else {
+      setShowSearchResults(false);
+    }
+  }, []);
+
+  // Handle search input focus
+  const handleSearchFocus = useCallback(() => {
+    // Show results if we already have a query
+    if (searchQuery.length >= 2) {
+      setShowSearchResults(true);
+    }
+  }, [searchQuery]);
+
+  // Handle search input blur
+  const handleSearchBlur = useCallback(() => {
+    // Delay blur to allow clicks on search results to process
+    // No action needed - click-outside handler will manage closing results
+  }, []);
+
+  // Handle closing search results
+  const handleCloseSearch = useCallback(() => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+  }, []);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Cmd+K or Ctrl+K to focus search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }
+      // Escape to close search
+      if (e.key === 'Escape' && showSearchResults) {
+        handleCloseSearch();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSearchResults, handleCloseSearch]);
+
+  // Handle click outside to close search results
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        showSearchResults &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(e.target) &&
+        !e.target.closest('.search-results') &&
+        !e.target.closest('.welcome-search')
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+
+    if (showSearchResults) {
+      // Use a small delay to allow click events on search results to process first
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showSearchResults]);
 
   const fetchData = async () => {
     try {
@@ -124,11 +263,24 @@ const Home = () => {
               <div className="welcome-search">
                 <span className="material-symbols-outlined search-icon">search</span>
                 <input 
+                  ref={searchInputRef}
                   type="text" 
-                  placeholder="Search for problems, crags, or users..." 
+                  placeholder="Search for problems, crags, sectors, or users..." 
                   className="search-input"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
                 />
                 <kbd className="search-shortcut">Cmd+K</kbd>
+                {showSearchResults && (
+                  <SearchResults
+                    results={searchData?.search}
+                    query={debouncedSearchQuery || searchQuery}
+                    onClose={handleCloseSearch}
+                    anchorElement={searchInputRef.current}
+                  />
+                )}
               </div>
             </div>
             <div className="welcome-stats">

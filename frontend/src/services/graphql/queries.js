@@ -281,3 +281,71 @@ export const UPDATE_PROBLEM_VIDEO_LINKS = gql`
   }
 `;
 
+/**
+ * Universal search query across problems, areas, sectors, and users
+ */
+export const UNIVERSAL_SEARCH = gql`
+  query UniversalSearch($query: String!) {
+    search(query: $query) {
+      problems {
+        id
+        name
+        grade
+        description
+        area {
+          id
+          name
+        }
+        sector {
+          id
+          name
+        }
+        tickCount
+        avgRating
+      }
+      areas {
+        id
+        name
+        description
+        city {
+          id
+          name
+        }
+        problemCount
+      }
+      sectors {
+        id
+        name
+        description
+        area {
+          id
+          name
+          city {
+            id
+            name
+          }
+        }
+        problemCount
+      }
+      users {
+        id
+        username
+        email
+      }
+    }
+  }
+`;
+
+/**
+ * Get list of users with optional search
+ */
+export const GET_USERS = gql`
+  query GetUsers($search: String) {
+    users(search: $search) {
+      id
+      username
+      email
+    }
+  }
+`;
+
