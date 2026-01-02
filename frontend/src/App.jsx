@@ -10,6 +10,7 @@ import CragDetail from './pages/CragDetail';
 import Crags from './pages/Crags';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import ListDetail from './pages/ListDetail';
 import MyLists from './pages/MyLists';
 import ProblemDetail from './pages/ProblemDetail';
 import Problems from './pages/Problems';
@@ -54,6 +55,7 @@ function App() {
                   <Route path="/problems/:id" element={<ProblemDetail />} />
                   <Route path="/problems/:id/edit" element={<AddProblem />} />
                   <Route path="/my-lists" element={<MyLists />} />
+                  <Route path="/lists/:id" element={<ListDetail />} />
                   <Route path="/my-ticks" element={<Navigate to="/profile" replace />} />
                   <Route path="/users/:userId/diary" element={<UserDiary />} />
                   <Route path="/user/:id" element={<UserProfile />} />

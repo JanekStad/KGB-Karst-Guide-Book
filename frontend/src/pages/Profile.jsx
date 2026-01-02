@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StarRating from '../components/StarRating';
 import { useAuth } from '../contexts/AuthContext';
-import { listsAPI, ticksAPI, usersAPI } from '../services/api';
+import { listsAPI, problemsAPI, ticksAPI, usersAPI } from '../services/api';
 import './MyTicks.css';
 import './Profile.css';
 
@@ -22,7 +22,7 @@ const getTickStyle = (tick) => {
   return 'send';
 };
 
-const getInitials = (name) => {
+const _getInitials = (name) => {
   if (!name) return '?';
   return name
     .split(' ')
@@ -37,7 +37,7 @@ const Profile = () => {
   const navigate = useNavigate();
   
   // Profile state
-  const [profile, setProfile] = useState(null);
+  const [_profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -62,6 +62,7 @@ const Profile = () => {
   const [ticks, setTicks] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [lists, setLists] = useState([]);
+  const [selectedList, setSelectedList] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [listsLoading, setListsLoading] = useState(true);
@@ -69,12 +70,26 @@ const Profile = () => {
   const [showTickEditModal, setShowTickEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('ticks');
   const [searchQuery] = useState('');
+  const [listSearchQuery, setListSearchQuery] = useState('');
+  const [databaseSearchQuery, setDatabaseSearchQuery] = useState('');
+  const [databaseSearchResults, setDatabaseSearchResults] = useState([]);
+  const [databaseSearchLoading, setDatabaseSearchLoading] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('todo');
+  const searchResultsRef = useRef(null);
   const [gradeFilter, setGradeFilter] = useState('all');
   const [styleFilter] = useState('all');
   const [showGradeDropdown, setShowGradeDropdown] = useState(false);
   const [showStyleDropdown, setShowStyleDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [showCreateListModal, setShowCreateListModal] = useState(false);
+  const [createListFormData, setCreateListFormData] = useState({
+    name: '',
+    description: '',
+    is_public: false,
+  });
+  const [creatingList, setCreatingList] = useState(false);
   const gradeFilterRef = useRef(null);
   const styleFilterRef = useRef(null);
   const [tickFormData, setTickFormData] = useState({
@@ -113,6 +128,86 @@ const Profile = () => {
       fetchLists();
     }
   }, [isAuthenticated, authLoading, user, navigate]);
+
+  useEffect(() => {
+    // Auto-select first list when switching to lists tab
+    if (activeTab === 'lists' && lists.length > 0 && !selectedList) {
+      fetchListDetails(lists[0].id);
+    }
+  }, [activeTab, lists]);
+
+  // Database search with debouncing
+  useEffect(() => {
+    if (!databaseSearchQuery.trim() || !selectedList) {
+      setDatabaseSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const searchTimeout = setTimeout(async () => {
+      try {
+        setDatabaseSearchLoading(true);
+        const response = await problemsAPI.list({ 
+          search: databaseSearchQuery,
+          limit: 10 
+        });
+        const problems = response.data?.results || response.data || [];
+        // Filter out problems already in the list
+        const existingProblemIds = new Set(
+          selectedList.problems?.map(p => p.problem?.id).filter(Boolean) || []
+        );
+        const filteredProblems = problems.filter(p => !existingProblemIds.has(p.id));
+        setDatabaseSearchResults(filteredProblems);
+        setShowSearchResults(true);
+      } catch (err) {
+        console.error('Failed to search problems:', err);
+        setDatabaseSearchResults([]);
+      } finally {
+        setDatabaseSearchLoading(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(searchTimeout);
+  }, [databaseSearchQuery, selectedList]);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchResultsRef.current && !searchResultsRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    if (showSearchResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showSearchResults]);
+
+  const handleAddProblemToList = async (problem, event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!selectedList) return;
+
+    try {
+      await listsAPI.addProblem(selectedList.id, { problem: problem.id });
+      await fetchListDetails(selectedList.id);
+      setDatabaseSearchQuery('');
+      setListSearchQuery('');
+      setShowSearchResults(false);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to add problem to list:', err);
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message ||
+                          'Failed to add problem to list.';
+      setError(errorMessage);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -178,12 +273,86 @@ const Profile = () => {
       const response = await listsAPI.list();
       // Handle both paginated (response.data.results) and direct array responses
       const listsData = response.data?.results || response.data;
-      setLists(Array.isArray(listsData) ? listsData : []);
+      const listsArray = Array.isArray(listsData) ? listsData : [];
+      setLists(listsArray);
+      
+      // Auto-select first list if available and no list is selected
+      if (listsArray.length > 0 && !selectedList && activeTab === 'lists') {
+        fetchListDetails(listsArray[0].id);
+      }
     } catch (err) {
       console.error('Failed to fetch lists:', err);
       setLists([]); // Ensure lists is always an array
     } finally {
       setListsLoading(false);
+    }
+  };
+
+  const fetchListDetails = async (listId) => {
+    try {
+      const response = await listsAPI.get(listId);
+      setSelectedList(response.data);
+    } catch (err) {
+      console.error('Failed to fetch list details:', err);
+      setError('Failed to load list details.');
+    }
+  };
+
+  const handleSelectList = (list) => {
+    if (selectedList?.id !== list.id) {
+      fetchListDetails(list.id);
+    }
+  };
+
+  const handleCreateList = async (e) => {
+    e.preventDefault();
+    if (!createListFormData.name.trim()) {
+      setError('List name is required');
+      return;
+    }
+
+    setCreatingList(true);
+    setError(null);
+
+    try {
+      const response = await listsAPI.create(createListFormData);
+      const newList = response.data;
+      await fetchListDetails(newList.id);
+      setLists([...lists, newList]);
+      setShowCreateListModal(false);
+      setCreateListFormData({ name: '', description: '', is_public: false });
+      setError(null);
+    } catch (err) {
+      console.error('Failed to create list:', err);
+      const errorMessage = err.response?.data?.name?.[0] || 
+                          err.response?.data?.detail ||
+                          'Failed to create list. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setCreatingList(false);
+    }
+  };
+
+  const handleDeleteList = async (listId) => {
+    if (!window.confirm('Are you sure you want to delete this list?')) {
+      return;
+    }
+
+    try {
+      await listsAPI.delete(listId);
+      const updatedLists = lists.filter(l => l.id !== listId);
+      setLists(updatedLists);
+      if (selectedList?.id === listId) {
+        setSelectedList(updatedLists.length > 0 ? updatedLists[0] : null);
+        if (updatedLists.length > 0) {
+          fetchListDetails(updatedLists[0].id);
+        } else {
+          setSelectedList(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete list:', err);
+      setError('Failed to delete list. Please try again.');
     }
   };
 
@@ -326,7 +495,7 @@ const Profile = () => {
     });
   };
 
-  const formatMemberSince = (dateString) => {
+  const _formatMemberSince = (dateString) => {
     if (!dateString) return null;
     const date = new Date(dateString);
     return date.getFullYear();
@@ -387,8 +556,46 @@ const Profile = () => {
   const totalSends = statistics?.total_ticks || ticks.length;
   const maxGrade = statistics?.hardest_grade || '-';
   const _activeProjects = Array.isArray(lists) ? lists.length : 0;
-  const firstAscents = statistics?.first_ascents || 0;
+  const _firstAscents = statistics?.first_ascents || 0;
   const daysOut = statistics?.unique_days || 0;
+
+  const getCompletionPercentage = (problems) => {
+    if (!problems || problems.length === 0) return 0;
+    // For now, we'll assume a problem is "completed" if it has been ticked
+    // This would need to be checked against user's ticks
+    return 0; // Placeholder - would need tick data
+  };
+
+  const getGradeRange = (problems) => {
+    if (!problems || problems.length === 0) return '-';
+    const grades = problems.map(p => p.problem?.grade).filter(Boolean);
+    if (grades.length === 0) return '-';
+    const sortedGrades = grades.sort((a, b) => {
+      const gradeOrder = GRADE_CHOICES;
+      return gradeOrder.indexOf(a) - gradeOrder.indexOf(b);
+    });
+    const min = sortedGrades[0];
+    const max = sortedGrades[sortedGrades.length - 1];
+    return min === max ? min : `${min} - ${max}`;
+  };
+
+  const filteredListProblems = selectedList?.problems?.filter(entry => {
+    if (!entry?.problem) return false;
+    
+    // Filter by search query (applies to both database search and existing problems filter)
+    const query = listSearchQuery.toLowerCase();
+    const problem = entry.problem;
+    const matchesSearch = !query || 
+      problem?.name?.toLowerCase().includes(query) ||
+      problem?.grade?.toLowerCase().includes(query) ||
+      problem?.area?.name?.toLowerCase().includes(query);
+    
+    // Status filter would check if problem is ticked
+    // For now, all are "todo" until we integrate tick data
+    const matchesStatus = statusFilter === 'all' || statusFilter === 'todo';
+    
+    return matchesSearch && matchesStatus;
+  }) || [];
 
   if (authLoading || (profileLoading && loading)) {
     return (
@@ -407,144 +614,84 @@ const Profile = () => {
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">Profile updated successfully!</div>}
 
-      <div className="dashboard-container">
-        {/* Left Sidebar - Profile Card & Lists */}
-        <aside className="profile-sidebar-left">
-          {/* Profile Card */}
-          <div className="profile-card">
-            <div className="profile-avatar-container">
-              <div className="profile-avatar">
-                {user?.profile?.avatar ? (
-                  <img src={user.profile.avatar} alt={user.username} />
-                ) : (
-                  <span>{getInitials(user?.username || 'U')}</span>
-                )}
-              </div>
-            </div>
-            <h2 className="profile-name">{user?.username || 'User'}</h2>
-            {profile?.location && (
-              <div className="profile-location">
-                <span className="material-symbols-outlined">location_on</span>
-                <span>{profile.location}</span>
-              </div>
-            )}
-            {profile?.bio && (
-              <p className="profile-bio">{profile.bio}</p>
-            )}
-            {user?.date_joined && (
-              <div className="profile-member-since">
-                Member Since: {formatMemberSince(user.date_joined)}
-              </div>
-            )}
+      <main className="profile-main-content">
+        {/* Welcome Header */}
+        <div className="dashboard-welcome-header">
+          <div className="welcome-message">
+            <h1>Welcome back, {user?.username || 'Alex'}</h1>
+            <p>Track your sends and manage your projects.</p>
+          </div>
+          <div className="welcome-actions">
             <button 
-              className="btn-edit-profile"
+              className="btn-edit-profile-top"
               onClick={() => setShowEditModal(true)}
             >
+              <span className="material-symbols-outlined">edit</span>
               Edit Profile
             </button>
+            <button 
+              className="btn-import-lezec"
+              onClick={() => setShowLezecImportModal(true)}
+            >
+              <span className="material-symbols-outlined">download</span>
+              Import from lezec.cz
+            </button>
+            <button 
+              className="btn-view-public"
+              onClick={() => {
+                if (user?.id) {
+                  navigate(`/user/${user.id}`);
+                } else {
+                  console.error('User ID not available');
+                }
+              }}
+            >
+              <span className="material-symbols-outlined">visibility</span>
+              View as public
+            </button>
+            <button 
+              className="btn-log-ascent"
+              onClick={() => navigate('/problems')}
+            >
+              <span className="material-symbols-outlined">add</span>
+              Log Ascent
+            </button>
           </div>
+        </div>
 
-          {/* My Lists Section */}
-          <div className="profile-lists-section">
-            <div className="section-header">
-              <h3>MY LISTS</h3>
-              <button 
-                className="btn-add-list"
-                onClick={() => navigate('/my-lists')}
-                title="Add new list"
-              >
-                <span className="material-symbols-outlined">add</span>
-              </button>
-            </div>
-            {listsLoading ? (
-              <div className="lists-loading">Loading lists...</div>
-            ) : !Array.isArray(lists) || lists.length === 0 ? (
-              <div className="lists-empty">
-                <p>No lists yet</p>
-                <Link to="/my-lists" className="link-create-list">Create List</Link>
+        {/* Statistics Cards */}
+        {!statsLoading && (
+          <div className="statistics-grid">
+            <div className="stat-card">
+              <div className="stat-header">
+                <p className="stat-label">Total Sends</p>
+                <span className="material-symbols-outlined stat-icon">check_circle</span>
               </div>
-            ) : (
-              <div className="lists-items">
-                {lists.slice(0, 5).map((list) => (
-                  <Link key={list.id} to={`/lists/${list.id}`} className="list-item">
-                    <span className="list-name">{list.name}</span>
-                    <span className="list-count">({list.problem_count || 0})</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </aside>
-
-        {/* Main Content Area */}
-        <main className="profile-main-content">
-          {/* Welcome Header */}
-          <div className="dashboard-welcome-header">
-            <div className="welcome-message">
-              <h1>Welcome back, {user?.username || 'Alex'}</h1>
-              <p>You have {ticks.length} total sends</p>
+              <p className="stat-value">{totalSends}</p>
             </div>
-            <div className="welcome-actions">
-              <button 
-                className="btn-view-public"
-                onClick={() => {
-                  if (user?.id) {
-                    navigate(`/user/${user.id}`);
-                  } else {
-                    console.error('User ID not available');
-                  }
-                }}
-              >
-                <span className="material-symbols-outlined">visibility</span>
-                View as Public
-              </button>
-              <button 
-                className="btn-import-lezec"
-                onClick={() => setShowLezecImportModal(true)}
-              >
-                <span className="material-symbols-outlined">download</span>
-                Import Lezec
-              </button>
-              <button 
-                className="btn-log-ascent"
-                onClick={() => navigate('/problems')}
-              >
-                <span className="material-symbols-outlined">add</span>
-                Log Ascent
-              </button>
+            <div className="stat-card">
+              <div className="stat-header">
+                <p className="stat-label">Max Grade</p>
+                <span className="material-symbols-outlined stat-icon">landscape</span>
+              </div>
+              <p className="stat-value">{maxGrade}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <p className="stat-label">Active Projects</p>
+                <span className="material-symbols-outlined stat-icon">bookmark</span>
+              </div>
+              <p className="stat-value">{Array.isArray(lists) ? lists.length : 0}</p>
+            </div>
+            <div className="stat-card">
+              <div className="stat-header">
+                <p className="stat-label">Days Out</p>
+                <span className="material-symbols-outlined stat-icon">event</span>
+              </div>
+              <p className="stat-value">{daysOut}</p>
             </div>
           </div>
-
-          {/* Performance Metrics Card */}
-          {!statsLoading && (
-            <div className="performance-metrics-card">
-              <div className="card-header">
-                <div className="card-title">
-                  <span className="material-symbols-outlined">bar_chart</span>
-                  <h3>PERFORMANCE METRICS</h3>
-                </div>
-                <span className="card-label-private">Private View</span>
-              </div>
-              <div className="metrics-grid">
-                <div className="metric-item">
-                  <span className="metric-label">Total Sends</span>
-                  <span className="metric-value">{totalSends}</span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">Hardest Grade</span>
-                  <span className="metric-value">{maxGrade}</span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">First Ascents</span>
-                  <span className="metric-value">{firstAscents}</span>
-                </div>
-                <div className="metric-item">
-                  <span className="metric-label">Days Out</span>
-                  <span className="metric-value">{daysOut}</span>
-                </div>
-              </div>
-            </div>
-          )}
+        )}
 
           {/* Grade Distribution Card */}
           {!statsLoading && statistics?.grade_distribution && Object.keys(statistics.grade_distribution).length > 0 && (
@@ -585,39 +732,32 @@ const Profile = () => {
             </div>
           )}
 
-          {/* Ticklist Table Section */}
-          <div className="ticklist-section">
-            <div className="ticklist-header">
-              <div className="ticklist-tabs">
-                <button
-                  className={`ticklist-tab ${activeTab === 'ticks' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('ticks')}
-                >
-                  Ticklist
-                </button>
-                <button
-                  className={`ticklist-tab ${activeTab === 'lists' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('lists')}
-                >
-                  Lists
-                </button>
-                <button
-                  className={`ticklist-tab ${activeTab === 'projects' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('projects')}
-                >
-                  Projects
-                </button>
-              </div>
-              <div className="ticklist-actions">
-                <span className="ticklist-manage">MANAGE</span>
-                <button className="ticklist-action-btn" onClick={() => navigate('/problems')}>
-                  <span className="material-symbols-outlined">add</span>
-                </button>
-                <button className="ticklist-action-btn">
-                  <span className="material-symbols-outlined">delete</span>
-                </button>
-              </div>
-            </div>
+        {/* Ticklist Table Section */}
+        <div className="ticklist-section">
+          <div className="ticklist-tabs-container">
+            <nav className="ticklist-tabs" aria-label="Tabs">
+              <button
+                className={`ticklist-tab ${activeTab === 'ticks' ? 'active' : ''}`}
+                onClick={() => setActiveTab('ticks')}
+              >
+                <span className="material-symbols-outlined">history</span>
+                My Tick List
+                {activeTab === 'ticks' && (
+                  <span className="tab-badge">{ticks.length}</span>
+                )}
+              </button>
+              <button
+                className={`ticklist-tab ${activeTab === 'lists' ? 'active' : ''}`}
+                onClick={() => setActiveTab('lists')}
+              >
+                <span className="material-symbols-outlined">format_list_bulleted</span>
+                Personal Lists & Projects
+                {activeTab === 'lists' && lists.length > 0 && (
+                  <span className="tab-badge">{lists.length}</span>
+                )}
+              </button>
+            </nav>
+          </div>
 
             {activeTab === 'ticks' && (
               <>
@@ -773,44 +913,343 @@ const Profile = () => {
             )}
 
             {activeTab === 'lists' && (
-              <div className="lists-content">
+              <div className="lists-tab-content">
                 {listsLoading ? (
                   <div className="loading">Loading your lists...</div>
-                ) : !Array.isArray(lists) || lists.length === 0 ? (
-                  <div className="empty-state">
-                    <p>You haven&apos;t created any lists yet.</p>
-                    <Link to="/my-lists" className="btn-primary">Create New List</Link>
-                  </div>
                 ) : (
-                  <div className="recent-lists-grid">
-                    {lists.map((list) => (
-                      <Link
-                        key={list.id}
-                        to={`/lists/${list.id}`}
-                        className="list-card"
+                  <div className="lists-layout">
+                    {/* Left Sidebar - List Cards */}
+                    <aside className="profile-lists-sidebar">
+                      <div className="sidebar-header">
+                        <h3 className="sidebar-title">Your Lists</h3>
+                        <button className="sort-button" title="Sort lists">
+                          <span className="material-symbols-outlined">sort</span>
+                        </button>
+                      </div>
+                      
+                      <div className="lists-scroll-container">
+                        {!Array.isArray(lists) || lists.length === 0 ? (
+                          <div className="empty-lists-sidebar">
+                            <p>No lists yet</p>
+                          </div>
+                        ) : (
+                          lists.map((list) => {
+                            const isSelected = selectedList?.id === list.id;
+                            const completion = getCompletionPercentage(list.problems);
+                            const problemCount = list.problem_count || list.problems?.length || 0;
+                            
+                            return (
+                              <div
+                                key={list.id}
+                                className={`profile-list-card ${isSelected ? 'selected' : ''}`}
+                                onClick={() => handleSelectList(list)}
+                              >
+                                <div className="list-card-header">
+                                  <h4 className="list-card-name">{list.name}</h4>
+                                  {isSelected && (
+                                    <span className="material-symbols-outlined pin-icon">push_pin</span>
+                                  )}
+                                </div>
+                                {list.description && (
+                                  <p className="list-card-description">{list.description}</p>
+                                )}
+                                <div className="list-card-stats">
+                                  <span className="list-stat">
+                                    <span className="material-symbols-outlined">landscape</span>
+                                    {problemCount} items
+                                  </span>
+                                  <span className="list-stat">
+                                    <span className="material-symbols-outlined">check_circle</span>
+                                    0 sent
+                                  </span>
+                                </div>
+                                {problemCount > 0 && (
+                                  <div className="list-progress-bar">
+                                    <div 
+                                      className="list-progress-fill" 
+                                      style={{ width: `${completion}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      <button 
+                        className="create-list-button"
+                        onClick={() => setShowCreateListModal(true)}
                       >
-                        <div className="list-card-content">
-                          <h3>{list.name}</h3>
-                          <p>{list.problem_count || 0} Problems</p>
+                        <div className="create-list-icon">
+                          <span className="material-symbols-outlined">add</span>
                         </div>
-                      </Link>
-                    ))}
+                        <span>Create New List</span>
+                      </button>
+                    </aside>
+
+                    {/* Right Side - List Details */}
+                    <main className="profile-list-detail">
+                      {selectedList ? (
+                        <>
+                          {/* List Header */}
+                          <div className="list-detail-header">
+                            <div className="list-detail-info">
+                              <h2 className="list-detail-title">{selectedList.name}</h2>
+                              <div className="list-detail-meta">
+                                <span>Created {formatDate(selectedList.created_at)}</span>
+                                <span className="meta-separator"></span>
+                                <span>{selectedList.problem_count || 0} Problems</span>
+                                {selectedList.problem_count > 0 && (
+                                  <>
+                                    <span className="meta-separator"></span>
+                                    <span className="grade-range">{getGradeRange(selectedList.problems)}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div className="list-detail-actions">
+                              <button className="action-button" title="Edit list">
+                                <span className="material-symbols-outlined">edit</span>
+                              </button>
+                              <button 
+                                className="action-button delete-button"
+                                onClick={() => handleDeleteList(selectedList.id)}
+                                title="Delete list"
+                              >
+                                <span className="material-symbols-outlined">delete</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Progress Bar */}
+                          {selectedList.problem_count > 0 && (
+                            <div className="list-progress-section">
+                              <div className="list-progress-track">
+                                <div 
+                                  className="list-progress-indicator" 
+                                  style={{ width: `${getCompletionPercentage(selectedList.problems)}%` }}
+                                />
+                              </div>
+                              <span className="progress-text">
+                                {getCompletionPercentage(selectedList.problems)}% Complete
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Search and Filters */}
+                          <div className="list-search-section">
+                            <div className="search-input-wrapper" ref={searchResultsRef}>
+                              <span className="search-icon material-symbols-outlined">search</span>
+                              <input
+                                type="text"
+                                className="search-input"
+                                placeholder="Search database to add problems..."
+                                value={databaseSearchQuery}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setDatabaseSearchQuery(value);
+                                  // Also update filter for existing problems
+                                  setListSearchQuery(value);
+                                }}
+                                onFocus={() => {
+                                  if (databaseSearchQuery && databaseSearchResults.length > 0) {
+                                    setShowSearchResults(true);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  // Don't hide immediately, let click handler manage it
+                                  setTimeout(() => setShowSearchResults(false), 200);
+                                }}
+                              />
+                              {databaseSearchLoading && (
+                                <span className="search-loading">Loading...</span>
+                              )}
+                              {showSearchResults && databaseSearchResults.length > 0 && (
+                                <div className="search-results-dropdown">
+                                  {databaseSearchResults.map((problem) => (
+                                    <button
+                                      key={problem.id}
+                                      className="search-result-item"
+                                      onClick={(e) => handleAddProblemToList(problem, e)}
+                                      type="button"
+                                    >
+                                      <div className="search-result-content">
+                                        <div className="search-result-name">{problem.name}</div>
+                                        <div className="search-result-meta">
+                                          <span className="search-result-grade">{problem.grade}</span>
+                                          {problem.area && (
+                                            <span className="search-result-area">{problem.area.name}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className="material-symbols-outlined search-result-icon">add</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              {showSearchResults && databaseSearchQuery && databaseSearchResults.length === 0 && !databaseSearchLoading && (
+                                <div className="search-results-dropdown">
+                                  <div className="search-result-empty">No problems found</div>
+                                </div>
+                              )}
+                              <button 
+                                className="browse-button"
+                                onClick={() => navigate('/problems')}
+                              >
+                                Browse Database
+                              </button>
+                            </div>
+                            <div className="filter-tags">
+                              <button 
+                                className={`filter-tag ${statusFilter === 'all' ? 'active' : ''}`}
+                                onClick={() => setStatusFilter('all')}
+                              >
+                                All Grades
+                              </button>
+                              <button 
+                                className={`filter-tag ${statusFilter === 'todo' ? 'active' : ''}`}
+                                onClick={() => setStatusFilter('todo')}
+                              >
+                                To Do
+                              </button>
+                              <button 
+                                className={`filter-tag ${statusFilter === 'sent' ? 'active' : ''}`}
+                                onClick={() => setStatusFilter('sent')}
+                              >
+                                Sent
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Problems Table */}
+                          <div className="dashboard-table-container">
+                            {filteredListProblems.length === 0 ? (
+                              <div className="empty-state">
+                                {selectedList.problem_count === 0 ? (
+                                  <>
+                                    <p>No problems in this list yet.</p>
+                                    <p>
+                                      <button 
+                                        className="btn-link"
+                                        onClick={() => navigate('/problems')}
+                                      >
+                                        Browse problems
+                                      </button> to add some!
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p>No problems match your current search or filter.</p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="table-wrapper">
+                                <table className="dashboard-table">
+                                  <thead>
+                                    <tr>
+                                      <th></th>
+                                      <th>Grade</th>
+                                      <th>Route</th>
+                                      <th>Area</th>
+                                      <th>Status</th>
+                                      <th></th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {filteredListProblems.map((entry, index) => {
+                                      const problem = entry.problem;
+                                      if (!problem) return null;
+                                      
+                                      return (
+                                        <tr key={entry.id || index} className={index % 2 === 1 ? 'highlighted' : ''}>
+                                          <td className="drag-handle">
+                                            <span className="material-symbols-outlined">drag_indicator</span>
+                                          </td>
+                                          <td className="grade-cell">{problem.grade || '-'}</td>
+                                          <td className="route-cell">
+                                            <Link 
+                                              to={`/problems/${problem.id}`}
+                                              className="route-link"
+                                            >
+                                              {problem.name || 'Unknown'}
+                                            </Link>
+                                          </td>
+                                          <td className="area-cell">
+                                            {problem.area ? (
+                                              <Link 
+                                                to={`/areas/${problem.area.id}`}
+                                                className="area-link"
+                                              >
+                                                {problem.area.name}
+                                              </Link>
+                                            ) : '-'}
+                                          </td>
+                                          <td className="status-cell">
+                                            <span className="status-badge todo">Project</span>
+                                          </td>
+                                          <td className="action-cell">
+                                            <button 
+                                              className="remove-button"
+                                              onClick={() => {
+                                                listsAPI.removeProblem(selectedList.id, problem.id)
+                                                  .then(() => fetchListDetails(selectedList.id))
+                                                  .catch(err => console.error('Failed to remove:', err));
+                                              }}
+                                              title="Remove from list"
+                                            >
+                                              <span className="material-symbols-outlined">remove_circle</span>
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Table Footer */}
+                          {filteredListProblems.length > 0 && (
+                            <div className="table-footer">
+                              <span className="footer-text">Drag items to reorder your priority list.</span>
+                              <div className="footer-actions">
+                                <button className="footer-link">Export CSV</button>
+                                <button className="footer-link">Print Guide</button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="empty-list-state">
+                          {lists.length === 0 ? (
+                            <>
+                              <h3>No Lists Yet</h3>
+                              <p>Create your first list to start organizing your projects!</p>
+                              <button 
+                                className="btn-primary"
+                                onClick={() => setShowCreateListModal(true)}
+                              >
+                                <span className="material-symbols-outlined">add</span>
+                                Create New List
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <h3>Select a List</h3>
+                              <p>Choose a list from the sidebar to view its problems.</p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </main>
                   </div>
                 )}
               </div>
             )}
 
-            {activeTab === 'projects' && (
-              <div className="projects-content">
-                <div className="empty-state">
-                  <p>No active projects yet.</p>
-                  <Link to="/my-lists" className="btn-primary">Create Project List</Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
       {/* Edit Profile Modal */}
       {showEditModal && (
@@ -1113,6 +1552,83 @@ const Profile = () => {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Update Tick
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create List Modal */}
+      {showCreateListModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateListModal(false)}>
+          <div className="modal-content create-list-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Create New List</h2>
+              <button 
+                className="modal-close"
+                onClick={() => {
+                  setShowCreateListModal(false);
+                  setCreateListFormData({ name: '', description: '', is_public: false });
+                  setError(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleCreateList} className="create-list-form">
+              <div className="form-group">
+                <label htmlFor="list-name">List Name *</label>
+                <input
+                  type="text"
+                  id="list-name"
+                  value={createListFormData.name}
+                  onChange={(e) => setCreateListFormData({ ...createListFormData, name: e.target.value })}
+                  placeholder="e.g., Bishop Trip 2024"
+                  required
+                  maxLength={200}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="list-description">Description</label>
+                <textarea
+                  id="list-description"
+                  value={createListFormData.description}
+                  onChange={(e) => setCreateListFormData({ ...createListFormData, description: e.target.value })}
+                  placeholder="Optional description for this list..."
+                  rows="4"
+                  maxLength={500}
+                />
+              </div>
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={createListFormData.is_public}
+                    onChange={(e) => setCreateListFormData({ ...createListFormData, is_public: e.target.checked })}
+                  />
+                  <span>Make this list public</span>
+                </label>
+              </div>
+              <div className="modal-actions">
+                <button 
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    setShowCreateListModal(false);
+                    setCreateListFormData({ name: '', description: '', is_public: false });
+                    setError(null);
+                  }}
+                  disabled={creatingList}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="btn-primary"
+                  disabled={creatingList || !createListFormData.name.trim()}
+                >
+                  {creatingList ? 'Creating...' : 'Create List'}
                 </button>
               </div>
             </form>

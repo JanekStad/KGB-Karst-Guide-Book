@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Tick List - Project Manager</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#21EEEE",
+                        "primary-dark": "#16d5d5",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#020617",
+                        "surface-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .glass-panel {
+                @apply bg-white/5 backdrop-blur-md border border-white/10;
+            }
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#1e293b] dark:via-[#020617] dark:to-black font-display text-slate-900 dark:text-white antialiased min-h-screen flex flex-col selection:bg-primary selection:text-slate-900">
+<div class="w-full border-b border-gray-200 dark:border-white/5 bg-background-light dark:bg-[#020617]/80 backdrop-blur-xl sticky top-0 z-50">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<header class="flex h-16 items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="flex items-center justify-center size-8 rounded-lg bg-primary/20 text-primary ring-1 ring-primary/50">
+<span class="material-symbols-outlined text-2xl">landscape</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight">CragLog</h2>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium hover:text-primary transition-colors text-slate-500 dark:text-slate-400" href="#">Dashboard</a>
+<a class="text-sm font-medium hover:text-primary transition-colors text-slate-500 dark:text-slate-400" href="#">Crag Database</a>
+<a class="text-sm font-medium hover:text-primary transition-colors text-slate-500 dark:text-slate-400" href="#">Community</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">notifications</span>
+</button>
+<div class="size-9 rounded-full bg-cover bg-center border-2 border-primary/50" data-alt="User profile avatar showing a climber" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAFE3TQ6mXvAWQ2PemPE5R3ftFi6fSBwaU6L70_UmgppTJnti0GeGqQvgY1jo4eXmKHm05lOX_sxxfpToFZ0cmeF-vdETEJc7yM-yyXotDnmOw2Bfok_pHWLkGNvPHL4crlsoYBOQRzGKxd38Qo7H6hv0NO8q7JuZm2_XY5nylswMhan-o-3Q1LfPsjIHuCtSwip6gXFQbp69MqehPQytlXW_JE_1uMtftOBV5wAac6vL8W8TdhsGTiD63MASFJeU8eApB8Nyp28kY_");'></div>
+</div>
+</header>
+</div>
+</div>
+<main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div class="flex flex-col gap-1">
+<nav class="flex text-sm text-slate-500 dark:text-slate-400 mb-2">
+<span>Dashboard</span>
+<span class="mx-2">/</span>
+<span class="text-slate-900 dark:text-white font-medium">Lists</span>
+</nav>
+<h1 class="text-3xl md:text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">Project Lists</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="hidden md:flex -space-x-2">
+<img alt="User 1" class="inline-block h-8 w-8 rounded-full ring-2 ring-background-dark grayscale opacity-70" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTZWbJbZjtSxZnrvDF_yhaocGFzU3urAeNVN8fmaNTfoiKUvEp0ZwjJEucvE6dZgmHZ0TkDqnpJWljmDJazW13W617GryQEaszFSGv-h2eHlFGoqoV6cEwe3Q6D7odd7hheMdQcSwf2CmbNCPD3T2gFgeXFoVgpUJAw1pfl_Vx8v6z0ke025258ewqSUF5L8EteJIPNZyQ_TMuy2SCPbbpKWEyGF2g82OApg7c8Gp7Tf9MQ3UGSAaG58Pl25yEfLwUpSBY9vxm8vBn"/>
+<img alt="User 2" class="inline-block h-8 w-8 rounded-full ring-2 ring-background-dark grayscale opacity-70" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2mbkpxcgwX0eq5f1COe0JbTWBDtGIZLcQaIdeuh0aSFM59Yl43Fp61aHzyTdQ7iWVuanlPJmPFA9RLJLe2TTcwVqIJt-3UeAuuF1nuZuclvedGRNI6-YIctJPYiNj2IvJ8ZOJ3hx2xtdxPnC93_F6FX3q4J7q9zwv7nxQSdZIpaHioUm2Ane92MXbaTGQa4Q0kSxVv20tiNM_fAIF3fZ8DdY5U-9DcFJ73EqbqCgkbROuB-N_rhTVhrsp4xfcGQTgvhTcxeeB_baY"/>
+<div class="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-background-dark bg-slate-800 text-xs font-medium text-slate-400">
+                    +3
+                </div>
+</div>
+<button class="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium text-sm transition-colors gap-2">
+<span class="material-symbols-outlined text-[18px]">share</span>
+                Share
+            </button>
+</div>
+</div>
+<div class="mb-8 border-b border-gray-200 dark:border-white/10">
+<nav aria-label="Tabs" class="flex gap-8">
+<a class="group inline-flex items-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined mr-2 text-[20px]">history</span>
+                My Tick List
+            </a>
+<a aria-current="page" class="group inline-flex items-center border-b-2 border-primary py-4 px-1 text-sm font-bold text-primary" href="#">
+<span class="material-symbols-outlined mr-2 text-[20px]">format_list_bulleted</span>
+                Personal Lists &amp; Projects
+                <span class="ml-3 hidden rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary md:inline-block">3</span>
+</a>
+<a class="group inline-flex items-center border-b-2 border-transparent py-4 px-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-white transition-all" href="#">
+<span class="material-symbols-outlined mr-2 text-[20px]">map</span>
+                Map View
+            </a>
+</nav>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-[calc(100vh-280px)] min-h-[600px]">
+<div class="lg:col-span-4 xl:col-span-3 flex flex-col gap-4 h-full">
+<div class="flex items-center justify-between mb-2">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Your Lists</h3>
+<button class="p-1.5 rounded-md hover:bg-white/5 text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">sort</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
+<div class="group relative flex flex-col p-4 rounded-xl bg-primary/10 border border-primary/30 cursor-pointer shadow-[0_0_15px_-3px_rgba(33,238,238,0.1)] transition-all">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-primary text-lg">Bishop Trip 2024</h4>
+<span class="material-symbols-outlined text-primary text-[20px]">push_pin</span>
+</div>
+<p class="text-xs text-slate-400 mb-3 line-clamp-2">Focus on the Happy Boulders and Sad Boulders. Main goal is The Hulk.</p>
+<div class="flex items-center gap-3 text-xs text-slate-400">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">landscape</span> 8 items</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> 2 sent</span>
+</div>
+<div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 25%"></div>
+</div>
+</div>
+<div class="group relative flex flex-col p-4 rounded-xl bg-surface-dark border border-white/5 hover:border-primary/30 cursor-pointer transition-all hover:translate-x-1">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-white group-hover:text-primary transition-colors">Dream Projects</h4>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-500 mb-2">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">landscape</span> 12 items</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> 0 sent</span>
+</div>
+<div class="w-full bg-slate-800/50 h-1.5 rounded-full mt-2 overflow-hidden">
+<div class="bg-slate-600 h-full rounded-full" style="width: 0%"></div>
+</div>
+</div>
+<div class="group relative flex flex-col p-4 rounded-xl bg-surface-dark border border-white/5 hover:border-primary/30 cursor-pointer transition-all hover:translate-x-1">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-bold text-white group-hover:text-primary transition-colors">Training Circuit</h4>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">GYM</span>
+</div>
+<div class="flex items-center gap-3 text-xs text-slate-500 mb-2">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">landscape</span> 20 items</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> Weekly</span>
+</div>
+</div>
+</div>
+<button class="flex items-center justify-center w-full py-3 rounded-xl border border-dashed border-slate-700 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all gap-2 group">
+<div class="flex items-center justify-center size-6 rounded-full bg-slate-800 group-hover:bg-primary group-hover:text-slate-900 transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</div>
+<span class="font-medium text-sm">Create New List</span>
+</button>
+</div>
+<div class="lg:col-span-8 xl:col-span-9 h-full flex flex-col bg-surface-dark/50 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-sm relative">
+<div class="p-6 border-b border-white/5 bg-surface-dark sticky top-0 z-20">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="text-2xl font-bold text-white mb-1">Bishop Trip 2024</h2>
+<div class="flex items-center gap-4 text-sm text-slate-400">
+<span>Created Oct 12, 2023</span>
+<span class="size-1 rounded-full bg-slate-600"></span>
+<span>8 Problems</span>
+<span class="size-1 rounded-full bg-slate-600"></span>
+<span class="text-primary font-medium">V5 - V9</span>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+</div>
+<div class="mt-6 flex items-center gap-4">
+<div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-blue-500 w-1/4 relative">
+<div class="absolute right-0 top-0 bottom-0 w-2 bg-white/20"></div>
+</div>
+</div>
+<span class="text-xs font-medium text-primary whitespace-nowrap">25% Complete</span>
+</div>
+</div>
+<div class="p-4 bg-slate-900/50 border-b border-white/5">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<span class="material-symbols-outlined text-slate-500 group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-full rounded-xl border-0 py-3 pl-10 pr-32 bg-slate-800 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 transition-all shadow-inner" placeholder="Search database to add problems..." type="text"/>
+<div class="absolute inset-y-0 right-1.5 flex items-center">
+<button class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-bold rounded-lg text-slate-900 bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all">
+                        Browse Database
+                    </button>
+</div>
+</div>
+<div class="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+<button class="px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-xs text-slate-300 border border-white/5 transition-colors">
+                    All Grades
+                </button>
+<button class="px-3 py-1 rounded-full bg-primary/20 text-xs text-primary border border-primary/30 transition-colors font-medium">
+                    To Do
+                </button>
+<button class="px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-xs text-slate-300 border border-white/5 transition-colors">
+                    Sent
+                </button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar bg-slate-900/30">
+<table class="min-w-full divide-y divide-white/5">
+<thead class="bg-surface-dark sticky top-0 z-10">
+<tr>
+<th class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500 w-10"></th>
+<th class="py-3 pl-2 pr-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500" scope="col">Grade</th>
+<th class="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500" scope="col">Route</th>
+<th class="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500" scope="col">Area</th>
+<th class="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500" scope="col">Status</th>
+<th class="relative py-3 pl-3 pr-6" scope="col"><span class="sr-only">Actions</span></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="hover:bg-white/5 transition-colors group">
+<td class="py-4 pl-4 pr-3 text-slate-600 cursor-grab active:cursor-grabbing">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</td>
+<td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-primary">V8</td>
+<td class="whitespace-nowrap px-3 py-4">
+<div class="text-sm font-medium text-white">Midnight Lightning</div>
+<div class="flex text-yellow-500 text-[10px] mt-0.5">
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star_half</span>
+</div>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-slate-400">Yosemite</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 gap-1">
+<span class="material-symbols-outlined text-[14px]">check</span> Sent
+                                    </span>
+</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
+<button class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">remove_circle</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors group bg-primary/5">
+<td class="py-4 pl-4 pr-3 text-slate-600 cursor-grab active:cursor-grabbing">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</td>
+<td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-primary">V6</td>
+<td class="whitespace-nowrap px-3 py-4">
+<div class="text-sm font-medium text-white">The Hulk</div>
+<div class="flex text-yellow-500 text-[10px] mt-0.5">
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star_border</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star_border</span>
+</div>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-slate-400">Bishop</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20 gap-1">
+<span class="material-symbols-outlined text-[14px]">flag</span> Project
+                                    </span>
+</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
+<button class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">remove_circle</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors group">
+<td class="py-4 pl-4 pr-3 text-slate-600 cursor-grab active:cursor-grabbing">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</td>
+<td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-primary">V4</td>
+<td class="whitespace-nowrap px-3 py-4">
+<div class="text-sm font-medium text-white">Seven Spanish Angels</div>
+<div class="flex text-yellow-500 text-[10px] mt-0.5">
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+</div>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-slate-400">Bishop</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-400 ring-1 ring-inset ring-purple-500/20 gap-1">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Flash
+                                    </span>
+</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
+<button class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">remove_circle</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors group bg-primary/5">
+<td class="py-4 pl-4 pr-3 text-slate-600 cursor-grab active:cursor-grabbing">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</td>
+<td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-primary">V5</td>
+<td class="whitespace-nowrap px-3 py-4">
+<div class="text-sm font-medium text-white">Solarium</div>
+<div class="flex text-yellow-500 text-[10px] mt-0.5">
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star_half</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star_border</span>
+</div>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-slate-400">Bishop</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20 gap-1">
+<span class="material-symbols-outlined text-[14px]">flag</span> Project
+                                    </span>
+</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
+<button class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">remove_circle</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-white/5 transition-colors group bg-primary/5">
+<td class="py-4 pl-4 pr-3 text-slate-600 cursor-grab active:cursor-grabbing">
+<span class="material-symbols-outlined text-[18px]">drag_indicator</span>
+</td>
+<td class="whitespace-nowrap px-2 py-4 text-sm font-bold text-primary">V9</td>
+<td class="whitespace-nowrap px-3 py-4">
+<div class="text-sm font-medium text-white">Stained Glass</div>
+<div class="flex text-yellow-500 text-[10px] mt-0.5">
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+<span class="material-symbols-outlined text-[12px] fill-current">star</span>
+</div>
+</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm text-slate-400">Bishop</td>
+<td class="whitespace-nowrap px-3 py-4 text-sm">
+<span class="inline-flex items-center rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-500/20 gap-1">
+<span class="material-symbols-outlined text-[14px]">flag</span> Project
+                                    </span>
+</td>
+<td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
+<button class="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">remove_circle</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-white/5 bg-slate-900/80 backdrop-blur text-xs text-slate-400 flex justify-between items-center">
+<div>
+                    Drag items to reorder your priority list.
+                </div>
+<div class="flex gap-4">
+<span class="hover:text-white cursor-pointer transition-colors">Export CSV</span>
+<span class="hover:text-white cursor-pointer transition-colors">Print Guide</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<footer class="mt-auto border-t border-gray-200 dark:border-white/5 bg-background-light dark:bg-[#020617] py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="flex items-center justify-center size-6 rounded bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-sm">landscape</span>
+</div>
+<span class="text-slate-500 dark:text-slate-400 text-sm">© 2024 CragLog Inc.</span>
+</div>
+<div class="flex gap-6">
+<a class="text-sm text-slate-500 dark:text-slate-400 hover:text-primary" href="#">Terms</a>
+<a class="text-sm text-slate-500 dark:text-slate-400 hover:text-primary" href="#">Privacy</a>
+<a class="text-sm text-slate-500 dark:text-slate-400 hover:text-primary" href="#">Support</a>
+</div>
+</div>
+</footer>
+
+</body></html>
