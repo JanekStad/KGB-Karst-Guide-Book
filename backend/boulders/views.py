@@ -4,10 +4,17 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Avg, Q
 from karst_backend.throttles import MutationRateThrottle, AnonMutationRateThrottle
-from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
-from .mixins import CreatedByMixin, ListDetailSerializerMixin
-from .filters import NormalizedSearchFilter
-from .serializers import (
+from backend.boulders.models import (
+    City,
+    Area,
+    Sector,
+    Wall,
+    BoulderProblem,
+    BoulderImage,
+)
+from backend.boulders.mixins import CreatedByMixin, ListDetailSerializerMixin
+from backend.boulders.filters import NormalizedSearchFilter
+from backend.boulders.serializers import (
     CitySerializer,
     CityListSerializer,
     AreaSerializer,
