@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Avg, Q
+from karst_backend.throttles import MutationRateThrottle, AnonMutationRateThrottle
 from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage
 from .mixins import CreatedByMixin, ListDetailSerializerMixin
 from .filters import NormalizedSearchFilter
@@ -245,6 +246,15 @@ class BoulderProblemViewSet(CreatedByMixin, viewsets.ModelViewSet):
     ordering_fields = ["grade", "name", "created_at"]
     ordering = ["area", "sector", "wall", "name"]
 
+    def get_throttles(self):
+        """Apply stricter throttling for mutations"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            if self.request.user.is_authenticated:
+                return [MutationRateThrottle()]
+            else:
+                return [AnonMutationRateThrottle()]
+        return super().get_throttles()
+
     def get_queryset(self):
         queryset = super().get_queryset()
         # Filter out problems from secret areas and secret sectors
@@ -330,6 +340,15 @@ class BoulderImageViewSet(CreatedByMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(problem_lines__problem_id=problem_id).distinct()
 
         return queryset
+
+    def get_throttles(self):
+        """Apply stricter throttling for mutations"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            if self.request.user.is_authenticated:
+                return [MutationRateThrottle()]
+            else:
+                return [AnonMutationRateThrottle()]
+        return super().get_throttles()
 
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)

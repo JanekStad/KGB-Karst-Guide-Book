@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import City, Area, Sector, Wall, BoulderProblem, BoulderImage, ProblemLine
+from backend.boulders.models import (
+    City,
+    Area,
+    Sector,
+    Wall,
+    BoulderProblem,
+    BoulderImage,
+    ProblemLine,
+)
 
 
 @admin.register(City)

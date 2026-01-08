@@ -8,6 +8,7 @@ from django.db.models import Count, Min, Max
 from collections import Counter
 from datetime import datetime, timedelta
 from django.contrib.auth.models import User
+from karst_backend.throttles import MutationRateThrottle
 from boulders.models import BoulderProblem, Area
 from .models import Tick, UserList, ListEntry
 from .serializers import (
@@ -25,6 +26,12 @@ class TickViewSet(viewsets.ModelViewSet):
     serializer_class = TickSerializer
     permission_classes = [IsAuthenticated]
     filter_backends: list[Any] = []
+
+    def get_throttles(self):
+        """Apply stricter throttling for mutations"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [MutationRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         # Optimize queryset to avoid N+1 queries
@@ -447,6 +454,12 @@ class UserListViewSet(viewsets.ModelViewSet):
     serializer_class = UserListSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_throttles(self):
+        """Apply stricter throttling for mutations"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [MutationRateThrottle()]
+        return super().get_throttles()
+
     def get_queryset(self):
         # Prefetch list entries to avoid N+1 queries in serializer
         return (
@@ -515,6 +528,12 @@ class UserListViewSet(viewsets.ModelViewSet):
 class ListEntryViewSet(viewsets.ModelViewSet):
     serializer_class = ListEntrySerializer
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        """Apply stricter throttling for mutations"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [MutationRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         return ListEntry.objects.filter(user_list__user=self.request.user)

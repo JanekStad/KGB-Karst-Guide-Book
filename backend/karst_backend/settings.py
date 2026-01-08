@@ -161,6 +161,27 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    # Rate limiting/throttling
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        # Anonymous users
+        "anon_burst": "100/hour",  # Burst requests for anonymous users
+        "anon_sustained": "1000/day",  # Sustained requests for anonymous users
+        # Authenticated users
+        "user_burst": "200/hour",  # Burst requests for authenticated users
+        "user_sustained": "5000/day",  # Sustained requests for authenticated users
+        # Mutations (stricter limits)
+        "mutations": "60/hour",  # Mutations for authenticated users
+        "anon_mutations": "10/hour",  # Mutations for anonymous users (very strict)
+        # GraphQL rate limits
+        "graphql_query": "300/hour",  # GraphQL queries for authenticated users
+        "graphql_mutation": "60/hour",  # GraphQL mutations for authenticated users
+        "graphql_query_anon": "100/hour",  # GraphQL queries for anonymous users
+        "graphql_mutation_anon": "10/hour",  # GraphQL mutations for anonymous users
+    },
 }
 
 # CORS settings

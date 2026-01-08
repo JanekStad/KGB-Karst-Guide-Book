@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from karst_backend.throttles import MutationRateThrottle, AnonMutationRateThrottle
 from .models import Comment
 from .serializers import CommentSerializer, CommentCreateSerializer
 
@@ -11,6 +12,15 @@ class CommentViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["created_at"]
     ordering = ["-created_at"]
+
+    def get_throttles(self):
+        """Apply stricter throttling for mutations"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            if self.request.user.is_authenticated:
+                return [MutationRateThrottle()]
+            else:
+                return [AnonMutationRateThrottle()]
+        return super().get_throttles()
 
     def get_serializer_class(self):
         if self.action == "create":
