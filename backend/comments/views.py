@@ -2,8 +2,8 @@ from rest_framework import viewsets, filters, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from karst_backend.throttles import MutationRateThrottle, AnonMutationRateThrottle
-from backend.comments.models import Comment
-from backend.comments.serializers import CommentSerializer, CommentCreateSerializer
+from comments.models import Comment
+from comments.serializers import CommentSerializer, CommentCreateSerializer
 
 
 class CommentViewSet(viewsets.ModelViewSet):

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from boulders.models import BoulderProblem, Area
 from users.models import UserProfile
-from backend.lists.models import Tick
+from lists.models import Tick
 
 LEZEC_BASE_URL = "https://www.lezec.cz"
 MORAVSKY_KRAS_AREAS = [

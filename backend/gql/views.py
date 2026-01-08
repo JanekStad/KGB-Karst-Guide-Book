@@ -6,8 +6,8 @@ from ariadne import graphql
 from asgiref.sync import sync_to_async
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import Throttled
-from backend.gql.dataloaders import get_dataloaders
-from backend.gql.rate_limiting import check_graphql_rate_limit
+from gql.dataloaders import get_dataloaders
+from gql.rate_limiting import check_graphql_rate_limit
 
 
 @method_decorator(csrf_exempt, name="dispatch")

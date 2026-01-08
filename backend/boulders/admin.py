@@ -1,5 +1,5 @@
 from django.contrib import admin
-from backend.boulders.models import (
+from boulders.models import (
     City,
     Area,
     Sector,

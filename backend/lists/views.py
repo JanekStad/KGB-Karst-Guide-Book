@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from django.contrib.auth.models import User
 from karst_backend.throttles import MutationRateThrottle
 from boulders.models import BoulderProblem, Area
-from backend.lists.models import Tick, UserList, ListEntry
-from backend.lists.serializers import (
+from lists.models import Tick, UserList, ListEntry
+from lists.serializers import (
     TickSerializer,
     TickCreateSerializer,
     UserListSerializer,
@@ -19,7 +19,7 @@ from backend.lists.serializers import (
     ListEntrySerializer,
     ListEntryCreateSerializer,
 )
-from backend.lists.services import import_lezec_diary
+from lists.services import import_lezec_diary
 
 
 class TickViewSet(viewsets.ModelViewSet):

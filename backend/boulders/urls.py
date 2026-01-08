@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from backend.boulders.views import (
+from boulders.views import (
     CityViewSet,
     AreaViewSet,
     SectorViewSet,

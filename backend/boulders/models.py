@@ -2,8 +2,8 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from backend.boulders.utils import normalize_problem_name
-from backend.boulders.mixins import NameNormalizedMixin
+from boulders.utils import normalize_problem_name
+from boulders.mixins import NameNormalizedMixin
 
 
 class City(NameNormalizedMixin, models.Model):

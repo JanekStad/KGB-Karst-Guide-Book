@@ -1,5 +1,5 @@
 from django.contrib import admin
-from backend.comments.models import Comment
+from comments.models import Comment
 
 
 @admin.register(Comment)
