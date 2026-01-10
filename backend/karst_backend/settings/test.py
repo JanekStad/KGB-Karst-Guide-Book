@@ -5,9 +5,9 @@ Optimized for speed and isolated test runs.
 Environment variables take precedence, then .env.test file (if exists).
 Most settings have safe defaults for testing.
 """
+
 from pathlib import Path
-from decouple import config, Csv, RepositoryEnv
-import os
+from decouple import config
 from .base import *  # noqa: F403, F401
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -30,6 +30,7 @@ DATABASES = {
         "NAME": ":memory:",
     }
 }
+
 
 # Disable migrations for faster tests (can be enabled per-test if needed)
 class DisableMigrations:

@@ -4,8 +4,8 @@ Base Django settings shared across all environments.
 This module contains all common settings that don't vary between environments.
 Environment-specific overrides are in local.py, test.py, and prod.py.
 """
+
 from pathlib import Path
-from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 

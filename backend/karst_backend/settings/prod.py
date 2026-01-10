@@ -5,10 +5,10 @@ All sensitive values MUST come from environment variables.
 Never use defaults for secrets in production.
 In Railway, set environment variables in the platform UI - do NOT use .env files in production.
 """
+
 from pathlib import Path
 from decouple import config, Csv
 import dj_database_url
-import os
 from .base import *  # noqa: F403, F401
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -41,9 +41,7 @@ DATABASES = {
 
 # If DATABASE_URL is not set, raise an error
 if not DATABASES["default"]:
-    raise ValueError(
-        "DATABASE_URL environment variable must be set in production!"
-    )
+    raise ValueError("DATABASE_URL environment variable must be set in production!")
 
 # CORS: Must explicitly set allowed origins in production
 CORS_ALLOWED_ORIGINS = config(
@@ -61,7 +59,9 @@ SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)  # 1 year
+SECURE_HSTS_SECONDS = config(
+    "SECURE_HSTS_SECONDS", default=31536000, cast=int
+)  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True

@@ -9,6 +9,7 @@ For local dev: Create .env.local file (or .env) in the backend/ directory
 Note: python-decouple's config() automatically reads from environment variables first,
 then looks for .env files. To use .env.local, we use RepositoryEnv.
 """
+
 from pathlib import Path
 from decouple import config, Csv, RepositoryEnv
 import dj_database_url
@@ -26,6 +27,7 @@ env_path = BASE_DIR / ".env"
 # Environment variables always take precedence (Railway-compatible)
 if env_local_path.exists():
     env_repo = RepositoryEnv(str(env_local_path))
+
     def _config(key, default=None, cast=None):
         # Environment variables take highest priority
         if key in os.environ:
@@ -35,8 +37,10 @@ if env_local_path.exists():
             return val
         # Fallback to .env.local file
         return env_repo(key, default=default, cast=cast)
+
 elif env_path.exists():
     env_repo = RepositoryEnv(str(env_path))
+
     def _config(key, default=None, cast=None):
         if key in os.environ:
             val = os.environ[key]
@@ -44,6 +48,7 @@ elif env_path.exists():
                 return cast(val)
             return val
         return env_repo(key, default=default, cast=cast)
+
 else:
     # No .env file, use standard config (reads from environment variables only)
     _config = config

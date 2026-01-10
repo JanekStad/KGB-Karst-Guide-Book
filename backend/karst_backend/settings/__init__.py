@@ -10,10 +10,12 @@ For Railway/deployment, set: ENVIRONMENT=prod
 For testing: ENVIRONMENT=test or use DJANGO_SETTINGS_MODULE=karst_backend.settings.test
 For local dev: ENVIRONMENT=local (or leave unset, defaults to local)
 """
+
 import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 
 def get_environment() -> str:
     """Determine which environment settings to load."""
@@ -25,7 +27,7 @@ def get_environment() -> str:
         parts = django_settings_module.split(".")
         if len(parts) >= 3 and parts[-2] == "settings":
             return parts[-1]
-    
+
     # Otherwise, check ENVIRONMENT variable or default to local
     return os.environ.get("ENVIRONMENT", "local")
 
