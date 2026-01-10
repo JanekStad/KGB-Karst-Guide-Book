@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Tick, UserList, ListEntry
+from lists.models import Tick, UserList, ListEntry
 from boulders.serializers import BoulderProblemSerializer
 from users.serializers import UserSerializer
 

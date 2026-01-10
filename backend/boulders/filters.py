@@ -4,7 +4,7 @@ Custom filters for boulders app that support diacritic-insensitive search.
 
 from rest_framework import filters
 from django.db.models import Q
-from .utils import normalize_problem_name
+from boulders.utils import normalize_problem_name
 
 
 class NormalizedSearchFilter(filters.SearchFilter):

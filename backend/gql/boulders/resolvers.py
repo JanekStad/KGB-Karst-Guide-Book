@@ -3,7 +3,7 @@ from django.db.models import Q, Count, Avg
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from boulders.models import BoulderProblem, Area, Sector
-from ..dataloaders import get_dataloaders
+from gql.dataloaders import get_dataloaders
 
 query = QueryType()
 problem = ObjectType("BoulderProblem")

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tick, UserList, ListEntry
+from lists.models import Tick, UserList, ListEntry
 
 
 @admin.register(Tick)

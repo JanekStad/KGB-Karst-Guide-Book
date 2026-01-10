@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import TickViewSet, UserListViewSet, ListEntryViewSet
+from lists.views import TickViewSet, UserListViewSet, ListEntryViewSet
 
 router = DefaultRouter()
 router.register(r"ticks", TickViewSet, basename="tick")
