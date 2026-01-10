@@ -54,12 +54,22 @@ dist-ssr/
 # Cursor
 .cursor/
 
-# Environment variables
+# Environment variables - ALL .env files should be ignored
 .env
+.env.*
+!.env.*.example
+!.env.example
+# Explicitly ignore all variants
 .env.local
+.env.test
+.env.prod
+.env.production
+.env.development
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging
+.env.staging.local
 
 # React Native (future)
 *.jks
