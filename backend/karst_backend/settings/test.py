@@ -78,3 +78,23 @@ LOGGING = {
         "level": "WARNING",
     },
 }
+
+# Override throttle rates for tests - use very high limits to effectively disable throttling
+# Rate limiting tests will override these with actual limits via override_settings
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,  # noqa: F405
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "1000000/hour",
+        "user": "1000000/hour",
+        "anon_burst": "1000000/hour",
+        "anon_sustained": "10000000/day",
+        "user_burst": "1000000/hour",
+        "user_sustained": "10000000/day",
+        "mutations": "1000000/hour",
+        "anon_mutations": "1000000/hour",
+        "graphql_query": "1000000/hour",
+        "graphql_mutation": "1000000/hour",
+        "graphql_query_anon": "1000000/hour",
+        "graphql_mutation_anon": "1000000/hour",
+    },
+}
