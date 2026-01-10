@@ -1,184 +1,25 @@
 """
-Django settings for karst_backend project.
+Backward compatibility shim for Django settings.
+
+This file imports from the new settings/ package structure.
+When Python imports "karst_backend.settings", it prefers this .py file over the settings/ directory.
+We use importlib to load settings/__init__.py directly to avoid circular import issues.
 """
-
+import importlib.util
+import sys
 from pathlib import Path
-from decouple import config
-import dj_database_url
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Get the path to the settings package __init__.py
+_settings_pkg_path = Path(__file__).parent / "settings" / "__init__.py"
 
+# Load the settings package module directly
+spec = importlib.util.spec_from_file_location("karst_backend.settings.package", _settings_pkg_path)
+settings_pkg = importlib.util.module_from_spec(spec)
+sys.modules["karst_backend.settings.package"] = settings_pkg  # Avoid re-import
+spec.loader.exec_module(settings_pkg)
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY", default="django-insecure-change-me-in-production")
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG", default=True, cast=bool)
-
-ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS",
-    default="localhost,127.0.0.1",
-    cast=lambda v: [s.strip() for s in v.split(",")],
-)
-
-
-# Application definition
-
-INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    "rest_framework",
-    "rest_framework.authtoken",
-    "corsheaders",
-    "django_filters",
-    "django_extensions",
-    "ariadne_django",
-    # Project apps
-    "boulders",
-    "users",
-    "comments",
-    "lists",
-    "gql",
-]
-
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # Must be after SecurityMiddleware
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "karst_backend.middleware.UTF8CharsetMiddleware",
-]
-
-ROOT_URLCONF = "karst_backend.urls"
-
-TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-            ],
-        },
-    },
-]
-
-WSGI_APPLICATION = "karst_backend.wsgi.application"
-
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-# Use PostgreSQL in production (via DATABASE_URL env var), SQLite for local dev
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
-
-
-# Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Default charset for HTTP responses
-DEFAULT_CHARSET = "utf-8"
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-
-STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# WhiteNoise configuration for static files
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#settings-default-auto-field
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# REST Framework settings
-REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
-    ],
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-    ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 21,
-    "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",
-    ],
-}
-
-# CORS settings
-# In production, set CORS_ALLOWED_ORIGINS env var with comma-separated origins
-# Example: CORS_ALLOWED_ORIGINS=https://yourfrontend.com,https://www.yourfrontend.com
-CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://localhost:3000",
-    cast=lambda v: [s.strip() for s in v.split(",")] if v else [],
-)
-
-CORS_ALLOW_CREDENTIALS = True
-
-# CSRF trusted origins for accessing from mobile devices on local network
-# Set CSRF_TRUSTED_ORIGINS env var with comma-separated origins
-# Example: CSRF_TRUSTED_ORIGINS=http://YOUR_IP_ADDRESS:5173,http://YOUR_IP_ADDRESS:8000
-CSRF_TRUSTED_ORIGINS = config(
-    "CSRF_TRUSTED_ORIGINS",
-    default=[],
-    cast=lambda v: [s.strip() for s in v.split(",")] if v else [],
-)
+# Import all public settings from the package into this module's namespace
+_this_module = sys.modules[__name__]
+for key, value in settings_pkg.__dict__.items():
+    if not key.startswith("_"):
+        setattr(_this_module, key, value)
