@@ -64,8 +64,8 @@ class RequestContext:
     """
 
     # Context variable for request context (works with async/await)
-    _context_var: contextvars.ContextVar[Optional[Dict[str, Any]]] = contextvars.ContextVar(
-        "request_context", default=None
+    _context_var: contextvars.ContextVar[Optional[Dict[str, Any]]] = (
+        contextvars.ContextVar("request_context", default=None)
     )
 
     @classmethod
@@ -87,13 +87,15 @@ class RequestContext:
             ip_address: Client IP address
             **kwargs: Additional contextual fields
         """
-        cls._context_var.set({
-            "request_id": request_id,
-            "user_id": user_id,
-            "username": username,
-            "ip_address": ip_address,
-            **kwargs,
-        })
+        cls._context_var.set(
+            {
+                "request_id": request_id,
+                "user_id": user_id,
+                "username": username,
+                "ip_address": ip_address,
+                **kwargs,
+            }
+        )
 
     @classmethod
     def get(cls) -> Optional[Dict[str, Any]]:
