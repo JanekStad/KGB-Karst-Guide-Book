@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from ariadne import graphql
 from asgiref.sync import sync_to_async
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.exceptions import Throttled
+from rest_framework.exceptions import Throttled, AuthenticationFailed
 from gql.dataloaders import get_dataloaders
 from gql.rate_limiting import check_graphql_rate_limit, is_mutation
 from karst_backend.logging_utils import log_graphql_query, log_rate_limit_exceeded
@@ -25,7 +25,7 @@ class TokenGraphQLView(GraphQLAsyncView):
             request.user = user
             # Update context with authenticated user (preserves existing request_id, ip_address from middleware)
             RequestContext.bind_user(user)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, AuthenticationFailed):
             request.user = None
             # No need to update context - RequestContextMiddleware already set user_id=None, username=None
 

@@ -21,7 +21,7 @@ Usage:
 """
 
 import logging
-import threading
+import contextvars
 import uuid
 from typing import Optional, Dict, Any
 from django.contrib.auth.models import AnonymousUser
@@ -58,12 +58,15 @@ class RequestContext:
     """
     Manages request-specific context for logging.
 
-    Uses thread-local storage to maintain context per request thread.
+    Uses contextvars (context variables) to maintain context per request,
+    which works correctly with both sync and async code.
     All context operations are class methods for easy access.
     """
 
-    # Thread-local storage for request context
-    _context = threading.local()
+    # Context variable for request context (works with async/await)
+    _context_var: contextvars.ContextVar[Optional[Dict[str, Any]]] = contextvars.ContextVar(
+        "request_context", default=None
+    )
 
     @classmethod
     def set(
@@ -75,7 +78,7 @@ class RequestContext:
         **kwargs
     ) -> None:
         """
-        Set contextual information for the current request thread.
+        Set contextual information for the current context (works in both sync and async).
 
         Args:
             request_id: Unique request ID (UUID)
@@ -84,24 +87,24 @@ class RequestContext:
             ip_address: Client IP address
             **kwargs: Additional contextual fields
         """
-        cls._context.data = {
+        cls._context_var.set({
             "request_id": request_id,
             "user_id": user_id,
             "username": username,
             "ip_address": ip_address,
             **kwargs,
-        }
+        })
 
     @classmethod
     def get(cls) -> Optional[Dict[str, Any]]:
-        """Get contextual information for the current request thread."""
-        return getattr(cls._context, "data", None)
+        """Get contextual information for the current context."""
+        return cls._context_var.get()
 
     @classmethod
     def clear(cls) -> None:
         """Clear contextual information (call at end of request)."""
-        if hasattr(cls._context, "data"):
-            delattr(cls._context, "data")
+        # Reset to default (None) by setting it explicitly
+        cls._context_var.set(None)
 
     @classmethod
     def generate_request_id(cls) -> str:

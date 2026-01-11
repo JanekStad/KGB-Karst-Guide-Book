@@ -60,7 +60,14 @@ def log_graphql_query(
 
     if errors:
         log_data["error_count"] = len(errors)
-        gql_logger.error("GraphQL query errors", extra=log_data, exc_info=True)
+        # Extract error messages for structured logging
+        # GraphQL errors are data structures, not Python exceptions, so don't use exc_info
+        error_messages = [
+            err.get("message", str(err)) if isinstance(err, dict) else str(err)
+            for err in errors
+        ]
+        log_data["error_messages"] = error_messages
+        gql_logger.error("GraphQL query errors", extra=log_data)
 
 
 def log_authentication_failure(
