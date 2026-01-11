@@ -11,7 +11,7 @@ then looks for .env files. To use .env.local, we use RepositoryEnv.
 """
 
 from pathlib import Path
-from decouple import config, Csv, RepositoryEnv
+from decouple import config, Csv, Config, RepositoryEnv
 import dj_database_url
 import os
 from .base import *  # noqa: F403, F401
@@ -26,7 +26,7 @@ env_path = BASE_DIR / ".env"
 # Use .env.local if it exists, otherwise .env, otherwise just environment variables
 # Environment variables always take precedence (Railway-compatible)
 if env_local_path.exists():
-    env_repo = RepositoryEnv(str(env_local_path))
+    env_config = Config(RepositoryEnv(str(env_local_path)))
 
     def _config(key, default=None, cast=None):
         # Environment variables take highest priority
@@ -36,18 +36,26 @@ if env_local_path.exists():
                 return cast(val)
             return val
         # Fallback to .env.local file
-        return env_repo(key, default=default, cast=cast)
+        if cast is not None:
+            return env_config(key, default=default, cast=cast)
+        else:
+            return env_config(key, default=default)
 
 elif env_path.exists():
-    env_repo = RepositoryEnv(str(env_path))
+    env_config = Config(RepositoryEnv(str(env_path)))
 
     def _config(key, default=None, cast=None):
+        # Environment variables take highest priority
         if key in os.environ:
             val = os.environ[key]
             if cast:
                 return cast(val)
             return val
-        return env_repo(key, default=default, cast=cast)
+        # Fallback to .env file
+        if cast is not None:
+            return env_config(key, default=default, cast=cast)
+        else:
+            return env_config(key, default=default)
 
 else:
     # No .env file, use standard config (reads from environment variables only)
@@ -89,3 +97,39 @@ CSRF_TRUSTED_ORIGINS = _config(
     default="http://localhost:5173,http://localhost:3000",
     cast=Csv(),
 )  # noqa: F405
+
+# Logging configuration for local development
+# Override base logging to be more verbose for debugging
+LOGGING = {
+    **LOGGING,  # noqa: F405
+    "root": {
+        "handlers": ["console"],
+        "level": _config("LOG_LEVEL", default="DEBUG"),
+    },
+    "loggers": {
+        **LOGGING.get("loggers", {}),  # noqa: F405
+        "karst_backend": {
+            "handlers": ["console"],
+            "level": _config("LOG_LEVEL", default="DEBUG"),
+            "propagate": False,
+        },
+        "gql": {
+            "handlers": ["console"],
+            "level": _config("LOG_LEVEL", default="DEBUG"),
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": _config("DB_LOG_LEVEL", default="INFO"),  # Set to DEBUG to see all SQL queries
+            "propagate": False,
+        },
+    },
+}
+
+# Disable file logging in local development (use console only)
+LOGGING["handlers"] = {
+    "console": LOGGING["handlers"]["console"],
+}
+LOGGING["root"]["handlers"] = ["console"]
+for logger_config in LOGGING["loggers"].values():
+    logger_config["handlers"] = ["console"]

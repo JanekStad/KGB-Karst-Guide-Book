@@ -84,35 +84,62 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="")
 
 # Logging configuration for production
+# Use JSON formatting for structured logs (better for log aggregators)
 LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
+    **LOGGING,  # noqa: F405 - inherit base configuration
     "root": {
-        "handlers": ["console"],
+        "handlers": ["console_prod"],
         "level": config("LOG_LEVEL", default="INFO"),
     },
     "loggers": {
+        **LOGGING.get("loggers", {}),  # noqa: F405
         "django": {
-            "handlers": ["console"],
-            "level": config("DJANGO_LOG_LEVEL", default="INFO"),
+            "handlers": ["console_prod"],
+            "level": config("DJANGO_LOG_LEVEL", default="WARNING"),
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["error_file", "console_prod"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console_prod"],
+            "level": "WARNING",  # Don't log all SQL queries in production
             "propagate": False,
         },
         "karst_backend": {
-            "handlers": ["console"],
+            "handlers": ["console_prod", "file"],
+            "level": config("LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+        "gql": {
+            "handlers": ["console_prod", "file"],
             "level": config("LOG_LEVEL", default="INFO"),
             "propagate": False,
         },
     },
 }
+
+# Optional: Sentry integration for error tracking
+# Uncomment and configure if using Sentry
+# import sentry_sdk
+# from sentry_sdk.integrations.django import DjangoIntegration
+# from sentry_sdk.integrations.logging import LoggingIntegration
+
+# sentry_logging = LoggingIntegration(
+#     level=logging.INFO,  # Capture info and above as breadcrumbs
+#     event_level=logging.ERROR,  # Send errors as events
+# )
+
+# sentry_sdk.init(
+#     dsn=config("SENTRY_DSN", default=""),
+#     integrations=[
+#         DjangoIntegration(transaction_style="url"),
+#         sentry_logging,
+#     ],
+#     traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0.1, cast=float),
+#     send_default_pii=False,  # Don't send PII by default
+#     environment=config("ENVIRONMENT", default="production"),
+#     release=config("SENTRY_RELEASE", default=None),
+# )

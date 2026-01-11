@@ -9,6 +9,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Create logs directory if it doesn't exist
+LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+
+
 ROOT_URLCONF = "karst_backend.urls"
 
 WSGI_APPLICATION = "karst_backend.wsgi.application"
@@ -41,8 +47,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "karst_backend.middleware.RequestContextMiddleware",  # Must be after AuthenticationMiddleware
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "karst_backend.middleware.RequestLoggingMiddleware",
     "karst_backend.middleware.UTF8CharsetMiddleware",
 ]
 
@@ -137,3 +145,134 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Logging Configuration
+# Base logging configuration - can be overridden in environment-specific settings
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "()": "karst_backend.formatters.ContextualFormatter",
+            "format": "{levelname:8} {asctime} [{request_id_short}] {name:25} - {message} | user={username} user_id={user_id} ip={ip_address}",
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "simple": {
+            "()": "karst_backend.formatters.ContextualFormatter",
+            "format": "{levelname:8} {asctime} [{request_id_short}] {message} | user={username} ip={ip_address}",
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "json": {
+            "()": "karst_backend.formatters.ContextualJSONFormatter",
+        },
+    },
+    "filters": {
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
+        "contextual": {
+            "()": "karst_backend.formatters.ContextualFilter",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "filters": ["require_debug_true", "contextual"],
+        },
+        "console_prod": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+            "filters": ["require_debug_false", "contextual"],
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "django.log"),
+            "maxBytes": 1024 * 1024 * 15,  # 15MB
+            "backupCount": 10,
+            "formatter": "verbose",
+            "filters": ["contextual"],
+        },
+        "error_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(LOGS_DIR / "errors.log"),
+            "maxBytes": 1024 * 1024 * 15,  # 15MB
+            "backupCount": 10,
+            "formatter": "verbose",
+            "level": "ERROR",
+            "filters": ["contextual"],
+        },
+    },
+    "root": {
+        "handlers": ["console", "console_prod"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["error_file", "console", "console_prod"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console", "console_prod"],
+            "level": "WARNING",  # Set to DEBUG to log all SQL queries
+            "propagate": False,
+        },
+        "django.db.backends.schema": {
+            "handlers": ["console", "console_prod"],
+            "level": "WARNING",  # Don't log schema operations
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["error_file", "console", "console_prod"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["console", "console_prod"],
+            "level": "WARNING",  # Only log warnings/errors - RequestLoggingMiddleware logs all requests with context
+            "propagate": False,
+        },
+        # Application-specific loggers
+        "karst_backend": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "gql": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "boulders": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "users": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "comments": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "lists": {
+            "handlers": ["console", "console_prod", "file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
