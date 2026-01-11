@@ -25,7 +25,7 @@ def log_graphql_query(
 ):
     """
     Log a GraphQL query/mutation with structured data.
-    
+
     Args:
         query_string: The GraphQL query string
         variables: Query variables (sanitized)
@@ -40,7 +40,9 @@ def log_graphql_query(
         "operation": "mutation" if is_mutation else "query",
         "operation_name": operation_name,
         "user_id": user.id if user and not isinstance(user, AnonymousUser) else None,
-        "username": user.username if user and not isinstance(user, AnonymousUser) else None,
+        "username": (
+            user.username if user and not isinstance(user, AnonymousUser) else None
+        ),
         "is_authenticated": user.is_authenticated if user else False,
         "query_length": len(query_string),
         "variables_count": len(variables) if variables else 0,
@@ -117,7 +119,9 @@ def log_slow_query(
             "query": query[:500],  # Truncate long queries
             "duration_ms": duration_ms,
             "model": model,
-            "user_id": user.id if user and not isinstance(user, AnonymousUser) else None,
+            "user_id": (
+                user.id if user and not isinstance(user, AnonymousUser) else None
+            ),
         },
     )
 
@@ -125,7 +129,9 @@ def log_slow_query(
 class QueryTimer:
     """Context manager for timing queries/operations."""
 
-    def __init__(self, operation_name: str, logger_instance: Optional[logging.Logger] = None):
+    def __init__(
+        self, operation_name: str, logger_instance: Optional[logging.Logger] = None
+    ):
         self.operation_name = operation_name
         self.logger = logger_instance or logger
         self.start_time = None

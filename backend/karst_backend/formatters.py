@@ -22,19 +22,23 @@ class ContextualFormatter(logging.Formatter):
             record.ip_address = None
         if not hasattr(record, "attempted_username"):
             record.attempted_username = None
-        
+
         # Format None values as "-" (more concise than "N/A")
         # Truncate request_id to first 8 chars for readability (full UUID is too long)
         if record.request_id and record.request_id != "-":
-            record.request_id_short = record.request_id[:8] if len(record.request_id) > 8 else record.request_id
+            record.request_id_short = (
+                record.request_id[:8]
+                if len(record.request_id) > 8
+                else record.request_id
+            )
         else:
             record.request_id_short = "-"
-        
+
         record.user_id = record.user_id if record.user_id is not None else "-"
         record.username = record.username or "-"
         record.ip_address = record.ip_address or "-"
         record.attempted_username = record.attempted_username or "-"
-        
+
         return super().format(record)
 
 
@@ -86,7 +90,7 @@ class ContextualJSONFormatter(logging.Formatter):
             "exc_text",
             "stack_info",
         }
-        
+
         for key, value in record.__dict__.items():
             if key not in excluded_fields and not key.startswith("_"):
                 log_data[key] = value
@@ -106,11 +110,12 @@ class ContextualFilter(logging.Filter):
         # Lazy import to avoid circular dependency during Django startup
         try:
             from karst_backend.contextual_logger import RequestContext
+
             context = RequestContext.get()
         except (ImportError, AttributeError):
             # If import fails (e.g., during startup), just set defaults
             context = None
-        
+
         if context:
             # Add contextual fields to record
             record.request_id = context.get("request_id")
@@ -123,5 +128,5 @@ class ContextualFilter(logging.Filter):
             record.user_id = None
             record.username = None
             record.ip_address = None
-        
+
         return True  # Always allow the record through

@@ -43,7 +43,9 @@ class TokenGraphQLView(GraphQLAsyncView):
             log_rate_limit_exceeded(
                 user=request.user,
                 endpoint="/graphql/",
-                throttle_scope="graphql_mutation" if is_mutation(query_string) else "graphql_query",
+                throttle_scope=(
+                    "graphql_mutation" if is_mutation(query_string) else "graphql_query"
+                ),
             )
             # Return rate limit error in GraphQL format
             wait_time = getattr(e, "wait", None)
@@ -107,4 +109,3 @@ class TokenGraphQLView(GraphQLAsyncView):
         )
 
         return JsonResponse(result, status=200 if success else 400)
-

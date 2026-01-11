@@ -27,14 +27,14 @@ class RequestContextMiddleware(MiddlewareMixin):
         # Generate unique request ID
         request_id = generate_request_id()
         request.request_id = request_id  # Store on request for access in views
-        
+
         # Get client IP
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
             ip_address = x_forwarded_for.split(",")[0].strip()
         else:
             ip_address = request.META.get("REMOTE_ADDR", "unknown")
-        
+
         # Get user information (may not be authenticated yet)
         user = getattr(request, "user", None)
         user_id = None
@@ -42,7 +42,7 @@ class RequestContextMiddleware(MiddlewareMixin):
         if user and hasattr(user, "is_authenticated") and user.is_authenticated:
             user_id = user.id
             username = user.username
-        
+
         # Set request context for logging
         set_request_context(
             request_id=request_id,
@@ -52,7 +52,7 @@ class RequestContextMiddleware(MiddlewareMixin):
             method=request.method,
             path=request.path,
         )
-        
+
         # Bind to contextual logger
         bind_user(user if user else None)
         bind_ip_address(ip_address)
@@ -104,7 +104,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         user = getattr(request, "user", None)
         if user and hasattr(user, "is_authenticated") and user.is_authenticated:
             bind_user(user)
-        
+
         # Calculate request duration
         duration = time.time() - getattr(request, "_start_time", time.time())
         duration_ms = duration * 1000

@@ -14,7 +14,6 @@ LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 
 
-
 ROOT_URLCONF = "karst_backend.urls"
 
 WSGI_APPLICATION = "karst_backend.wsgi.application"
