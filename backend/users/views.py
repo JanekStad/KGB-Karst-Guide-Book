@@ -13,6 +13,10 @@ from users.serializers import (
 )
 from lists.serializers import TickSerializer
 from lists.models import Tick
+from karst_backend.logging_utils import log_authentication_failure
+from karst_backend.contextual_logger import get_logger
+
+auth_logger = get_logger("karst_backend.auth")
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -110,6 +114,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         password = request.data.get("password")
 
         if not username or not password:
+            log_authentication_failure(
+                username=username,
+                reason="missing_credentials",
+            )
             return Response(
                 {"error": "Username and password are required"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -118,8 +126,21 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         user = authenticate(username=username, password=password)
         if user:
             token, created = Token.objects.get_or_create(user=user)
+            # Log successful login
+            auth_logger.info(
+                "User logged in successfully",
+                extra={
+                    "type": "auth_success",
+                    "action": "login",
+                    "token_created": created,
+                },
+            )
             return Response({"token": token.key, "user": UserSerializer(user).data})
         else:
+            log_authentication_failure(
+                username=username,
+                reason="invalid_credentials",
+            )
             return Response(
                 {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
             )
